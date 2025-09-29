@@ -5,11 +5,9 @@ using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace N6
 {
@@ -146,23 +144,21 @@ namespace N6
             }
         }
 
-        // --- Các phương thức xử lý di chuyển và nút chức năng ---
-        public const int WM_NCLBUTTONDOWN = 0xA1;
-        public const int HTCAPTION = 0x2;
-
-        [DllImport("user32.dll")]
-        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
-
-        [DllImport("user32.dll")]
-        public static extern bool ReleaseCapture();
-
-        private void panelTopBar_MouseDown(object sender, MouseEventArgs e)
+        // --- Kéo form không cần DllImport ---
+        protected override void WndProc(ref Message m)
         {
-            if (e.Button == MouseButtons.Left)
+            const int WM_NCHITTEST = 0x84;
+            const int HTCLIENT = 1;
+            const int HTCAPTION = 2;
+
+            if (m.Msg == WM_NCHITTEST)
             {
-                ReleaseCapture();
-                SendMessage(this.Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                base.WndProc(ref m);
+                if ((int)m.Result == HTCLIENT)
+                    m.Result = (IntPtr)HTCAPTION;
+                return;
             }
+            base.WndProc(ref m);
         }
 
         private void labelClose_Click(object sender, EventArgs e)
@@ -192,5 +188,68 @@ namespace N6
         private void panel2_Paint(object sender, PaintEventArgs e) { }
         private void panel3_Paint(object sender, PaintEventArgs e) { }
         private void paneluser1_Paint(object sender, PaintEventArgs e) { }
+
+        // ================== KẾT NỐI VỚI DATABASE ==================
+        private void paneluser1_Click(object sender, EventArgs e) => HandleUserPanelClick(1);
+        private void paneluser2_Click(object sender, EventArgs e) => HandleUserPanelClick(2);
+        private void paneluser3_Click(object sender, EventArgs e) => HandleUserPanelClick(3);
+        private void paneluser4_Click(object sender, EventArgs e) => HandleUserPanelClick(4);
+
+        private void HandleUserPanelClick(int panelIndex)
+        {
+            string savedUser = Properties.Settings.Default[$"User{panelIndex}"]?.ToString();
+
+            if (panelIndex == 4 || string.IsNullOrEmpty(savedUser))
+            {
+                // Nhập user + pass
+                var dlg = new LoginDialog(requireUsername: true);
+                if (dlg.ShowDialog() == DialogResult.OK)
+                {
+                    string username = dlg.Username;
+                    string password = dlg.Password;
+
+                    if (DatabaseHelper.CheckTeacherLogin(username, password))
+                    {
+                        if (panelIndex != 4)
+                        {
+                            Properties.Settings.Default[$"User{panelIndex}"] = username;
+                            Properties.Settings.Default.Save();
+                        }
+
+                        // Mở form dashboard sau khi đăng nhập thành công
+                        dashboard dash = new dashboard();
+                        dash.Show();
+                        this.Hide();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Sai tài khoản hoặc mật khẩu.");
+                    }
+                }
+                dlg.Dispose();
+            }
+            else
+            {
+                // Đã lưu user → chỉ nhập pass
+                var dlg = new LoginDialog(requireUsername: false, presetUsername: savedUser);
+                if (dlg.ShowDialog() == DialogResult.OK)
+                {
+                    string password = dlg.Password;
+
+                    if (DatabaseHelper.CheckTeacherLogin(savedUser, password))
+                    {
+                        // Mở form dashboard sau khi đăng nhập thành công
+                        dashboard dash = new dashboard();
+                        dash.Show();
+                        this.Hide();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Sai mật khẩu.");
+                    }
+                }
+                dlg.Dispose();
+            }
+        }
     }
 }

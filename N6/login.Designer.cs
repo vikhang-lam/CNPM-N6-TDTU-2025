@@ -2,15 +2,8 @@
 {
     partial class login
     {
-        /// <summary>
-        /// Required designer variable.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -22,10 +15,6 @@
 
         #region Windows Form Designer generated code
 
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
         private void InitializeComponent()
         {
             this.panelTopBar = new System.Windows.Forms.Panel();
@@ -60,7 +49,7 @@
             this.panelTopBar.Name = "panelTopBar";
             this.panelTopBar.Size = new System.Drawing.Size(1407, 50);
             this.panelTopBar.TabIndex = 0;
-            this.panelTopBar.MouseDown += new System.Windows.Forms.MouseEventHandler(this.panelTopBar_MouseDown);
+            
             // 
             // labelMaximize
             // 
@@ -182,6 +171,7 @@
             this.paneluser1.TabIndex = 0;
             this.paneluser1.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
             this.paneluser1.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
+            this.paneluser1.Click += new System.EventHandler(this.paneluser1_Click);
             // 
             // paneluser2
             // 
@@ -194,6 +184,7 @@
             this.paneluser2.TabIndex = 1;
             this.paneluser2.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
             this.paneluser2.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
+            this.paneluser2.Click += new System.EventHandler(this.paneluser2_Click);
             // 
             // paneluser3
             // 
@@ -206,6 +197,7 @@
             this.paneluser3.TabIndex = 2;
             this.paneluser3.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
             this.paneluser3.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
+            this.paneluser3.Click += new System.EventHandler(this.paneluser3_Click);
             // 
             // paneluser4
             // 
@@ -218,6 +210,7 @@
             this.paneluser4.TabIndex = 3;
             this.paneluser4.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
             this.paneluser4.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
+            this.paneluser4.Click += new System.EventHandler(this.paneluser4_Click);
             // 
             // label1
             // 
