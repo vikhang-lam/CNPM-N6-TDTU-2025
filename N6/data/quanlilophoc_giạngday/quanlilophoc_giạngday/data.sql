@@ -141,7 +141,7 @@ CREATE TABLE Minigame (
 
 -- Tạo Admin mặc định
 INSERT INTO Admin (MaAdmin, Username, Password, Email)
-VALUES ('AD001', 'admin', 'admin', 'admin@example.com');
+VALUES ('AD002', 'admin', '123456', 'admin@example.com');
 
 
 

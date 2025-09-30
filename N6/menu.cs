@@ -4,11 +4,9 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using N6.Properties;
 
 namespace N6
 {
@@ -61,6 +59,9 @@ namespace N6
             this.DoubleBuffered = true;
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.CenterScreen;
+
+            // Gán event để kéo form khi nhấn panelTopBar
+            this.panelTopBar.MouseDown += PanelTopBar_MouseDown;
         }
 
         private void dashboard_Load(object sender, EventArgs e)
@@ -119,7 +120,7 @@ namespace N6
                 }
             }
 
-            // Cập nhật lại màu sắc của các RoundedPanel và các label bên trong
+            // Cập nhật màu sắc cho các RoundedPanel và label bên trong
             foreach (var panel in panelContent.Controls.OfType<RoundedPanel>())
             {
                 panel.BackColor = theme["cellBg"];
@@ -141,7 +142,7 @@ namespace N6
                 }
             }
 
-            // Cập nhật màu sắc cho bảng chào mừng
+            // Cập nhật bảng chào mừng
             var welcomePanel = panelContent.Controls.OfType<TableLayoutPanel>().FirstOrDefault()?.Controls.OfType<Panel>().FirstOrDefault(p => p.Name == "welcomePanel");
             if (welcomePanel != null)
             {
@@ -223,7 +224,6 @@ namespace N6
             panelMenu.Controls.Clear();
             controls.ForEach(c => panelMenu.Controls.Add(c));
 
-            // Set the first button as active
             if (panelMenu.Controls.OfType<Button>().Any())
             {
                 currentActiveBtn = panelMenu.Controls.OfType<Button>().LastOrDefault();
@@ -234,14 +234,13 @@ namespace N6
         {
             panelContent.Controls.Clear();
 
-            // Sử dụng một TableLayoutPanel duy nhất để chứa tất cả nội dung
             TableLayoutPanel mainContentTable = new TableLayoutPanel();
             mainContentTable.Dock = DockStyle.Fill;
             mainContentTable.ColumnCount = 1;
             mainContentTable.RowCount = 3;
-            mainContentTable.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Hàng cho phần chào mừng
-            mainContentTable.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Hàng cho các ô thống kê
-            mainContentTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Hàng cho các ô chức năng chính
+            mainContentTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            mainContentTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            mainContentTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             mainContentTable.Padding = new Padding(40);
             panelContent.Controls.Add(mainContentTable);
 
@@ -270,7 +269,7 @@ namespace N6
             topPanel.Controls.Add(subTitle);
             mainContentTable.Controls.Add(topPanel, 0, 0);
 
-            // TableLayoutPanel cho các ô thống kê
+            // Stats Table
             TableLayoutPanel statsTable = new TableLayoutPanel();
             statsTable.Dock = DockStyle.Top;
             statsTable.Height = 150;
@@ -279,7 +278,7 @@ namespace N6
             statsTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
             statsTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
             statsTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
-            statsTable.Margin = new Padding(0, 0, 0, 20); // Thêm margin dưới
+            statsTable.Margin = new Padding(0, 0, 0, 20);
             mainContentTable.Controls.Add(statsTable, 0, 1);
 
             CreateStatsCell(statsTable, "156", "Tổng học sinh", 0);
@@ -287,7 +286,7 @@ namespace N6
             CreateStatsCell(statsTable, "92%", "Tỷ lệ có mặt", 2);
             CreateStatsCell(statsTable, "45", "Báo cáo tháng", 3);
 
-            // TableLayoutPanel cho các ô chức năng
+            // Features Table
             TableLayoutPanel mainTable = new TableLayoutPanel();
             mainTable.Dock = DockStyle.Fill;
             mainTable.ColumnCount = 4;
@@ -317,7 +316,6 @@ namespace N6
             panel.Margin = new Padding(10);
             panel.BackColor = isDarkMode ? darkModeColors["cellBg"] : lightModeColors["cellBg"];
 
-            // Sử dụng TableLayoutPanel lồng để bố cục các label
             TableLayoutPanel contentTable = new TableLayoutPanel();
             contentTable.Dock = DockStyle.Fill;
             contentTable.ColumnCount = 1;
@@ -356,13 +354,12 @@ namespace N6
             panel.Margin = new Padding(10);
             panel.BackColor = isDarkMode ? darkModeColors["cellBg"] : lightModeColors["cellBg"];
 
-            // Sử dụng TableLayoutPanel lồng để bố cục các label
             TableLayoutPanel contentTable = new TableLayoutPanel();
             contentTable.Dock = DockStyle.Fill;
             contentTable.ColumnCount = 1;
             contentTable.RowCount = 2;
-            contentTable.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Tự động co giãn theo title
-            contentTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Tự động co giãn theo description
+            contentTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            contentTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             contentTable.Padding = new Padding(15);
             contentTable.BackColor = Color.Transparent;
             panel.Controls.Add(contentTable);
@@ -384,7 +381,6 @@ namespace N6
             descLabel.Dock = DockStyle.Fill;
             descLabel.AutoSize = true;
 
-            // Thêm dòng này để giới hạn chiều rộng và tự động xuống dòng
             descLabel.MaximumSize = new Size(panel.Width - 30, 0);
             panel.Resize += (sender, e) =>
             {
@@ -423,14 +419,7 @@ namespace N6
         private void btnCollapseMenu_Click(object sender, EventArgs e)
         {
             isMenuCollapsed = !isMenuCollapsed;
-            if (isMenuCollapsed)
-            {
-                btnCollapseMenu.Text = "›";
-            }
-            else
-            {
-                btnCollapseMenu.Text = "‹";
-            }
+            btnCollapseMenu.Text = isMenuCollapsed ? "›" : "‹";
             menuToggleTimer.Start();
         }
 
@@ -468,25 +457,6 @@ namespace N6
         }
 
         // --- Các phương thức xử lý nút form ---
-
-        public const int WM_NCLBUTTONDOWN = 0xA1;
-        public const int HTCAPTION = 0x2;
-
-        [DllImport("user32.dll")]
-        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
-
-        [DllImport("user32.dll")]
-        public static extern bool ReleaseCapture();
-
-        private void panelTopBar_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                ReleaseCapture();
-                SendMessage(this.Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
-            }
-        }
-
         private void labelClose_Click(object sender, EventArgs e)
         {
             this.Close();
@@ -499,14 +469,36 @@ namespace N6
 
         private void labelMaximize_Click(object sender, EventArgs e)
         {
-            if (this.WindowState == FormWindowState.Normal)
+            this.WindowState = (this.WindowState == FormWindowState.Normal)
+                ? FormWindowState.Maximized
+                : FormWindowState.Normal;
+        }
+
+        // --- Kéo form bằng WndProc, không dùng DllImport ---
+        private void PanelTopBar_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
             {
-                this.WindowState = FormWindowState.Maximized;
+                // Gửi message giả lập drag cho Windows
+                Message msg = Message.Create(this.Handle, 0xA1, new IntPtr(2), IntPtr.Zero);
+                this.DefWndProc(ref msg);
             }
-            else
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_NCHITTEST = 0x84;
+            const int HTCLIENT = 1;
+            const int HTCAPTION = 2;
+
+            if (m.Msg == WM_NCHITTEST)
             {
-                this.WindowState = FormWindowState.Normal;
+                base.WndProc(ref m);
+                if ((int)m.Result == HTCLIENT)
+                    m.Result = (IntPtr)HTCAPTION;
+                return;
             }
+            base.WndProc(ref m);
         }
     }
 }
