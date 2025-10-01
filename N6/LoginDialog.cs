@@ -13,8 +13,8 @@ namespace N6
         public string Password =>
             (txtPassword.Text == "Nhập mật khẩu") ? "" : txtPassword.Text.Trim();
 
-        private Color usernameBorderColor = Color.LightPink;
-        private Color passwordBorderColor = Color.LightPink;
+        private Color usernameBorderColor = Color.RoyalBlue;
+        private Color passwordBorderColor = Color.RoyalBlue;
 
         public LoginDialog(bool requireUsername, string presetUsername = "", Image backgroundImage = null)
         {
@@ -29,17 +29,17 @@ namespace N6
             txtPassword.UseSystemPasswordChar = false;
 
             // Preset username
-            if (requireUsername)
+            if (!string.IsNullOrEmpty(presetUsername))
             {
-                txtUsername.ReadOnly = false;
-                txtUsername.Text = "";
-            }
-            else
-            {
-                txtUsername.ReadOnly = true;
                 txtUsername.Text = presetUsername;
                 txtUsername.ForeColor = Color.Black;
             }
+            else
+            {
+                txtUsername.Text = "Nhập tên đăng nhập";
+                txtUsername.ForeColor = Color.Gray;
+            }
+            txtUsername.ReadOnly = false;
 
             // Background optional
             if (backgroundImage != null)
@@ -48,43 +48,73 @@ namespace N6
                 pictureBoxBackground.SizeMode = PictureBoxSizeMode.CenterImage;
             }
 
-            // Events
-            txtUsername.GotFocus += (s, e) => FocusTextBox(txtUsername, pnlUsernameBorder, ref usernameBorderColor, "Nhập tên đăng nhập");
-            txtUsername.LostFocus += (s, e) => UnfocusTextBox(txtUsername, pnlUsernameBorder, ref usernameBorderColor, "Nhập tên đăng nhập");
+            // Attach handlers
+            txtUsername.GotFocus += TxtUsername_GotFocus;
+            txtUsername.LostFocus += TxtUsername_LostFocus;
 
-            txtPassword.GotFocus += (s, e) => FocusTextBox(txtPassword, pnlPasswordBorder, ref passwordBorderColor, "Nhập mật khẩu");
-            txtPassword.LostFocus += (s, e) => UnfocusTextBox(txtPassword, pnlPasswordBorder, ref passwordBorderColor, "Nhập mật khẩu");
+            txtPassword.GotFocus += TxtPassword_GotFocus;
+            txtPassword.LostFocus += TxtPassword_LostFocus;
 
             picEye.Click += TogglePassword;
 
             btnOK.Click += BtnOK_Click;
-            btnCancel.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
-            lblClose.Click += (s, e) => { this.DialogResult = DialogResult.Cancel; this.Close(); };
+            btnCancel.Click += BtnCancel_Click;
+            lblClose.Click += LblClose_Click;
 
-            pnlUsernameBorder.Paint += (s, e) => DrawBorder(e.Graphics, pnlUsernameBorder.ClientRectangle, usernameBorderColor);
-            pnlPasswordBorder.Paint += (s, e) => DrawBorder(e.Graphics, pnlPasswordBorder.ClientRectangle, passwordBorderColor);
+            pnlUsernameBorder.Paint += PnlUsernameBorder_Paint;
+            pnlPasswordBorder.Paint += PnlPasswordBorder_Paint;
 
-            this.Resize += (s, e) => SetRoundedRegion(12);
+            this.Resize += LoginDialog_Resize;
             SetRoundedRegion(12);
         }
 
         private void BtnOK_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtPassword.Text) || txtPassword.Text == "Nhập mật khẩu")
-            {
-                MessageBox.Show("Vui lòng nhập mật khẩu!",
-                    "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            if (string.IsNullOrWhiteSpace(txtUsername.Text) || txtUsername.Text == "Nhập tên đăng nhập")
+            string username = this.Username;
+            string password = this.Password;
+
+            if (string.IsNullOrWhiteSpace(username))
             {
                 MessageBox.Show("Vui lòng nhập tên đăng nhập!",
                     "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            this.DialogResult = DialogResult.OK;
-            this.Close();
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                MessageBox.Show("Vui lòng nhập mật khẩu!",
+                    "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Kiểm tra login giáo viên
+            if (DatabaseHelper.CheckTeacherLogin(username, password))
+            {
+                var profile = DatabaseHelper.GetTeacherProfile(username);
+                if (profile != null)
+                {
+                    Properties.Settings.Default["CurrentUser"] = profile.Ten;       // Lưu tên GV
+                    Properties.Settings.Default["CurrentSubject"] = profile.TenMon; // Lưu môn GV
+                    Properties.Settings.Default.Save();
+                }
+
+                this.DialogResult = DialogResult.OK;
+            }
+            else if (DatabaseHelper.CheckAdminLogin(username, password))
+            {
+                // Nếu là admin
+                Properties.Settings.Default["CurrentUser"] = "Quản trị viên";
+                Properties.Settings.Default["CurrentSubject"] = "Hệ thống";
+                Properties.Settings.Default.Save();
+
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            }
+            else
+            {
+                MessageBox.Show("Sai tên đăng nhập hoặc mật khẩu!",
+                    "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void TogglePassword(object sender, EventArgs e)
@@ -110,7 +140,7 @@ namespace N6
 
         private void FocusTextBox(TextBox tb, Panel panel, ref Color borderColor, string placeholder)
         {
-            borderColor = Color.DeepPink;
+            borderColor = Color.RoyalBlue;
             panel.Invalidate();
             if (tb.Text == placeholder && tb.ForeColor == Color.Gray)
             {
@@ -122,7 +152,7 @@ namespace N6
 
         private void UnfocusTextBox(TextBox tb, Panel panel, ref Color borderColor, string placeholder)
         {
-            borderColor = Color.LightPink;
+            borderColor = Color.Lavender;
             panel.Invalidate();
             if (string.IsNullOrWhiteSpace(tb.Text))
             {
@@ -172,8 +202,8 @@ namespace N6
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 using (LinearGradientBrush br = new LinearGradientBrush(
                     new Rectangle(0, 0, size, size),
-                    Color.FromArgb(155, 81, 224),
-                    Color.FromArgb(244, 143, 177),
+                    Color.FromArgb(120, 200, 220),   // xám xanh nhạt
+                    Color.FromArgb(120, 140, 160),
                     45f))
                 {
                     g.FillEllipse(br, 0, 0, size, size);
@@ -207,21 +237,38 @@ namespace N6
         }
         #endregion
 
-        
-        protected override void WndProc(ref Message m)
-        {
-            const int WM_NCHITTEST = 0x84;
-            const int HTCLIENT = 1;
-            const int HTCAPTION = 2;
+        // ===== Event Handlers =====
+        private void TxtUsername_GotFocus(object sender, EventArgs e) =>
+            FocusTextBox(txtUsername, pnlUsernameBorder, ref usernameBorderColor, "Nhập tên đăng nhập");
 
-            if (m.Msg == WM_NCHITTEST)
-            {
-                base.WndProc(ref m);
-                if ((int)m.Result == HTCLIENT)
-                    m.Result = (IntPtr)HTCAPTION;
-                return;
-            }
-            base.WndProc(ref m);
+        private void TxtUsername_LostFocus(object sender, EventArgs e) =>
+            UnfocusTextBox(txtUsername, pnlUsernameBorder, ref usernameBorderColor, "Nhập tên đăng nhập");
+
+        private void TxtPassword_GotFocus(object sender, EventArgs e) =>
+            FocusTextBox(txtPassword, pnlPasswordBorder, ref passwordBorderColor, "Nhập mật khẩu");
+
+        private void TxtPassword_LostFocus(object sender, EventArgs e) =>
+            UnfocusTextBox(txtPassword, pnlPasswordBorder, ref passwordBorderColor, "Nhập mật khẩu");
+
+        private void BtnCancel_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Cancel;
+            this.Close();
         }
+
+        private void LblClose_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Cancel;
+            this.Close();
+        }
+
+        private void PnlUsernameBorder_Paint(object sender, PaintEventArgs e) =>
+            DrawBorder(e.Graphics, pnlUsernameBorder.ClientRectangle, usernameBorderColor);
+
+        private void PnlPasswordBorder_Paint(object sender, PaintEventArgs e) =>
+            DrawBorder(e.Graphics, pnlPasswordBorder.ClientRectangle, passwordBorderColor);
+
+        private void LoginDialog_Resize(object sender, EventArgs e) =>
+            SetRoundedRegion(12);
     }
 }

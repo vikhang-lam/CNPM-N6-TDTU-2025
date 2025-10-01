@@ -13,25 +13,28 @@ namespace N6
 {
     public partial class login : Form
     {
+        private float baseWidth = 1407f;   // width gốc (trong Designer)
+        private float baseHeight = 782f;   // height gốc
+        private Dictionary<Control, float> baseFonts = new Dictionary<Control, float>();
+
         public login()
         {
             InitializeComponent();
             this.DoubleBuffered = true;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.None;
+            this.BackColor = Color.White; // nền trắng
+
+            this.Resize += login_Resize;   // bắt sự kiện Resize
         }
 
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            if (this.ClientRectangle.Width == 0 || this.ClientRectangle.Height == 0)
-            {
-                return;
-            }
-
+            // nền xanh pastel
             using (LinearGradientBrush brush = new LinearGradientBrush(
                 this.ClientRectangle,
-                Color.FromArgb(179, 102, 255), // Tím nhạt
-                Color.FromArgb(255, 102, 204), // Hồng
+                Color.FromArgb(185, 235, 250),
+                Color.FromArgb(120, 200, 235),
                 90f))
             {
                 e.Graphics.FillRectangle(brush, this.ClientRectangle);
@@ -62,6 +65,37 @@ namespace N6
             AddContentToPanel(paneluser2, string.IsNullOrEmpty(u2) ? "GV2" : u2);
             AddContentToPanel(paneluser3, string.IsNullOrEmpty(u3) ? "GV3" : u3);
             AddPlusSignToPanel(paneluser4);
+            StoreBaseFonts(this);
+            this.paneluser1.Resize += paneluser_Resize;
+            this.paneluser2.Resize += paneluser_Resize;
+            this.paneluser3.Resize += paneluser_Resize;
+            this.paneluser4.Resize += paneluser_Resize;
+        }
+
+        private void paneluser_Resize(object sender, EventArgs e)
+        {
+            Panel pnl = sender as Panel;
+            if (pnl == null) return;
+
+            PictureBox avatarBox = pnl.Controls.OfType<PictureBox>().FirstOrDefault(c => (string)c.Tag == "avatar");
+            Label nameLabel = pnl.Controls.OfType<Label>().FirstOrDefault(c => (string)c.Tag == "username");
+
+            if (avatarBox != null)
+            {
+                int size = Math.Min(pnl.Width, pnl.Height) / 2; // avatar chiếm nửa panel
+                avatarBox.Size = new Size(size, size);
+                avatarBox.Left = (pnl.Width - avatarBox.Width) / 2;
+                avatarBox.Top = pnl.Height / 6;
+            }
+
+            if (nameLabel != null)
+            {
+                float fontSize = Math.Max(12, pnl.Width / 12); // font theo panel width
+                nameLabel.Font = new Font("Segoe UI", fontSize, FontStyle.Bold);
+                nameLabel.AutoSize = true;
+                nameLabel.Left = (pnl.Width - nameLabel.Width) / 2;
+                nameLabel.Top = avatarBox != null ? avatarBox.Bottom + 20 : pnl.Height - nameLabel.Height - 20;
+            }
         }
 
         private void MakePanelRound(Panel panel)
@@ -79,6 +113,7 @@ namespace N6
             path.CloseAllFigures();
 
             panel.Region = new Region(path);
+            panel.BackColor = Color.White;
         }
 
         private void AddContentToPanel(Panel panel, string name, Image avatar = null)
@@ -86,35 +121,23 @@ namespace N6
             panel.Controls.Clear();
 
             PictureBox avatarBox = new PictureBox();
-            avatarBox.Size = new Size(120, 120);
-            avatarBox.Location = new Point((panel.Width - avatarBox.Width) / 2, 30);
+            avatarBox.Tag = "avatar"; // đánh dấu để Resize event tìm lại
             avatarBox.SizeMode = PictureBoxSizeMode.Zoom;
             avatarBox.BackColor = Color.Transparent;
-
-            // Nếu có avatar thì dùng, không thì tạo avatar mặc định gradient
-            if (avatar != null)
-                avatarBox.Image = avatar;
-            else
-                avatarBox.Image = MakeAvatar(); // giống hàm trong LoginDialog.cs
-
-            // bo tròn
-            using (GraphicsPath path = new GraphicsPath())
-            {
-                path.AddEllipse(0, 0, avatarBox.Width - 1, avatarBox.Height - 1);
-                avatarBox.Region = new Region(path);
-            }
+            avatarBox.Image = avatar ?? MakeAvatar();
+            panel.Controls.Add(avatarBox);
 
             Label nameLabel = new Label();
+            nameLabel.Tag = "username"; // đánh dấu
             nameLabel.Text = name;
-            nameLabel.Font = new Font("Segoe UI", 14, FontStyle.Bold);
-            nameLabel.ForeColor = Color.Black;
-            nameLabel.AutoSize = true;
+            nameLabel.ForeColor = Color.FromArgb(55, 71, 79);
             nameLabel.BackColor = Color.Transparent;
-            nameLabel.Location = new Point((panel.Width - nameLabel.Width) / 2, avatarBox.Bottom + 15);
-
-            panel.Controls.Add(avatarBox);
             panel.Controls.Add(nameLabel);
+
+            // Ép gọi Resize 1 lần để căn avatar + chữ ngay từ đầu
+            paneluser_Resize(panel, EventArgs.Empty);
         }
+
         private Bitmap MakeAvatar()
         {
             int size = 120;
@@ -124,8 +147,8 @@ namespace N6
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 using (LinearGradientBrush br = new LinearGradientBrush(
                     new Rectangle(0, 0, size, size),
-                    Color.FromArgb(155, 81, 224),
-                    Color.FromArgb(244, 143, 177),
+                    Color.FromArgb(120, 200, 220),   // xám xanh nhạt
+                    Color.FromArgb(120, 140, 160),
                     45f))
                 {
                     g.FillEllipse(br, 0, 0, size, size);
@@ -138,6 +161,7 @@ namespace N6
             }
             return bmp;
         }
+
         private void AddPlusSignToPanel(Panel panel)
         {
             panel.Controls.Clear();
@@ -145,14 +169,13 @@ namespace N6
             Label plusLabel = new Label();
             plusLabel.Text = "+";
             plusLabel.Font = new Font("Segoe UI", 60, FontStyle.Regular);
-            plusLabel.ForeColor = Color.LightGray;
+            plusLabel.ForeColor = Color.FromArgb(189, 189, 189);
             plusLabel.AutoSize = true;
             plusLabel.Location = new Point((panel.Width - plusLabel.Width) / 2, (panel.Height - plusLabel.Height) / 2 - 20);
 
             Label otherTeacherLabel = new Label();
-            otherTeacherLabel.Text = "Giáo viên khác";
             otherTeacherLabel.Font = new Font("Segoe UI", 12);
-            otherTeacherLabel.ForeColor = Color.DimGray;
+            otherTeacherLabel.ForeColor = Color.FromArgb(97, 97, 97);
             otherTeacherLabel.AutoSize = true;
             otherTeacherLabel.Location = new Point((panel.Width - otherTeacherLabel.Width) / 2, plusLabel.Bottom + 10);
 
@@ -160,13 +183,13 @@ namespace N6
             panel.Controls.Add(otherTeacherLabel);
         }
 
-        // --- Hiệu ứng nháy sáng khi di chuột ---
+        // Hover effect
         private void paneluser_MouseEnter(object sender, EventArgs e)
         {
             Panel panel = sender as Panel;
             if (panel != null)
             {
-                panel.BackColor = Color.FromArgb(240, 240, 240); // Sáng hơn
+                panel.BackColor = Color.FromArgb(245, 245, 245);
             }
         }
 
@@ -175,61 +198,81 @@ namespace N6
             Panel panel = sender as Panel;
             if (panel != null)
             {
-                panel.BackColor = Color.White; // Trả lại màu trắng ban đầu
+                panel.BackColor = Color.White;
             }
         }
 
-        // --- Kéo form không cần DllImport ---
-        protected override void WndProc(ref Message m)
-        {
-            const int WM_NCHITTEST = 0x84;
-            const int HTCLIENT = 1;
-            const int HTCAPTION = 2;
-
-            if (m.Msg == WM_NCHITTEST)
-            {
-                base.WndProc(ref m);
-                if ((int)m.Result == HTCLIENT)
-                    m.Result = (IntPtr)HTCAPTION;
-                return;
-            }
-            base.WndProc(ref m);
-        }
-
-
-        private void labelClose_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
-
-        private void labelMinimize_Click(object sender, EventArgs e)
-        {
-            this.WindowState = FormWindowState.Minimized;
-        }
-
+        private void labelClose_Click(object sender, EventArgs e) => this.Close();
+        private void labelMinimize_Click(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
         private void labelMaximize_Click(object sender, EventArgs e)
         {
-            if (this.WindowState == FormWindowState.Normal)
+            this.WindowState = this.WindowState == FormWindowState.Normal
+                ? FormWindowState.Maximized
+                : FormWindowState.Normal;
+        }
+
+        // ================== SCALE KHI RESIZE ==================
+        private void login_Resize(object sender, EventArgs e)
+        {
+            float scaleX = this.Width / baseWidth;
+            float scaleY = this.Height / baseHeight;
+            float scaleFactor = Math.Min(scaleX, scaleY);
+
+            ScaleControls(this, scaleFactor);
+        }
+
+        private void ScaleControls(Control parent, float factor)
+        {
+            foreach (Control c in parent.Controls)
             {
-                this.WindowState = FormWindowState.Maximized;
+                if (baseFonts.ContainsKey(c))
+                {
+                    float baseSize = baseFonts[c];
+                    float newSize = baseSize * factor;
+
+                    // giữ không nhỏ hơn baseSize
+                    if (newSize < baseSize)
+                        newSize = baseSize;
+
+                    c.Font = new Font(c.Font.FontFamily, newSize, c.Font.Style);
+                }
+
+                if (c.Controls.Count > 0)
+                    ScaleControls(c, factor);
             }
-            else
+        }
+        private void StoreBaseFonts(Control parent)
+        {
+            foreach (Control c in parent.Controls)
             {
-                this.WindowState = FormWindowState.Normal;
+                if (!baseFonts.ContainsKey(c))
+                    baseFonts[c] = c.Font.Size;
+
+                if (c.Controls.Count > 0)
+                    StoreBaseFonts(c);
             }
         }
 
-        private void panel1_Paint(object sender, PaintEventArgs e) { }
-        private void panel4_Paint(object sender, PaintEventArgs e) { }
-        private void panel2_Paint(object sender, PaintEventArgs e) { }
-        private void panel3_Paint(object sender, PaintEventArgs e) { }
-        private void paneluser1_Paint(object sender, PaintEventArgs e) { }
+        // ================== KẾT NỐI DATABASE ==================
+        private void paneluser1_Click(object sender, EventArgs e)
+        {
+            HandleUserPanelClick(1);
+        }
 
-        // ================== KẾT NỐI VỚI DATABASE ==================
-        private void paneluser1_Click(object sender, EventArgs e) => HandleUserPanelClick(1);
-        private void paneluser2_Click(object sender, EventArgs e) => HandleUserPanelClick(2);
-        private void paneluser3_Click(object sender, EventArgs e) => HandleUserPanelClick(3);
-        private void paneluser4_Click(object sender, EventArgs e) => HandleUserPanelClick(4);
+        private void paneluser2_Click(object sender, EventArgs e)
+        {
+            HandleUserPanelClick(2);
+        }
+
+        private void paneluser3_Click(object sender, EventArgs e)
+        {
+            HandleUserPanelClick(3);
+        }
+
+        private void paneluser4_Click(object sender, EventArgs e)
+        {
+            HandleUserPanelClick(4);
+        }
 
         private void HandleUserPanelClick(int panelIndex)
         {
@@ -255,8 +298,10 @@ namespace N6
                                     if (DatabaseHelper.CheckAdminLogin(username, password))
                                     {
                                         MenuAdmin adminForm = new MenuAdmin();
-                                        adminForm.Show();
+                                        adminForm.WindowState = this.WindowState;
                                         this.Hide();
+                                        adminForm.FormClosed += (s, args) => this.Close();
+                                        adminForm.Show();
                                     }
                                     else
                                     {
@@ -276,8 +321,10 @@ namespace N6
                                         }
 
                                         dashboard dash = new dashboard();
-                                        dash.Show();
+                                        dash.WindowState = this.WindowState;
                                         this.Hide();
+                                        dash.FormClosed += (s, args) => this.Close();
+                                        dash.Show();
                                     }
                                     else
                                     {
@@ -297,7 +344,7 @@ namespace N6
                 else
                 {
                     // Đã lưu user → chỉ nhập pass
-                    using (var dlg = new LoginDialog(requireUsername: false, presetUsername: savedUser))
+                    using (var dlg = new LoginDialog(requireUsername: true, presetUsername: savedUser))
                     {
                         if (dlg.ShowDialog() == DialogResult.OK)
                         {

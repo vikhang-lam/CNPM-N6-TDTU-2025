@@ -22,7 +22,10 @@
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null)) components.Dispose();
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
             base.Dispose(disposing);
         }
 
@@ -133,7 +136,7 @@
             this.btnOK.Location = new System.Drawing.Point(200, 310);
             this.btnOK.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnOK.FlatAppearance.BorderSize = 0;
-            this.btnOK.BackColor = System.Drawing.ColorTranslator.FromHtml("#F48FB1");
+            this.btnOK.BackColor = System.Drawing.ColorTranslator.FromHtml("#2fcaf5");
             this.btnOK.ForeColor = System.Drawing.Color.White;
 
             // LoginDialog

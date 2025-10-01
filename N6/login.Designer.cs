@@ -35,10 +35,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).BeginInit();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
-            // 
+            //
             // panelTopBar
-            // 
-            this.panelTopBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(179)))), ((int)(((byte)(102)))), ((int)(((byte)(255)))));
+            //
+            this.panelTopBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(150)))), ((int)(((byte)(200)))));
             this.panelTopBar.Controls.Add(this.labelMaximize);
             this.panelTopBar.Controls.Add(this.labelClose);
             this.panelTopBar.Controls.Add(this.labelMinimize);
@@ -49,10 +49,9 @@
             this.panelTopBar.Name = "panelTopBar";
             this.panelTopBar.Size = new System.Drawing.Size(1407, 50);
             this.panelTopBar.TabIndex = 0;
-            
-            // 
+            //
             // labelMaximize
-            // 
+            //
             this.labelMaximize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.labelMaximize.Cursor = System.Windows.Forms.Cursors.Hand;
             this.labelMaximize.Font = new System.Drawing.Font("Arial", 16.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -64,9 +63,9 @@
             this.labelMaximize.Text = "◻";
             this.labelMaximize.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.labelMaximize.Click += new System.EventHandler(this.labelMaximize_Click);
-            // 
+            //
             // labelClose
-            // 
+            //
             this.labelClose.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.labelClose.Cursor = System.Windows.Forms.Cursors.Hand;
             this.labelClose.Font = new System.Drawing.Font("Arial", 16.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -78,9 +77,9 @@
             this.labelClose.Text = "×";
             this.labelClose.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.labelClose.Click += new System.EventHandler(this.labelClose_Click);
-            // 
+            //
             // labelMinimize
-            // 
+            //
             this.labelMinimize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.labelMinimize.Cursor = System.Windows.Forms.Cursors.Hand;
             this.labelMinimize.Font = new System.Drawing.Font("Arial", 16.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -92,9 +91,9 @@
             this.labelMinimize.Text = "-";
             this.labelMinimize.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.labelMinimize.Click += new System.EventHandler(this.labelMinimize_Click);
-            // 
+            //
             // labelAppTitle
-            // 
+            //
             this.labelAppTitle.AutoSize = true;
             this.labelAppTitle.Font = new System.Drawing.Font("Segoe UI Semibold", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelAppTitle.ForeColor = System.Drawing.Color.White;
@@ -103,44 +102,44 @@
             this.labelAppTitle.Size = new System.Drawing.Size(108, 23);
             this.labelAppTitle.TabIndex = 1;
             this.labelAppTitle.Text = "EduManager";
-            // 
+            //
             // pictureBoxAppIcon
-            // 
+            //
             this.pictureBoxAppIcon.Location = new System.Drawing.Point(10, 10);
             this.pictureBoxAppIcon.Name = "pictureBoxAppIcon";
             this.pictureBoxAppIcon.Size = new System.Drawing.Size(30, 30);
             this.pictureBoxAppIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBoxAppIcon.TabIndex = 0;
             this.pictureBoxAppIcon.TabStop = false;
-            // 
+            //
             // labelGreeting
-            // 
+            //
             this.labelGreeting.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.labelGreeting.BackColor = System.Drawing.Color.Transparent;
             this.labelGreeting.Font = new System.Drawing.Font("Segoe UI", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelGreeting.ForeColor = System.Drawing.Color.White;
-            this.labelGreeting.Location = new System.Drawing.Point(0, 80);
+            this.labelGreeting.Location = new System.Drawing.Point(0, 53);
             this.labelGreeting.Name = "labelGreeting";
-            this.labelGreeting.Size = new System.Drawing.Size(1407, 50);
+            this.labelGreeting.Size = new System.Drawing.Size(1407, 73);
             this.labelGreeting.TabIndex = 2;
             this.labelGreeting.Text = "Chào mừng trở lại!";
             this.labelGreeting.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
+            //
             // labelInstruction
-            // 
+            //
             this.labelInstruction.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.labelInstruction.BackColor = System.Drawing.Color.Transparent;
             this.labelInstruction.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelInstruction.ForeColor = System.Drawing.Color.White;
-            this.labelInstruction.Location = new System.Drawing.Point(0, 140);
+            this.labelInstruction.Location = new System.Drawing.Point(0, 126);
             this.labelInstruction.Name = "labelInstruction";
-            this.labelInstruction.Size = new System.Drawing.Size(1407, 30);
+            this.labelInstruction.Size = new System.Drawing.Size(1407, 45);
             this.labelInstruction.TabIndex = 3;
             this.labelInstruction.Text = "Chọn tài khoản giáo viên để tiếp tục";
             this.labelInstruction.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
+            //
             // tableLayoutPanel1
-            // 
+            //
             this.tableLayoutPanel1.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.tableLayoutPanel1.BackColor = System.Drawing.Color.Transparent;
             this.tableLayoutPanel1.ColumnCount = 4;
@@ -159,9 +158,9 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(1111, 400);
             this.tableLayoutPanel1.TabIndex = 4;
-            // 
+            //
             // paneluser1
-            // 
+            //
             this.paneluser1.BackColor = System.Drawing.Color.White;
             this.paneluser1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneluser1.Location = new System.Drawing.Point(25, 25);
@@ -169,12 +168,12 @@
             this.paneluser1.Name = "paneluser1";
             this.paneluser1.Size = new System.Drawing.Size(242, 350);
             this.paneluser1.TabIndex = 0;
+            this.paneluser1.Click += new System.EventHandler(this.paneluser1_Click);
             this.paneluser1.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
             this.paneluser1.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
-            this.paneluser1.Click += new System.EventHandler(this.paneluser1_Click);
-            // 
+            //
             // paneluser2
-            // 
+            //
             this.paneluser2.BackColor = System.Drawing.Color.White;
             this.paneluser2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneluser2.Location = new System.Drawing.Point(297, 25);
@@ -182,12 +181,12 @@
             this.paneluser2.Name = "paneluser2";
             this.paneluser2.Size = new System.Drawing.Size(242, 350);
             this.paneluser2.TabIndex = 1;
+            this.paneluser2.Click += new System.EventHandler(this.paneluser2_Click);
             this.paneluser2.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
             this.paneluser2.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
-            this.paneluser2.Click += new System.EventHandler(this.paneluser2_Click);
-            // 
+            //
             // paneluser3
-            // 
+            //
             this.paneluser3.BackColor = System.Drawing.Color.White;
             this.paneluser3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneluser3.Location = new System.Drawing.Point(569, 25);
@@ -195,12 +194,12 @@
             this.paneluser3.Name = "paneluser3";
             this.paneluser3.Size = new System.Drawing.Size(242, 350);
             this.paneluser3.TabIndex = 2;
+            this.paneluser3.Click += new System.EventHandler(this.paneluser3_Click);
             this.paneluser3.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
             this.paneluser3.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
-            this.paneluser3.Click += new System.EventHandler(this.paneluser3_Click);
-            // 
+            //
             // paneluser4
-            // 
+            //
             this.paneluser4.BackColor = System.Drawing.Color.White;
             this.paneluser4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneluser4.Location = new System.Drawing.Point(841, 25);
@@ -208,25 +207,25 @@
             this.paneluser4.Name = "paneluser4";
             this.paneluser4.Size = new System.Drawing.Size(245, 350);
             this.paneluser4.TabIndex = 3;
+            this.paneluser4.Click += new System.EventHandler(this.paneluser4_Click);
             this.paneluser4.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
             this.paneluser4.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
-            this.paneluser4.Click += new System.EventHandler(this.paneluser4_Click);
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label1.BackColor = System.Drawing.Color.Transparent;
             this.label1.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.Color.White;
-            this.label1.Location = new System.Drawing.Point(0, 654);
+            this.label1.Location = new System.Drawing.Point(4, 668);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(1407, 30);
+            this.label1.Size = new System.Drawing.Size(1407, 46);
             this.label1.TabIndex = 5;
             this.label1.Text = "2025 EduManager - phần mềm quản lí học sinh";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
+            //
             // login
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1407, 782);

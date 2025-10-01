@@ -70,5 +70,41 @@ namespace N6.Properties {
                 this["User4"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string CurrentUser {
+            get {
+                return ((string)(this["CurrentUser"]));
+            }
+            set {
+                this["CurrentUser"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string CurrentSubject {
+            get {
+                return ((string)(this["CurrentSubject"]));
+            }
+            set {
+                this["CurrentSubject"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string CurrentUserAvatar {
+            get {
+                return ((string)(this["CurrentUserAvatar"]));
+            }
+            set {
+                this["CurrentUserAvatar"] = value;
+            }
+        }
     }
 }
