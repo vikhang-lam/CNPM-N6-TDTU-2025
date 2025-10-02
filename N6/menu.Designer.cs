@@ -29,12 +29,10 @@
             this.labelUserName = new System.Windows.Forms.Label();
             this.labelSubject = new System.Windows.Forms.Label();
             this.panelMenu = new System.Windows.Forms.Panel();
-            this.btnCollapseMenu = new System.Windows.Forms.Button();
             this.panelContent = new System.Windows.Forms.Panel();
             this.panelTopBar.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxUser)).BeginInit();
-            this.panelMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // panelTopBar
@@ -177,26 +175,11 @@
             // 
             this.panelMenu.AutoScroll = true;
             this.panelMenu.BackColor = System.Drawing.Color.White;
-            this.panelMenu.Controls.Add(this.btnCollapseMenu);
             this.panelMenu.Dock = System.Windows.Forms.DockStyle.Left;
             this.panelMenu.Location = new System.Drawing.Point(0, 50);
             this.panelMenu.Name = "panelMenu";
             this.panelMenu.Size = new System.Drawing.Size(200, 700);
             this.panelMenu.TabIndex = 1;
-            // 
-            // btnCollapseMenu
-            // 
-            this.btnCollapseMenu.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnCollapseMenu.FlatAppearance.BorderSize = 0;
-            this.btnCollapseMenu.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnCollapseMenu.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
-            this.btnCollapseMenu.ForeColor = System.Drawing.Color.Gray;
-            this.btnCollapseMenu.Location = new System.Drawing.Point(160, 0);
-            this.btnCollapseMenu.Name = "btnCollapseMenu";
-            this.btnCollapseMenu.Size = new System.Drawing.Size(40, 40);
-            this.btnCollapseMenu.TabIndex = 0;
-            this.btnCollapseMenu.Text = "‹";
-            this.btnCollapseMenu.Click += new System.EventHandler(this.btnCollapseMenu_Click);
             // 
             // panelContent
             // 
@@ -220,7 +203,6 @@
             this.panelTopBar.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxUser)).EndInit();
-            this.panelMenu.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -237,7 +219,6 @@
         private System.Windows.Forms.PictureBox pictureBoxAppIcon;
         private System.Windows.Forms.Panel panelMenu;
         private System.Windows.Forms.Panel panelContent;
-        private System.Windows.Forms.Button btnCollapseMenu;
         private System.Windows.Forms.Label labelSubject;
 
         // Mới thêm

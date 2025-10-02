@@ -183,16 +183,7 @@ namespace N6
             labelUserName.ForeColor = colors["userPanelText"];
             labelSubject.ForeColor = colors["userPanelText"];
 
-            foreach (Control c in panelMenu.Controls)
-            {
-                if (c is Button btn && btn != btnCollapseMenu)
-                {
-                    btn.ForeColor = colors["menuBtnText"];
-                    btn.FlatAppearance.MouseOverBackColor = colors["btnHover"];
-                }
-            }
-
-            btnCollapseMenu.ForeColor = colors["menuBtnText"];
+            
         }
         private void btnCollapseMenu_Click(object sender, EventArgs e) => btnToggleMenu_Click(sender, e);
         

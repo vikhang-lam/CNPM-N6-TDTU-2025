@@ -270,5 +270,20 @@ namespace N6
 
         private void LoginDialog_Resize(object sender, EventArgs e) =>
             SetRoundedRegion(12);
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                txtUsername.GotFocus -= TxtUsername_GotFocus;
+                txtUsername.LostFocus -= TxtUsername_LostFocus;
+                txtPassword.GotFocus -= TxtPassword_GotFocus;
+                txtPassword.LostFocus -= TxtPassword_LostFocus;
+                pnlUsernameBorder.Paint -= PnlUsernameBorder_Paint;
+                pnlPasswordBorder.Paint -= PnlPasswordBorder_Paint;
+                this.Resize -= LoginDialog_Resize;
+                // Detach các event khác
+            }
+            base.Dispose(disposing);
+        }
     }
 }

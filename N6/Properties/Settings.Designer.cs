@@ -106,5 +106,17 @@ namespace N6.Properties {
                 this["CurrentUserAvatar"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool isAdmin {
+            get {
+                return ((bool)(this["isAdmin"]));
+            }
+            set {
+                this["isAdmin"] = value;
+            }
+        }
     }
 }

@@ -2,7 +2,7 @@
 {
     partial class LoginDialog
     {
-        private System.ComponentModel.IContainer components = null;
+        
         private System.Windows.Forms.PictureBox pictureBoxBackground;
         private System.Windows.Forms.Label lblClose;
 
@@ -20,14 +20,7 @@
         private System.Windows.Forms.Button btnOK;
         private System.Windows.Forms.Button btnCancel;
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
+        
 
         private void InitializeComponent()
         {

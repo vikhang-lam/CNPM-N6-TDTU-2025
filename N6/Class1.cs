@@ -13,7 +13,7 @@ public static class DatabaseHelper
     private static string connectionString =
         @"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
 
-    // ✅ Đăng nhập giáo viên
+    #region Đăng nhập
     public static bool CheckTeacherLogin(string username, string password)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -24,13 +24,11 @@ public static class DatabaseHelper
             {
                 cmd.Parameters.AddWithValue("@user", username);
                 cmd.Parameters.AddWithValue("@pass", password);
-                int count = (int)cmd.ExecuteScalar();
-                return count > 0;
+                return (int)cmd.ExecuteScalar() > 0;
             }
         }
     }
 
-    // ✅ Đăng nhập admin
     public static bool CheckAdminLogin(string username, string password)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -41,13 +39,13 @@ public static class DatabaseHelper
             {
                 cmd.Parameters.AddWithValue("@user", username);
                 cmd.Parameters.AddWithValue("@pass", password);
-                int count = (int)cmd.ExecuteScalar();
-                return count > 0;
+                return (int)cmd.ExecuteScalar() > 0;
             }
         }
     }
+    #endregion
 
-    // ✅ Lấy thông tin giáo viên
+    #region Thông tin giáo viên
     public static TeacherProfile GetTeacherProfile(string username)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -58,7 +56,6 @@ public static class DatabaseHelper
                 FROM GiaoVien gv
                 LEFT JOIN MonHoc mh ON gv.MaMon = mh.MaMon
                 WHERE gv.Username = @user";
-
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
                 cmd.Parameters.AddWithValue("@user", username);
@@ -68,8 +65,8 @@ public static class DatabaseHelper
                     {
                         return new TeacherProfile
                         {
-                            Ten = r["Ten"] == DBNull.Value ? "" : r["Ten"].ToString(),
-                            TenMon = r["TenMon"] == DBNull.Value ? "Chưa có môn" : r["TenMon"].ToString()
+                            Ten = r["Ten"]?.ToString() ?? "",
+                            TenMon = r["TenMon"]?.ToString() ?? "Chưa có môn"
                         };
                     }
                 }
@@ -78,32 +75,43 @@ public static class DatabaseHelper
         return null;
     }
 
-    // ✅ Lấy lớp mà giáo viên đang phụ trách
     public static string GetLopByTeacher(string identifier)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-            string sql = @"
-            SELECT MaLop 
-            FROM GiaoVien 
-            WHERE Username=@id OR Ten=@id";
+            string sql = @"SELECT MaLop FROM GiaoVien WHERE Username=@id OR Ten=@id";
             using (SqlCommand cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.AddWithValue("@id", identifier);
                 object result = cmd.ExecuteScalar();
-                return result == null ? "" : result.ToString();
+                return result?.ToString() ?? "";
             }
         }
     }
 
+    public static string GetMonByTeacher(string identifier)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = @"SELECT MaMon FROM GiaoVien WHERE Username=@id OR Ten=@id";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", identifier);
+                object result = cmd.ExecuteScalar();
+                return result?.ToString() ?? "";
+            }
+        }
+    }
+    #endregion
 
-    // ✅ Lấy danh sách học sinh theo lớp
+    #region Học sinh
     public static DataTable GetHocSinhByLop(string maLop)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            string query = "SELECT MaHS, HoTen, GioiTinh, NgaySinh FROM HocSinh WHERE MaLop=@malop";
+            string query = "SELECT MaHS, HoTen, GioiTinh, NgaySinh, DiaChi FROM HocSinh WHERE MaLop=@malop";
             SqlDataAdapter da = new SqlDataAdapter(query, conn);
             da.SelectCommand.Parameters.AddWithValue("@malop", maLop);
             DataTable dt = new DataTable();
@@ -112,25 +120,125 @@ public static class DatabaseHelper
         }
     }
 
-    // ✅ Lưu điểm danh
+    public static DataRow GetHocSinhProfile(string maHS)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "SELECT * FROM HocSinh WHERE MaHS=@maHS";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@maHS", maHS);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+            }
+        }
+    }
+
+    public static void UpdateHocSinh(string maHS, string hoTen, string gioiTinh, DateTime? ngaySinh, string diaChi)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = @"UPDATE HocSinh SET HoTen=@HoTen, GioiTinh=@GioiTinh, NgaySinh=@NgaySinh, DiaChi=@DiaChi
+                           WHERE MaHS=@MaHS";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaHS", maHS);
+                cmd.Parameters.AddWithValue("@HoTen", hoTen ?? "");
+                cmd.Parameters.AddWithValue("@GioiTinh", gioiTinh ?? "");
+                cmd.Parameters.AddWithValue("@NgaySinh", (object)ngaySinh ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@DiaChi", diaChi ?? "");
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+    #endregion
+
+    #region Điểm danh
+    public static DataTable GetDiemDanhByLop(string maLop)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = @"
+        SELECT 
+            dd.MaDD,      -- ✅ thêm cột này
+            hs.MaHS,
+            hs.HoTen,
+            dd.NgayDD,
+            dd.Buoi,
+            dd.TrangThai
+        FROM HocSinh hs
+        LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS
+        WHERE hs.MaLop = @maLop
+        ORDER BY hs.HoTen, dd.NgayDD;";
+
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@maLop", maLop ?? string.Empty);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+
     public static void LuuDiemDanh(string maHS, string trangThai)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-            string sql = @"INSERT INTO DiemDanh(MaDD, MaHS, NgayDD, Buoi, TrangThai) 
-                           VALUES(@MaDD, @MaHS, GETDATE(), N'Sáng', @TrangThai)";
-            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            // kiểm tra đã có điểm danh hôm nay chưa
+            string check = @"SELECT COUNT(*) FROM DiemDanh WHERE MaHS=@MaHS AND CAST(NgayDD AS date)=CAST(GETDATE() AS date)";
+            using (SqlCommand cmdCheck = new SqlCommand(check, conn))
             {
-                cmd.Parameters.AddWithValue("@MaDD", Guid.NewGuid().ToString().Substring(0, 8));
-                cmd.Parameters.AddWithValue("@MaHS", maHS);
-                cmd.Parameters.AddWithValue("@TrangThai", trangThai);
-                cmd.ExecuteNonQuery();
+                cmdCheck.Parameters.AddWithValue("@MaHS", maHS);
+                int count = (int)cmdCheck.ExecuteScalar();
+                if (count > 0)
+                {
+                    string update = "UPDATE DiemDanh SET TrangThai=@TrangThai WHERE MaHS=@MaHS AND CAST(NgayDD AS date)=CAST(GETDATE() AS date)";
+                    using (SqlCommand cmdUp = new SqlCommand(update, conn))
+                    {
+                        cmdUp.Parameters.AddWithValue("@TrangThai", trangThai);
+                        cmdUp.Parameters.AddWithValue("@MaHS", maHS);
+                        cmdUp.ExecuteNonQuery();
+                    }
+                }
+                else
+                {
+                    string insert = @"INSERT INTO DiemDanh(MaDD, MaHS, NgayDD, Buoi, TrangThai) 
+                                      VALUES(@MaDD, @MaHS, GETDATE(), N'Sáng', @TrangThai)";
+                    using (SqlCommand cmdIn = new SqlCommand(insert, conn))
+                    {
+                        cmdIn.Parameters.AddWithValue("@MaDD", Guid.NewGuid().ToString().Substring(0, 8));
+                        cmdIn.Parameters.AddWithValue("@MaHS", maHS);
+                        cmdIn.Parameters.AddWithValue("@TrangThai", trangThai);
+                        cmdIn.ExecuteNonQuery();
+                    }
+                }
             }
         }
     }
 
-    // ✅ Lưu kết quả học tập
+    public static void UpdateDiemDanh(string maDD, string trangThai)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "UPDATE DiemDanh SET TrangThai=@TrangThai WHERE MaDD=@MaDD";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@TrangThai", trangThai);
+                cmd.Parameters.AddWithValue("@MaDD", maDD);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+    #endregion
+
+    #region Kết quả học tập
     public static void LuuKetQuaHocTap(string maHS, string maMon, double diem, string nhanXet = "")
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -144,24 +252,66 @@ public static class DatabaseHelper
                 cmd.Parameters.AddWithValue("@MaMon", maMon);
                 cmd.Parameters.AddWithValue("@MaHS", maHS);
                 cmd.Parameters.AddWithValue("@Diem", diem);
-                cmd.Parameters.AddWithValue("@NhanXet", nhanXet);
+                cmd.Parameters.AddWithValue("@NhanXet", nhanXet ?? "");
                 cmd.ExecuteNonQuery();
             }
         }
     }
+
+    public static void UpdateKetQuaHocTap(string maHS, string maMon, string loai, float? diem)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string check = "SELECT COUNT(*) FROM KetQuaHocTap WHERE MaHS=@MaHS AND MaMon=@MaMon AND Loai=@Loai";
+            using (SqlCommand cmdCheck = new SqlCommand(check, conn))
+            {
+                cmdCheck.Parameters.AddWithValue("@MaHS", maHS);
+                cmdCheck.Parameters.AddWithValue("@MaMon", maMon);
+                cmdCheck.Parameters.AddWithValue("@Loai", loai);
+
+                int count = (int)cmdCheck.ExecuteScalar();
+                if (count > 0)
+                {
+                    string update = "UPDATE KetQuaHocTap SET Diem=@Diem WHERE MaHS=@MaHS AND MaMon=@MaMon AND Loai=@Loai";
+                    using (SqlCommand cmdUp = new SqlCommand(update, conn))
+                    {
+                        cmdUp.Parameters.AddWithValue("@Diem", (object)diem ?? DBNull.Value);
+                        cmdUp.Parameters.AddWithValue("@MaHS", maHS);
+                        cmdUp.Parameters.AddWithValue("@MaMon", maMon);
+                        cmdUp.Parameters.AddWithValue("@Loai", loai);
+                        cmdUp.ExecuteNonQuery();
+                    }
+                }
+                else
+                {
+                    string insert = "INSERT INTO KetQuaHocTap(MaKQ, MaHS, MaMon, Loai, Diem) VALUES(@MaKQ, @MaHS, @MaMon, @Loai, @Diem)";
+                    using (SqlCommand cmdIn = new SqlCommand(insert, conn))
+                    {
+                        cmdIn.Parameters.AddWithValue("@MaKQ", Guid.NewGuid().ToString().Substring(0, 8));
+                        cmdIn.Parameters.AddWithValue("@MaHS", maHS);
+                        cmdIn.Parameters.AddWithValue("@MaMon", maMon);
+                        cmdIn.Parameters.AddWithValue("@Loai", loai);
+                        cmdIn.Parameters.AddWithValue("@Diem", (object)diem ?? DBNull.Value);
+                        cmdIn.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+    }
+
     public static DataTable GetKetQuaHocTapByLop(string maLop)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
             string sql = @"
-            SELECT hs.MaHS, hs.HoTen, mh.TenMon, kq.Diem, kq.NhanXet, kq.GhiChu, kq.Loai
-            FROM HocSinh hs
-            INNER JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
-            INNER JOIN MonHoc mh ON kq.MaMon = mh.MaMon
-            WHERE hs.MaLop = @malop
-            ORDER BY hs.MaHS, mh.MaMon";
-
+                SELECT hs.MaHS, hs.HoTen, mh.TenMon, kq.Diem, kq.NhanXet, kq.GhiChu, kq.Loai
+                FROM HocSinh hs
+                INNER JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
+                INNER JOIN MonHoc mh ON kq.MaMon = mh.MaMon
+                WHERE hs.MaLop = @malop
+                ORDER BY hs.MaHS, mh.MaMon";
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
             da.SelectCommand.Parameters.AddWithValue("@malop", maLop);
             DataTable dt = new DataTable();
@@ -169,22 +319,69 @@ public static class DatabaseHelper
             return dt;
         }
     }
-    // ✅ Lấy hồ sơ học sinh
-    public static DataRow GetHocSinhProfile(string maHS)
+
+    public static DataTable GetBangDiemPivot(string maLop, int ki, string maMon)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-            string sql = "SELECT * FROM HocSinh WHERE MaHS=@maHS";
-            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            string sql = "";
+            if (ki == 1)
             {
-                cmd.Parameters.AddWithValue("@maHS", maHS);
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                if (dt.Rows.Count > 0) return dt.Rows[0];
-                return null;
+                sql = @"
+                    SELECT 
+                        hs.MaHS, hs.HoTen,
+                        MAX(CASE WHEN kq.Loai = 'Thang1_Ki1' THEN kq.Diem END) AS Thang1,
+                        MAX(CASE WHEN kq.Loai = 'Thang2_Ki1' THEN kq.Diem END) AS Thang2,
+                        MAX(CASE WHEN kq.Loai = 'Thang3_Ki1' THEN kq.Diem END) AS Thang3,
+                        MAX(CASE WHEN kq.Loai = 'GiuaKi1' THEN kq.Diem END) AS GiuaKi,
+                        MAX(CASE WHEN kq.Loai = 'CuoiKi1' THEN kq.Diem END) AS CuoiKi,
+                        MAX(CASE WHEN kq.Loai LIKE '%Ki1%' THEN kq.NhanXet END) AS NhanXet,
+                        MAX(CASE WHEN kq.Loai LIKE '%Ki1%' THEN kq.GhiChu END) AS GhiChu
+                    FROM HocSinh hs
+                    LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND kq.MaMon = @maMon
+                    WHERE hs.MaLop = @malop
+                    GROUP BY hs.MaHS, hs.HoTen
+                    ORDER BY hs.HoTen";
+            }
+            else
+            {
+                sql = @"
+                    SELECT 
+                        hs.MaHS, hs.HoTen,
+                        MAX(CASE WHEN kq.Loai = 'Thang1_Ki2' THEN kq.Diem END) AS Thang1,
+                        MAX(CASE WHEN kq.Loai = 'Thang2_Ki2' THEN kq.Diem END) AS Thang2,
+                        MAX(CASE WHEN kq.Loai = 'Thang3_Ki2' THEN kq.Diem END) AS Thang3,
+                        MAX(CASE WHEN kq.Loai = 'GiuaKi2' THEN kq.Diem END) AS GiuaKi,
+                        MAX(CASE WHEN kq.Loai = 'CuoiKi2' THEN kq.Diem END) AS CuoiKi,
+                        MAX(CASE WHEN kq.Loai LIKE '%Ki2%' THEN kq.NhanXet END) AS NhanXet,
+                        MAX(CASE WHEN kq.Loai LIKE '%Ki2%' THEN kq.GhiChu END) AS GhiChu
+                    FROM HocSinh hs
+                    LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND kq.MaMon = @maMon
+                    WHERE hs.MaLop = @malop
+                    GROUP BY hs.MaHS, hs.HoTen
+                    ORDER BY hs.HoTen";
+            }
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@malop", maLop);
+            da.SelectCommand.Parameters.AddWithValue("@maMon", maMon);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+    public static void ExecTaoDiemDanhMacDinh(string maLop)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            using (SqlCommand cmd = new SqlCommand("sp_TaoDiemDanhMacDinh", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@MaLop", maLop);
+                cmd.ExecuteNonQuery();
             }
         }
     }
+    #endregion
 }

@@ -1,9 +1,6 @@
-﻿USE quanlilophoc_giangday;
+﻿
+USE quanlilophoc_giangday;
 GO
-
---------------------------------------------------
--- XÓA BẢNG NẾU TỒN TẠI (để chạy nhiều lần không lỗi)
---------------------------------------------------
 
 
 --------------------------------------------------
@@ -95,7 +92,7 @@ CREATE TABLE KetQuaHocTap (
     NgayNhap DATE,
     NhanXet NVARCHAR(200),
     GhiChu NVARCHAR(200),
-    Loai NVARCHAR(20),
+    Loai NVARCHAR(20),   -- Thang1_Ki1, GiuaKi1, CuoiKi1, ...
     Diem FLOAT,
     FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon),
     FOREIGN KEY (MaHS) REFERENCES HocSinh(MaHS)
@@ -209,7 +206,7 @@ VALUES
 --------------------------------------------------
 IF OBJECT_ID('sp_TaoDiemDanhMacDinh', 'P') IS NOT NULL DROP PROCEDURE sp_TaoDiemDanhMacDinh;
 GO
-CREATE PROCEDURE sp_TaoDiemDanhMacDinh
+CREATE PROCEDURE sp_TaoDiemDanhMacDinh @MaLop VARCHAR(10)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -218,12 +215,14 @@ BEGIN
     INSERT INTO DiemDanh (MaDD, MaHS, NgayDD, Buoi, TrangThai)
     SELECT LEFT(NEWID(), 8), hs.MaHS, @today, N'Sáng', N'Có mặt'
     FROM HocSinh hs
-    WHERE NOT EXISTS (
+    WHERE hs.MaLop = @MaLop
+    AND NOT EXISTS (
         SELECT 1 FROM DiemDanh dd
         WHERE dd.MaHS = hs.MaHS AND dd.NgayDD = @today
     );
 END;
 GO
+
 
 --------------------------------------------------
 -- TRIGGER: KHI THÊM HỌC SINH MỚI THÌ TỰ TẠO ĐIỂM DANH HÔM NAY
@@ -245,13 +244,8 @@ END;
 GO
 
 --------------------------------------------------
--- TEST
+-- PROCEDURE: TẠO KẾT QUẢ HỌC TẬP MẶC ĐỊNH (theo loại điểm)
 --------------------------------------------------
--- Gọi procedure để tạo điểm danh hôm nay
-EXEC sp_TaoDiemDanhMacDinh;
-
--- Xem kết quả
-SELECT * FROM DiemDanh ORDER BY MaHS, NgayDD;
 IF OBJECT_ID('sp_TaoKetQuaHocTapMacDinh', 'P') IS NOT NULL DROP PROCEDURE sp_TaoKetQuaHocTapMacDinh;
 GO
 CREATE PROCEDURE sp_TaoKetQuaHocTapMacDinh
@@ -259,23 +253,26 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Tạo kết quả học tập mặc định cho từng học sinh - từng môn
+    DECLARE @loai TABLE (Loai NVARCHAR(20));
+    INSERT INTO @loai VALUES 
+    (N'Thang1_Ki1'),(N'Thang2_Ki1'),(N'GiuaKi1'),(N'CuoiKi1'),
+    (N'Thang1_Ki2'),(N'Thang2_Ki2'),(N'GiuaKi2'),(N'CuoiKi2');
+
     INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, NhanXet, GhiChu, Loai, Diem)
-    SELECT 
-        LEFT(NEWID(), 8),  -- random mã
-        m.MaMon,
-        hs.MaHS,
-        GETDATE(),
-        NULL, NULL, NULL, NULL
+    SELECT LEFT(NEWID(), 8), m.MaMon, hs.MaHS, GETDATE(), NULL, NULL, l.Loai, NULL
     FROM HocSinh hs
     CROSS JOIN MonHoc m
+    CROSS JOIN @loai l
     WHERE NOT EXISTS (
-        SELECT 1 
-        FROM KetQuaHocTap kq 
-        WHERE kq.MaHS = hs.MaHS AND kq.MaMon = m.MaMon
+        SELECT 1 FROM KetQuaHocTap kq 
+        WHERE kq.MaHS = hs.MaHS AND kq.MaMon = m.MaMon AND kq.Loai = l.Loai
     );
 END;
 GO
+
+--------------------------------------------------
+-- TRIGGER: KHI THÊM HỌC SINH MỚI THÌ TỰ TẠO KẾT QUẢ HỌC TẬP MẶC ĐỊNH
+--------------------------------------------------
 IF OBJECT_ID('trg_TaoKetQuaHocTapHocSinhMoi', 'TR') IS NOT NULL DROP TRIGGER trg_TaoKetQuaHocTapHocSinhMoi;
 GO
 CREATE TRIGGER trg_TaoKetQuaHocTapHocSinhMoi
@@ -284,16 +281,25 @@ AFTER INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
+    DECLARE @loai TABLE (Loai NVARCHAR(20));
+    INSERT INTO @loai VALUES 
+    (N'Thang1_Ki1'),(N'Thang2_Ki1'),(N'GiuaKi1'),(N'CuoiKi1'),
+    (N'Thang1_Ki2'),(N'Thang2_Ki2'),(N'GiuaKi2'),(N'CuoiKi2');
 
     INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, NhanXet, GhiChu, Loai, Diem)
-    SELECT 
-        LEFT(NEWID(), 8),
-        m.MaMon,
-        i.MaHS,
-        GETDATE(),
-        NULL, NULL, NULL, NULL
+    SELECT LEFT(NEWID(), 8), m.MaMon, i.MaHS, GETDATE(), NULL, NULL, l.Loai, NULL
     FROM INSERTED i
-    CROSS JOIN MonHoc m;
+    CROSS JOIN MonHoc m
+    CROSS JOIN @loai l;
 END;
 GO
+
+--------------------------------------------------
+-- KHỞI TẠO DỮ LIỆU MẶC ĐỊNH
+--------------------------------------------------
+EXEC sp_TaoDiemDanhMacDinh;
 EXEC sp_TaoKetQuaHocTapMacDinh;
+
+-- Kiểm tra
+SELECT * FROM DiemDanh;
+SELECT * FROM KetQuaHocTap;

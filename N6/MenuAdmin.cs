@@ -63,11 +63,7 @@ namespace N6
 
             foreach (Control c in panelMenu.Controls)
             {
-                if (c is Button btn && btn != btnCollapseMenu)
-                {
-                    btn.ForeColor = colors["menuBtnText"];
-                    btn.FlatAppearance.MouseOverBackColor = colors["btnHover"];
-                }
+                
                 if (c is Panel p)
                 {
                     foreach (Control child in p.Controls)
@@ -77,7 +73,7 @@ namespace N6
                 }
             }
 
-            btnCollapseMenu.ForeColor = colors["menuBtnText"];
+            
         }
 
         private void CreateUserProfileSection()

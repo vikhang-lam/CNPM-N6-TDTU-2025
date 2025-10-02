@@ -40,7 +40,16 @@ namespace N6
                 e.Graphics.FillRectangle(brush, this.ClientRectangle);
             }
         }
-
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            this.Resize -= login_Resize;
+            paneluser1.Resize -= paneluser_Resize;
+            paneluser2.Resize -= paneluser_Resize;
+            paneluser3.Resize -= paneluser_Resize;
+            paneluser4.Resize -= paneluser_Resize;
+            // Detach các event khác nếu có (MouseEnter/Leave, etc.)
+            base.OnFormClosing(e);
+        }
         private void login_Load(object sender, EventArgs e)
         {
             paneluser1.BorderStyle = BorderStyle.None;
@@ -75,6 +84,7 @@ namespace N6
         private void paneluser_Resize(object sender, EventArgs e)
         {
             Panel pnl = sender as Panel;
+            if (pnl == null || pnl.IsDisposed || pnl.Width <= 0 || pnl.Height <= 0) return;
             if (pnl == null) return;
 
             PictureBox avatarBox = pnl.Controls.OfType<PictureBox>().FirstOrDefault(c => (string)c.Tag == "avatar");
@@ -214,11 +224,14 @@ namespace N6
         // ================== SCALE KHI RESIZE ==================
         private void login_Resize(object sender, EventArgs e)
         {
+            if (this.IsDisposed || this.Width <= 0 || this.Height <= 0 || baseFonts.Count == 0) return;
+            this.SuspendLayout();
             float scaleX = this.Width / baseWidth;
             float scaleY = this.Height / baseHeight;
             float scaleFactor = Math.Min(scaleX, scaleY);
 
             ScaleControls(this, scaleFactor);
+            this.ResumeLayout();
         }
 
         private void ScaleControls(Control parent, float factor)
@@ -297,11 +310,11 @@ namespace N6
                                     // --- Kiểm tra admin ---
                                     if (DatabaseHelper.CheckAdminLogin(username, password))
                                     {
-                                        MenuAdmin adminForm = new MenuAdmin();
-                                        adminForm.WindowState = this.WindowState;
-                                        this.Hide();
-                                        adminForm.FormClosed += (s, args) => this.Close();
-                                        adminForm.Show();
+                                        // Lưu trạng thái nếu cần
+                                        this.DialogResult = DialogResult.OK;
+                                        Properties.Settings.Default.isAdmin = true;
+                                        Properties.Settings.Default.Save();
+                                        this.Close();  // Close login, app sẽ run MenuAdmin từ Program.cs
                                     }
                                     else
                                     {
@@ -320,11 +333,11 @@ namespace N6
                                             Properties.Settings.Default.Save();
                                         }
 
-                                        dashboard dash = new dashboard();
-                                        dash.WindowState = this.WindowState;
-                                        this.Hide();
-                                        dash.FormClosed += (s, args) => this.Close();
-                                        dash.Show();
+                                        // Lưu trạng thái nếu cần
+                                        this.DialogResult = DialogResult.OK;
+                                        Properties.Settings.Default.isAdmin = false;
+                                        Properties.Settings.Default.Save();
+                                        this.Close();  // Close login, app sẽ run dashboard từ Program.cs
                                     }
                                     else
                                     {
@@ -357,9 +370,11 @@ namespace N6
                                 {
                                     if (DatabaseHelper.CheckAdminLogin(username, password))
                                     {
-                                        MenuAdmin adminForm = new MenuAdmin();
-                                        adminForm.Show();
-                                        this.Hide();
+                                        // Lưu trạng thái nếu cần
+                                        this.DialogResult = DialogResult.OK;
+                                        Properties.Settings.Default.isAdmin = true;
+                                        Properties.Settings.Default.Save();
+                                        this.Close();  // Close login, app sẽ run MenuAdmin từ Program.cs
                                     }
                                     else
                                     {
@@ -371,9 +386,11 @@ namespace N6
                                 {
                                     if (DatabaseHelper.CheckTeacherLogin(username, password))
                                     {
-                                        dashboard dash = new dashboard();
-                                        dash.Show();
-                                        this.Hide();
+                                        // Lưu trạng thái nếu cần
+                                        this.DialogResult = DialogResult.OK;
+                                        Properties.Settings.Default.isAdmin = false;
+                                        Properties.Settings.Default.Save();
+                                        this.Close();  // Close login, app sẽ run dashboard từ Program.cs
                                     }
                                     else
                                     {
