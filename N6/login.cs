@@ -290,36 +290,52 @@ namespace N6
                     {
                         if (dlg.ShowDialog() == DialogResult.OK)
                         {
-                            string username = savedUser.Trim();
-                            string password = dlg.Password?.Trim();
+                            string enteredUser = dlg.Username?.Trim();
+                            string enteredPass = dlg.Password?.Trim();
 
-                            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
+                            if (string.IsNullOrEmpty(enteredUser)) return;
+
+                            try
                             {
-                                if (DatabaseHelper.CheckAdminLogin(username, password))
+                                if (enteredUser.Equals("admin", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    this.DialogResult = DialogResult.OK;
-                                    Properties.Settings.Default.isAdmin = true;
-                                    Properties.Settings.Default.Save();
-                                    this.Close();
+                                    if (DatabaseHelper.CheckAdminLogin(enteredUser, enteredPass))
+                                    {
+                                        this.DialogResult = DialogResult.OK;
+                                        Properties.Settings.Default.isAdmin = true;
+                                        Properties.Settings.Default.Save();
+                                        this.Close();
+                                    }
+                                    else
+                                    {
+                                        MessageBox.Show("Sai tài khoản hoặc mật khẩu admin.");
+                                    }
                                 }
                                 else
                                 {
-                                    MessageBox.Show("Sai mật khẩu admin.");
+                                    if (DatabaseHelper.CheckTeacherLogin(enteredUser, enteredPass))
+                                    {
+                                        // nếu user nhập khác với savedUser thì update lại slot
+                                        if (!enteredUser.Equals(savedUser, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            Properties.Settings.Default[$"User{panelIndex}"] = enteredUser;
+                                            Properties.Settings.Default.Save();
+                                        }
+
+                                        this.DialogResult = DialogResult.OK;
+                                        Properties.Settings.Default.isAdmin = false;
+                                        Properties.Settings.Default.Save();
+                                        this.Close();
+                                    }
+                                    else
+                                    {
+                                        MessageBox.Show("Sai tài khoản hoặc mật khẩu giáo viên.");
+                                    }
                                 }
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                if (DatabaseHelper.CheckTeacherLogin(username, password))
-                                {
-                                    this.DialogResult = DialogResult.OK;
-                                    Properties.Settings.Default.isAdmin = false;
-                                    Properties.Settings.Default.Save();
-                                    this.Close();
-                                }
-                                else
-                                {
-                                    MessageBox.Show("Sai mật khẩu giáo viên.");
-                                }
+                                MessageBox.Show("Lỗi khi đăng nhập: " + ex.Message);
                             }
                         }
                     }
