@@ -1,20 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace N6
 {
     public partial class login : Form
     {
-        private float baseWidth = 1407f;   // width gốc (trong Designer)
-        private float baseHeight = 782f;   // height gốc
+        private float baseWidth = 1407f;
+        private float baseHeight = 782f;
         private Dictionary<Control, float> baseFonts = new Dictionary<Control, float>();
 
         public login()
@@ -23,14 +19,13 @@ namespace N6
             this.DoubleBuffered = true;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.None;
-            this.BackColor = Color.White; // nền trắng
+            this.BackColor = Color.White;
 
-            this.Resize += login_Resize;   // bắt sự kiện Resize
+            this.Resize += login_Resize;
         }
 
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            // nền xanh pastel
             using (LinearGradientBrush brush = new LinearGradientBrush(
                 this.ClientRectangle,
                 Color.FromArgb(185, 235, 250),
@@ -40,16 +35,7 @@ namespace N6
                 e.Graphics.FillRectangle(brush, this.ClientRectangle);
             }
         }
-        protected override void OnFormClosing(FormClosingEventArgs e)
-        {
-            this.Resize -= login_Resize;
-            paneluser1.Resize -= paneluser_Resize;
-            paneluser2.Resize -= paneluser_Resize;
-            paneluser3.Resize -= paneluser_Resize;
-            paneluser4.Resize -= paneluser_Resize;
-            // Detach các event khác nếu có (MouseEnter/Leave, etc.)
-            base.OnFormClosing(e);
-        }
+
         private void login_Load(object sender, EventArgs e)
         {
             paneluser1.BorderStyle = BorderStyle.None;
@@ -65,7 +51,6 @@ namespace N6
             MakePanelRound(paneluser3);
             MakePanelRound(paneluser4);
 
-            // Lấy user đã lưu
             string u1 = Properties.Settings.Default["User1"]?.ToString();
             string u2 = Properties.Settings.Default["User2"]?.ToString();
             string u3 = Properties.Settings.Default["User3"]?.ToString();
@@ -75,6 +60,7 @@ namespace N6
             AddContentToPanel(paneluser3, string.IsNullOrEmpty(u3) ? "GV3" : u3);
             AddPlusSignToPanel(paneluser4);
             StoreBaseFonts(this);
+
             this.paneluser1.Resize += paneluser_Resize;
             this.paneluser2.Resize += paneluser_Resize;
             this.paneluser3.Resize += paneluser_Resize;
@@ -85,14 +71,13 @@ namespace N6
         {
             Panel pnl = sender as Panel;
             if (pnl == null || pnl.IsDisposed || pnl.Width <= 0 || pnl.Height <= 0) return;
-            if (pnl == null) return;
 
             PictureBox avatarBox = pnl.Controls.OfType<PictureBox>().FirstOrDefault(c => (string)c.Tag == "avatar");
             Label nameLabel = pnl.Controls.OfType<Label>().FirstOrDefault(c => (string)c.Tag == "username");
 
             if (avatarBox != null)
             {
-                int size = Math.Min(pnl.Width, pnl.Height) / 2; // avatar chiếm nửa panel
+                int size = Math.Min(pnl.Width, pnl.Height) / 2;
                 avatarBox.Size = new Size(size, size);
                 avatarBox.Left = (pnl.Width - avatarBox.Width) / 2;
                 avatarBox.Top = pnl.Height / 6;
@@ -100,7 +85,7 @@ namespace N6
 
             if (nameLabel != null)
             {
-                float fontSize = Math.Max(12, pnl.Width / 12); // font theo panel width
+                float fontSize = Math.Max(12, pnl.Width / 12);
                 nameLabel.Font = new Font("Segoe UI", fontSize, FontStyle.Bold);
                 nameLabel.AutoSize = true;
                 nameLabel.Left = (pnl.Width - nameLabel.Width) / 2;
@@ -110,8 +95,7 @@ namespace N6
 
         private void MakePanelRound(Panel panel)
         {
-            if (panel.Width <= 0 || panel.Height <= 0)
-                return;
+            if (panel.Width <= 0 || panel.Height <= 0) return;
 
             GraphicsPath path = new GraphicsPath();
             int cornerRadius = 30;
@@ -131,20 +115,19 @@ namespace N6
             panel.Controls.Clear();
 
             PictureBox avatarBox = new PictureBox();
-            avatarBox.Tag = "avatar"; // đánh dấu để Resize event tìm lại
+            avatarBox.Tag = "avatar";
             avatarBox.SizeMode = PictureBoxSizeMode.Zoom;
             avatarBox.BackColor = Color.Transparent;
             avatarBox.Image = avatar ?? MakeAvatar();
             panel.Controls.Add(avatarBox);
 
             Label nameLabel = new Label();
-            nameLabel.Tag = "username"; // đánh dấu
+            nameLabel.Tag = "username";
             nameLabel.Text = name;
             nameLabel.ForeColor = Color.FromArgb(55, 71, 79);
             nameLabel.BackColor = Color.Transparent;
             panel.Controls.Add(nameLabel);
 
-            // Ép gọi Resize 1 lần để căn avatar + chữ ngay từ đầu
             paneluser_Resize(panel, EventArgs.Empty);
         }
 
@@ -154,10 +137,10 @@ namespace N6
             Bitmap bmp = new Bitmap(size, size);
             using (Graphics g = Graphics.FromImage(bmp))
             {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 using (LinearGradientBrush br = new LinearGradientBrush(
                     new Rectangle(0, 0, size, size),
-                    Color.FromArgb(120, 200, 220),   // xám xanh nhạt
+                    Color.FromArgb(120, 200, 220),
                     Color.FromArgb(120, 140, 160),
                     45f))
                 {
@@ -193,35 +176,13 @@ namespace N6
             panel.Controls.Add(otherTeacherLabel);
         }
 
-        // Hover effect
-        private void paneluser_MouseEnter(object sender, EventArgs e)
-        {
-            Panel panel = sender as Panel;
-            if (panel != null)
-            {
-                panel.BackColor = Color.FromArgb(245, 245, 245);
-            }
-        }
-
-        private void paneluser_MouseLeave(object sender, EventArgs e)
-        {
-            Panel panel = sender as Panel;
-            if (panel != null)
-            {
-                panel.BackColor = Color.White;
-            }
-        }
-
         private void labelClose_Click(object sender, EventArgs e) => this.Close();
         private void labelMinimize_Click(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
-        private void labelMaximize_Click(object sender, EventArgs e)
-        {
+        private void labelMaximize_Click(object sender, EventArgs e) =>
             this.WindowState = this.WindowState == FormWindowState.Normal
                 ? FormWindowState.Maximized
                 : FormWindowState.Normal;
-        }
 
-        // ================== SCALE KHI RESIZE ==================
         private void login_Resize(object sender, EventArgs e)
         {
             if (this.IsDisposed || this.Width <= 0 || this.Height <= 0 || baseFonts.Count == 0) return;
@@ -243,7 +204,6 @@ namespace N6
                     float baseSize = baseFonts[c];
                     float newSize = baseSize * factor;
 
-                    // giữ không nhỏ hơn baseSize
                     if (newSize < baseSize)
                         newSize = baseSize;
 
@@ -254,6 +214,7 @@ namespace N6
                     ScaleControls(c, factor);
             }
         }
+
         private void StoreBaseFonts(Control parent)
         {
             foreach (Control c in parent.Controls)
@@ -266,26 +227,11 @@ namespace N6
             }
         }
 
-        // ================== KẾT NỐI DATABASE ==================
-        private void paneluser1_Click(object sender, EventArgs e)
-        {
-            HandleUserPanelClick(1);
-        }
-
-        private void paneluser2_Click(object sender, EventArgs e)
-        {
-            HandleUserPanelClick(2);
-        }
-
-        private void paneluser3_Click(object sender, EventArgs e)
-        {
-            HandleUserPanelClick(3);
-        }
-
-        private void paneluser4_Click(object sender, EventArgs e)
-        {
-            HandleUserPanelClick(4);
-        }
+        // ================== LOGIN ==================
+        private void paneluser1_Click(object sender, EventArgs e) => HandleUserPanelClick(1);
+        private void paneluser2_Click(object sender, EventArgs e) => HandleUserPanelClick(2);
+        private void paneluser3_Click(object sender, EventArgs e) => HandleUserPanelClick(3);
+        private void paneluser4_Click(object sender, EventArgs e) => HandleUserPanelClick(4);
 
         private void HandleUserPanelClick(int panelIndex)
         {
@@ -295,7 +241,6 @@ namespace N6
 
                 if (panelIndex == 4 || string.IsNullOrEmpty(savedUser))
                 {
-                    // Nhập user + pass
                     using (var dlg = new LoginDialog(requireUsername: true))
                     {
                         if (dlg.ShowDialog() == DialogResult.OK)
@@ -303,60 +248,44 @@ namespace N6
                             string username = dlg.Username?.Trim();
                             string password = dlg.Password?.Trim();
 
-                            try
+                            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
                             {
-                                if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
+                                if (DatabaseHelper.CheckAdminLogin(username, password))
                                 {
-                                    // --- Kiểm tra admin ---
-                                    if (DatabaseHelper.CheckAdminLogin(username, password))
-                                    {
-                                        // Lưu trạng thái nếu cần
-                                        this.DialogResult = DialogResult.OK;
-                                        Properties.Settings.Default.isAdmin = true;
-                                        Properties.Settings.Default.Save();
-                                        this.Close();  // Close login, app sẽ run MenuAdmin từ Program.cs
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("Sai tài khoản hoặc mật khẩu admin.",
-                                            "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                                    }
+                                    this.DialogResult = DialogResult.OK;
+                                    Properties.Settings.Default.isAdmin = true;
+                                    Properties.Settings.Default.Save();
+                                    this.Close();
                                 }
                                 else
                                 {
-                                    // --- Kiểm tra giáo viên ---
-                                    if (DatabaseHelper.CheckTeacherLogin(username, password))
-                                    {
-                                        if (panelIndex != 4)
-                                        {
-                                            Properties.Settings.Default[$"User{panelIndex}"] = username;
-                                            Properties.Settings.Default.Save();
-                                        }
-
-                                        // Lưu trạng thái nếu cần
-                                        this.DialogResult = DialogResult.OK;
-                                        Properties.Settings.Default.isAdmin = false;
-                                        Properties.Settings.Default.Save();
-                                        this.Close();  // Close login, app sẽ run dashboard từ Program.cs
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("Sai tài khoản hoặc mật khẩu giáo viên.",
-                                            "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                                    }
+                                    MessageBox.Show("Sai tài khoản hoặc mật khẩu admin.");
                                 }
                             }
-                            catch (Exception ex)
+                            else
                             {
-                                MessageBox.Show("Lỗi khi kiểm tra tài khoản: " + ex.Message,
-                                    "Lỗi hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                if (DatabaseHelper.CheckTeacherLogin(username, password))
+                                {
+                                    if (panelIndex != 4)
+                                    {
+                                        Properties.Settings.Default[$"User{panelIndex}"] = username;
+                                        Properties.Settings.Default.Save();
+                                    }
+                                    this.DialogResult = DialogResult.OK;
+                                    Properties.Settings.Default.isAdmin = false;
+                                    Properties.Settings.Default.Save();
+                                    this.Close();
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Sai tài khoản hoặc mật khẩu giáo viên.");
+                                }
                             }
                         }
                     }
                 }
                 else
                 {
-                    // Đã lưu user → chỉ nhập pass
                     using (var dlg = new LoginDialog(requireUsername: true, presetUsername: savedUser))
                     {
                         if (dlg.ShowDialog() == DialogResult.OK)
@@ -364,45 +293,33 @@ namespace N6
                             string username = savedUser.Trim();
                             string password = dlg.Password?.Trim();
 
-                            try
+                            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
                             {
-                                if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
+                                if (DatabaseHelper.CheckAdminLogin(username, password))
                                 {
-                                    if (DatabaseHelper.CheckAdminLogin(username, password))
-                                    {
-                                        // Lưu trạng thái nếu cần
-                                        this.DialogResult = DialogResult.OK;
-                                        Properties.Settings.Default.isAdmin = true;
-                                        Properties.Settings.Default.Save();
-                                        this.Close();  // Close login, app sẽ run MenuAdmin từ Program.cs
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("Sai mật khẩu admin.",
-                                            "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                                    }
+                                    this.DialogResult = DialogResult.OK;
+                                    Properties.Settings.Default.isAdmin = true;
+                                    Properties.Settings.Default.Save();
+                                    this.Close();
                                 }
                                 else
                                 {
-                                    if (DatabaseHelper.CheckTeacherLogin(username, password))
-                                    {
-                                        // Lưu trạng thái nếu cần
-                                        this.DialogResult = DialogResult.OK;
-                                        Properties.Settings.Default.isAdmin = false;
-                                        Properties.Settings.Default.Save();
-                                        this.Close();  // Close login, app sẽ run dashboard từ Program.cs
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("Sai mật khẩu giáo viên.",
-                                            "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                                    }
+                                    MessageBox.Show("Sai mật khẩu admin.");
                                 }
                             }
-                            catch (Exception ex)
+                            else
                             {
-                                MessageBox.Show("Lỗi khi kiểm tra mật khẩu: " + ex.Message,
-                                    "Lỗi hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                if (DatabaseHelper.CheckTeacherLogin(username, password))
+                                {
+                                    this.DialogResult = DialogResult.OK;
+                                    Properties.Settings.Default.isAdmin = false;
+                                    Properties.Settings.Default.Save();
+                                    this.Close();
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Sai mật khẩu giáo viên.");
+                                }
                             }
                         }
                     }
@@ -410,8 +327,7 @@ namespace N6
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Đã xảy ra lỗi không mong muốn: " + ex.Message,
-                    "Lỗi hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi hệ thống: " + ex.Message);
             }
         }
     }

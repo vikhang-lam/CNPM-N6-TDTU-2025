@@ -2,7 +2,7 @@
 {
     partial class UC_QuanLyLop
     {
-        private System.ComponentModel.IContainer components = null;
+        //private System.ComponentModel.IContainer components = null;
 
         
 

@@ -11,9 +11,12 @@ namespace N6
         private bool isDarkMode = false;
         private const int menuWidth = 200;
         private const int collapsedMenuWidth = 60;
-        //private Button currentActiveBtn;
+
+        // Giữ delegate (tránh GC thu gom rác gây lỗi CallbackOnCollectedDelegate)
+        private EventHandler logoutHandler;
+
         private Dictionary<string, Color> lightModeColors = new Dictionary<string, Color>()
-{
+        {
             {"mainBg", Color.FromArgb(185, 235, 250)},
             {"menuBg", Color.White},
             {"topBarBg", Color.FromArgb(0, 150, 200)},
@@ -26,7 +29,7 @@ namespace N6
         };
 
         private Dictionary<string, Color> darkModeColors = new Dictionary<string, Color>()
-{
+        {
             {"mainBg", Color.FromArgb(46, 51, 73)},
             {"menuBg", Color.FromArgb(24, 30, 54)},
             {"topBarBg", Color.FromArgb(46, 51, 73)},
@@ -37,12 +40,16 @@ namespace N6
             {"btnHover", Color.FromArgb(64, 70, 90)},
             {"userPanelText", Color.White}
         };
+
         public dashboard()
         {
             InitializeComponent();
             this.DoubleBuffered = true;
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.CenterScreen;
+
+            // giữ delegate logoutHandler tránh bị GC
+            logoutHandler = LogoutItem_Click;
         }
 
         private void dashboard_Load(object sender, EventArgs e)
@@ -50,6 +57,7 @@ namespace N6
             LoadUserInfo();
             CreateMainMenuItems();
             ApplyTheme();
+            InitUserMenu();
         }
 
         private void LoadUserInfo()
@@ -59,7 +67,7 @@ namespace N6
             if (string.IsNullOrWhiteSpace(userName)) userName = "Người dùng";
             if (string.IsNullOrWhiteSpace(subject)) subject = "";
             labelUserName.Text = userName;
-            labelSubject .Text = subject;
+            labelSubject.Text = subject;
 
             string avatarPath = Properties.Settings.Default["CurrentUserAvatar"]?.ToString();
 
@@ -83,6 +91,62 @@ namespace N6
             pictureBoxUser.Region = new Region(new Rectangle(0, 0, pictureBoxUser.Width, pictureBoxUser.Height));
         }
 
+        private ContextMenuStrip userMenu;
+
+        private void InitUserMenu()
+        {
+            userMenu = new ContextMenuStrip();
+            userMenu.Font = new Font("Segoe UI", 11, FontStyle.Regular);
+
+            ToolStripMenuItem profileItem = new ToolStripMenuItem("👤 Hồ sơ cá nhân");
+            profileItem.Click += ProfileItem_Click;
+
+            ToolStripMenuItem settingsItem = new ToolStripMenuItem("⚙️ Cài đặt");
+            settingsItem.Click += SettingsItem_Click;
+
+            ToolStripMenuItem logoutItem = new ToolStripMenuItem("🚪 Đăng xuất");
+            logoutItem.Click += logoutHandler; // dùng field delegate đã lưu
+
+            userMenu.Items.Add(profileItem);
+            userMenu.Items.Add(settingsItem);
+            userMenu.Items.Add(new ToolStripSeparator());
+            userMenu.Items.Add(logoutItem);
+
+            // Gắn context menu cho avatar + tên
+            pictureBoxUser.Click += PictureBoxUser_Click;
+            labelUserName.Click += LabelUserName_Click;
+        }
+
+        // ================== HANDLER ==================
+        private void ProfileItem_Click(object sender, EventArgs e)
+        {
+            string currentUser = Properties.Settings.Default["CurrentUser"]?.ToString();
+            using (ProfileForm pf = new ProfileForm(currentUser))
+            {
+                pf.ShowDialog(this);
+            }
+        }
+
+        private void SettingsItem_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("Mở trang cài đặt");
+        }
+
+        private void LogoutItem_Click(object sender, EventArgs e)
+        {
+            // Gọi logout từ menu chính
+            MenuItem_Click(new Button { Text = "🚪 Đăng xuất" }, EventArgs.Empty);
+        }
+
+        private void PictureBoxUser_Click(object sender, EventArgs e)
+        {
+            userMenu.Show(pictureBoxUser, new Point(0, pictureBoxUser.Height));
+        }
+
+        private void LabelUserName_Click(object sender, EventArgs e)
+        {
+            userMenu.Show(labelUserName, new Point(0, labelUserName.Height));
+        }
 
         private void CreateMainMenuItems()
         {
@@ -129,7 +193,8 @@ namespace N6
                     panelContent.Controls.Add(uc);
                     return;
                 }
-                // Nếu là nút Đăng xuất
+
+                // Xử lý Đăng xuất
                 if (btn.Text.Contains("Đăng xuất"))
                 {
                     DialogResult result = MessageBox.Show(
@@ -145,24 +210,20 @@ namespace N6
                         Properties.Settings.Default["CurrentUserAvatar"] = "";
                         Properties.Settings.Default.Save();
 
-                        login loginForm = new login();
-                        loginForm.Show();
-                        this.Close(); // chỉ Close, không Hide
+                        this.Close(); // chỉ Close, Program.cs sẽ quay về login
                     }
-
                     return;
                 }
 
             }
         }
 
-
-
         private void btnToggleMenu_Click(object sender, EventArgs e)
         {
             panelMenu.Width = isMenuCollapsed ? menuWidth : collapsedMenuWidth;
             isMenuCollapsed = !isMenuCollapsed;
         }
+
         private void btnThemeToggle_Click(object sender, EventArgs e)
         {
             isDarkMode = !isDarkMode;
@@ -182,11 +243,10 @@ namespace N6
             labelAppTitle.ForeColor = colors["textPrimary"];
             labelUserName.ForeColor = colors["userPanelText"];
             labelSubject.ForeColor = colors["userPanelText"];
-
-            
         }
+
         private void btnCollapseMenu_Click(object sender, EventArgs e) => btnToggleMenu_Click(sender, e);
-        
+
         private void labelClose_Click(object sender, EventArgs e) => Application.Exit();
         private void labelMinimize_Click(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
         private void labelMaximize_Click(object sender, EventArgs e) =>

@@ -5,27 +5,40 @@ namespace N6
 {
     static class Program
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
         [STAThread]
         static void Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            login loginForm = new login();
-            if (loginForm.ShowDialog() == DialogResult.OK)
+            bool exitApp = false;
+
+            while (!exitApp)
             {
-                // Check if admin or teacher based on saved setting
-                bool isAdmin = Properties.Settings.Default.isAdmin;
-                if (isAdmin == true)
+                using (login loginForm = new login())
                 {
-                    Application.Run(new MenuAdmin());
-                }
-                else
-                {
-                    Application.Run(new dashboard());
+                    if (loginForm.ShowDialog() == DialogResult.OK)
+                    {
+                        bool isAdmin = Properties.Settings.Default.isAdmin;
+
+                        Form mainForm = isAdmin ? (Form)new MenuAdmin() : new dashboard();
+
+                        Application.Run(mainForm);
+
+                        // Nếu logout thì CurrentUser rỗng → quay lại login
+                        if (string.IsNullOrEmpty(Properties.Settings.Default["CurrentUser"]?.ToString()))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            exitApp = true; // đóng form chính mà vẫn còn user → thoát hẳn
+                        }
+                    }
+                    else
+                    {
+                        exitApp = true; // người dùng bấm thoát ở login
+                    }
                 }
             }
         }

@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Data;
 using System.Data.SqlClient;
+using Xceed.Wpf.AvalonDock.Themes;
 
 public class TeacherProfile
 {
     public string Ten { get; set; }
     public string TenMon { get; set; }
+    public string Email { get; set; }
+    public string SDT { get; set; }
+    public string AnhDaiDien { get; set; }
 }
 
 public static class DatabaseHelper
@@ -51,12 +55,12 @@ public static class DatabaseHelper
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-            string query = @"
-                SELECT gv.Ten, mh.TenMon
-                FROM GiaoVien gv
-                LEFT JOIN MonHoc mh ON gv.MaMon = mh.MaMon
-                WHERE gv.Username = @user";
-            using (SqlCommand cmd = new SqlCommand(query, conn))
+            string sql = @"
+            SELECT gv.Ten, gv.Email, gv.SDT, gv.AnhDaiDien, mh.TenMon
+            FROM GiaoVien gv
+            LEFT JOIN MonHoc mh ON gv.MaMon = mh.MaMon
+            WHERE gv.Username = @user OR Ten = @user";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.AddWithValue("@user", username);
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -66,7 +70,10 @@ public static class DatabaseHelper
                         return new TeacherProfile
                         {
                             Ten = r["Ten"]?.ToString() ?? "",
-                            TenMon = r["TenMon"]?.ToString() ?? "Chưa có môn"
+                            TenMon = r["TenMon"]?.ToString() ?? "Chưa có môn",
+                            Email = r["Email"]?.ToString() ?? "",
+                            SDT = r["SDT"]?.ToString() ?? "",
+                            AnhDaiDien = r["AnhDaiDien"]?.ToString()
                         };
                     }
                 }
@@ -74,6 +81,7 @@ public static class DatabaseHelper
         }
         return null;
     }
+
 
     public static string GetLopByTeacher(string identifier)
     {
@@ -384,4 +392,75 @@ public static class DatabaseHelper
         }
     }
     #endregion
+    #region Hồ sơ cá nhân (Profile)
+
+    // Lấy đầy đủ thông tin giáo viên
+    
+    
+
+    // Cập nhật Email, SDT, Avatar
+    public static void UpdateTeacherProfile(string username, string email, string phone, string avatarPath)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = @"UPDATE GiaoVien 
+                           SET Email=@e, SDT=@s, AnhDaiDien=@a
+                           WHERE Username=@u";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@e", email ?? "");
+                cmd.Parameters.AddWithValue("@s", phone ?? "");
+                cmd.Parameters.AddWithValue("@a", (object)avatarPath ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@u", username);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    // Đổi mật khẩu giáo viên
+    public static bool ChangeTeacherPassword(string username, string oldPass, string newPass)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+
+            // 1. Kiểm tra mật khẩu cũ chính xác không
+            string check = "SELECT Password FROM GiaoVien WHERE Username=@u OR Ten =@u";
+            string currentPass = null;
+
+            using (SqlCommand cmd = new SqlCommand(check, conn))
+            {
+                cmd.Parameters.Add("@u", SqlDbType.VarChar).Value = username;
+                var result = cmd.ExecuteScalar();
+                if (result != null)
+                    currentPass = result.ToString();
+            }
+
+            if (currentPass == null || currentPass != oldPass)
+            {
+                return false; // Sai mật khẩu cũ
+            }
+
+            // 2. Kiểm tra mật khẩu mới có ký tự đặc biệt không
+            if (System.Text.RegularExpressions.Regex.IsMatch(newPass, @"[^a-zA-Z0-9]"))
+            {
+                throw new ArgumentException("Mật khẩu không được chứa ký tự đặc biệt!");
+            }
+
+            // 3. Cập nhật mật khẩu mới
+            string update = "UPDATE GiaoVien SET Password=@new WHERE Username=@u OR Ten =@u" ;
+            using (SqlCommand cmd = new SqlCommand(update, conn))
+            {
+                cmd.Parameters.Add("@new", SqlDbType.VarChar).Value = newPass;
+                cmd.Parameters.Add("@u", SqlDbType.VarChar).Value = username;
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+        }
+    }
+
+
+    #endregion
+
 }

@@ -169,8 +169,7 @@
             this.paneluser1.Size = new System.Drawing.Size(242, 350);
             this.paneluser1.TabIndex = 0;
             this.paneluser1.Click += new System.EventHandler(this.paneluser1_Click);
-            this.paneluser1.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
-            this.paneluser1.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
+            
             //
             // paneluser2
             //
@@ -182,8 +181,7 @@
             this.paneluser2.Size = new System.Drawing.Size(242, 350);
             this.paneluser2.TabIndex = 1;
             this.paneluser2.Click += new System.EventHandler(this.paneluser2_Click);
-            this.paneluser2.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
-            this.paneluser2.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
+            
             //
             // paneluser3
             //
@@ -195,8 +193,7 @@
             this.paneluser3.Size = new System.Drawing.Size(242, 350);
             this.paneluser3.TabIndex = 2;
             this.paneluser3.Click += new System.EventHandler(this.paneluser3_Click);
-            this.paneluser3.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
-            this.paneluser3.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
+            
             //
             // paneluser4
             //
@@ -208,8 +205,7 @@
             this.paneluser4.Size = new System.Drawing.Size(245, 350);
             this.paneluser4.TabIndex = 3;
             this.paneluser4.Click += new System.EventHandler(this.paneluser4_Click);
-            this.paneluser4.MouseEnter += new System.EventHandler(this.paneluser_MouseEnter);
-            this.paneluser4.MouseLeave += new System.EventHandler(this.paneluser_MouseLeave);
+           
             //
             // label1
             //

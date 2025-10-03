@@ -135,6 +135,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChangePasswordForm.cs" />
+    <Compile Include="ChangePasswordForm.Designer.cs">
+      <DependentUpon>ChangePasswordForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Class1.cs" />
     <Compile Include="LoginDialog.cs">
       <SubType>Form</SubType>
@@ -147,6 +151,12 @@
     </Compile>
     <Compile Include="MenuAdmin.Designer.cs">
       <DependentUpon>MenuAdmin.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ProfileForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ProfileForm.Designer.cs">
+      <DependentUpon>ProfileForm.cs</DependentUpon>
     </Compile>
     <Compile Include="RoundedPanel.cs">
       <SubType>Component</SubType>
