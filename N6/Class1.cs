@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.SqlClient;
-using Xceed.Wpf.AvalonDock.Themes;
+using System.Collections.Generic;
 
 public class TeacherProfile
 {
@@ -59,7 +59,7 @@ public static class DatabaseHelper
             SELECT gv.Ten, gv.Email, gv.SDT, gv.AnhDaiDien, mh.TenMon
             FROM GiaoVien gv
             LEFT JOIN MonHoc mh ON gv.MaMon = mh.MaMon
-            WHERE gv.Username = @user OR Ten = @user";
+            WHERE gv.Username = @user OR gv.Ten = @user";
             using (SqlCommand cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.AddWithValue("@user", username);
@@ -81,7 +81,6 @@ public static class DatabaseHelper
         }
         return null;
     }
-
 
     public static string GetLopByTeacher(string identifier)
     {
@@ -166,6 +165,11 @@ public static class DatabaseHelper
     #endregion
 
     #region Điểm danh
+
+    /// <summary>
+    /// Lấy tất cả bản ghi điểm danh kèm thông tin học sinh của 1 lớp (có thể có nhiều ngày).
+    /// Sử dụng khi cần xem lịch sử (UI có thể lọc theo ngày/buổi).
+    /// </summary>
     public static DataTable GetDiemDanhByLop(string maLop)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -173,7 +177,7 @@ public static class DatabaseHelper
             conn.Open();
             string sql = @"
         SELECT 
-            dd.MaDD,      -- ✅ thêm cột này
+            dd.MaDD,
             hs.MaHS,
             hs.HoTen,
             dd.NgayDD,
@@ -182,8 +186,7 @@ public static class DatabaseHelper
         FROM HocSinh hs
         LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS
         WHERE hs.MaLop = @maLop
-        ORDER BY hs.HoTen, dd.NgayDD;";
-
+        ORDER BY hs.HoTen, dd.NgayDD";
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
             da.SelectCommand.Parameters.AddWithValue("@maLop", maLop ?? string.Empty);
             DataTable dt = new DataTable();
@@ -192,36 +195,162 @@ public static class DatabaseHelper
         }
     }
 
-
-    public static void LuuDiemDanh(string maHS, string trangThai)
+    /// <summary>
+    /// Lấy danh sách điểm danh cho 1 lớp, 1 ngày cụ thể và 1 buổi cụ thể.
+    /// Trả về tất cả học sinh lớp (nếu học sinh chưa có bản ghi cho ngày đó thì các cột dd sẽ NULL).
+    /// </summary>
+    public static DataTable GetDiemDanhByLopAndDate(string maLop, DateTime ngay, string buoi)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-            // kiểm tra đã có điểm danh hôm nay chưa
-            string check = @"SELECT COUNT(*) FROM DiemDanh WHERE MaHS=@MaHS AND CAST(NgayDD AS date)=CAST(GETDATE() AS date)";
+            // tạo subquery chỉ lấy bản ghi DiemDanh cho ngày & buổi cụ thể
+            string sql = @"
+                SELECT
+                    hs.MaHS,
+                    hs.HoTen,
+                    dd.MaDD,
+                    dd.NgayDD,
+                    dd.Buoi,
+                    dd.TrangThai
+                FROM HocSinh hs
+                LEFT JOIN (
+                    SELECT MaDD, MaHS, NgayDD, Buoi, TrangThai
+                    FROM DiemDanh
+                    WHERE CAST(NgayDD AS date) = @ngay
+                    AND (@buoi IS NULL OR Buoi = @buoi)
+                ) dd ON hs.MaHS = dd.MaHS
+                WHERE hs.MaLop = @maLop
+                ORDER BY hs.HoTen";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.Add("@maLop", SqlDbType.VarChar).Value = maLop ?? "";
+                cmd.Parameters.Add("@ngay", SqlDbType.Date).Value = ngay.Date;
+                if (string.IsNullOrEmpty(buoi))
+                    cmd.Parameters.Add("@buoi", SqlDbType.NVarChar).Value = DBNull.Value;
+                else
+                    cmd.Parameters.Add("@buoi", SqlDbType.NVarChar).Value = buoi;
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                return dt;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Tạo bản ghi điểm danh mặc định ("Có mặt") cho tất cả học sinh trong lớp cho 1 ngày & buổi nhất định.
+    /// Nếu đã có bản ghi cho học sinh đó ở ngày/buổi tương ứng thì không chèn trùng.
+    /// </summary>
+    public static void ExecTaoDiemDanhMacDinh(string maLop, DateTime ngay, string buoi)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+
+            // Lấy danh sách MaHS của lớp
+            string getHs = "SELECT MaHS FROM HocSinh WHERE MaLop = @maLop";
+            List<string> listHs = new List<string>();
+            using (SqlCommand cmd = new SqlCommand(getHs, conn))
+            {
+                cmd.Parameters.AddWithValue("@maLop", maLop ?? "");
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        listHs.Add(r["MaHS"].ToString());
+                    }
+                }
+            }
+
+            // Chuẩn bị insert nếu chưa tồn tại
+            string checkSql = @"SELECT COUNT(*) FROM DiemDanh WHERE MaHS=@MaHS AND CAST(NgayDD AS date)=@ngay AND (@buoi IS NULL OR Buoi=@buoi)";
+            string insertSql = @"INSERT INTO DiemDanh(MaDD, MaHS, NgayDD, Buoi, TrangThai)
+                                 VALUES(@MaDD, @MaHS, @NgayDD, @Buoi, @TrangThai)";
+
+            foreach (var maHS in listHs)
+            {
+                using (SqlCommand chk = new SqlCommand(checkSql, conn))
+                {
+                    chk.Parameters.AddWithValue("@MaHS", maHS);
+                    chk.Parameters.Add("@ngay", SqlDbType.Date).Value = ngay.Date;
+                    if (string.IsNullOrEmpty(buoi))
+                        chk.Parameters.Add("@buoi", SqlDbType.NVarChar).Value = DBNull.Value;
+                    else
+                        chk.Parameters.Add("@buoi", SqlDbType.NVarChar).Value = buoi;
+
+                    int cnt = Convert.ToInt32(chk.ExecuteScalar());
+                    if (cnt == 0)
+                    {
+                        using (SqlCommand ins = new SqlCommand(insertSql, conn))
+                        {
+                            ins.Parameters.AddWithValue("@MaDD", Guid.NewGuid().ToString().Substring(0, 8));
+                            ins.Parameters.AddWithValue("@MaHS", maHS);
+                            ins.Parameters.Add("@NgayDD", SqlDbType.DateTime).Value = ngay;
+                            if (string.IsNullOrEmpty(buoi))
+                                ins.Parameters.Add("@Buoi", SqlDbType.NVarChar).Value = "Sáng";
+                            else
+                                ins.Parameters.Add("@Buoi", SqlDbType.NVarChar).Value = buoi;
+                            ins.Parameters.AddWithValue("@TrangThai", "Có mặt");
+                            ins.ExecuteNonQuery();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Overload cũ cho backward-compatibility: nếu gọi không truyền ngày/buổi thì dùng ngày hôm nay & buổi 'Sáng'.
+    /// </summary>
+    public static void ExecTaoDiemDanhMacDinh(string maLop)
+    {
+        ExecTaoDiemDanhMacDinh(maLop, DateTime.Today, "Sáng");
+    }
+
+    /// <summary>
+    /// Lưu / cập nhật điểm danh cho 1 học sinh ở 1 ngày & buổi cụ thể.
+    /// Nếu 'ngay' null => dùng ngày hôm nay. Nếu 'buoi' null => mặc định "Sáng".
+    /// </summary>
+    public static void LuuDiemDanh(string maHS, string trangThai, DateTime? ngay = null, string buoi = null)
+    {
+        DateTime actualDate = (ngay ?? DateTime.Now).Date;
+        string actualBuoi = string.IsNullOrEmpty(buoi) ? "Sáng" : buoi;
+
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+
+            // check exists for that student/date/buoi
+            string check = @"SELECT MaDD FROM DiemDanh WHERE MaHS=@MaHS AND CAST(NgayDD AS date)=@ngay AND Buoi=@buoi";
             using (SqlCommand cmdCheck = new SqlCommand(check, conn))
             {
                 cmdCheck.Parameters.AddWithValue("@MaHS", maHS);
-                int count = (int)cmdCheck.ExecuteScalar();
-                if (count > 0)
+                cmdCheck.Parameters.Add("@ngay", SqlDbType.Date).Value = actualDate;
+                cmdCheck.Parameters.AddWithValue("@buoi", actualBuoi);
+
+                object existing = cmdCheck.ExecuteScalar();
+                if (existing != null)
                 {
-                    string update = "UPDATE DiemDanh SET TrangThai=@TrangThai WHERE MaHS=@MaHS AND CAST(NgayDD AS date)=CAST(GETDATE() AS date)";
+                    string existingId = existing.ToString();
+                    string update = "UPDATE DiemDanh SET TrangThai=@TrangThai WHERE MaDD=@MaDD";
                     using (SqlCommand cmdUp = new SqlCommand(update, conn))
                     {
                         cmdUp.Parameters.AddWithValue("@TrangThai", trangThai);
-                        cmdUp.Parameters.AddWithValue("@MaHS", maHS);
+                        cmdUp.Parameters.AddWithValue("@MaDD", existingId);
                         cmdUp.ExecuteNonQuery();
                     }
                 }
                 else
                 {
                     string insert = @"INSERT INTO DiemDanh(MaDD, MaHS, NgayDD, Buoi, TrangThai) 
-                                      VALUES(@MaDD, @MaHS, GETDATE(), N'Sáng', @TrangThai)";
+                                      VALUES(@MaDD, @MaHS, @NgayDD, @Buoi, @TrangThai)";
                     using (SqlCommand cmdIn = new SqlCommand(insert, conn))
                     {
                         cmdIn.Parameters.AddWithValue("@MaDD", Guid.NewGuid().ToString().Substring(0, 8));
                         cmdIn.Parameters.AddWithValue("@MaHS", maHS);
+                        cmdIn.Parameters.Add("@NgayDD", SqlDbType.DateTime).Value = actualDate;
+                        cmdIn.Parameters.AddWithValue("@Buoi", actualBuoi);
                         cmdIn.Parameters.AddWithValue("@TrangThai", trangThai);
                         cmdIn.ExecuteNonQuery();
                     }
@@ -378,27 +507,9 @@ public static class DatabaseHelper
             return dt;
         }
     }
-    public static void ExecTaoDiemDanhMacDinh(string maLop)
-    {
-        using (SqlConnection conn = new SqlConnection(connectionString))
-        {
-            conn.Open();
-            using (SqlCommand cmd = new SqlCommand("sp_TaoDiemDanhMacDinh", conn))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@MaLop", maLop);
-                cmd.ExecuteNonQuery();
-            }
-        }
-    }
     #endregion
+
     #region Hồ sơ cá nhân (Profile)
-
-    // Lấy đầy đủ thông tin giáo viên
-    
-    
-
-    // Cập nhật Email, SDT, Avatar
     public static void UpdateTeacherProfile(string username, string email, string phone, string avatarPath)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -418,7 +529,6 @@ public static class DatabaseHelper
         }
     }
 
-    // Đổi mật khẩu giáo viên
     public static bool ChangeTeacherPassword(string username, string oldPass, string newPass)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -449,7 +559,7 @@ public static class DatabaseHelper
             }
 
             // 3. Cập nhật mật khẩu mới
-            string update = "UPDATE GiaoVien SET Password=@new WHERE Username=@u OR Ten =@u" ;
+            string update = "UPDATE GiaoVien SET Password=@new WHERE Username=@u OR Ten =@u";
             using (SqlCommand cmd = new SqlCommand(update, conn))
             {
                 cmd.Parameters.Add("@new", SqlDbType.VarChar).Value = newPass;
@@ -459,8 +569,85 @@ public static class DatabaseHelper
             }
         }
     }
-
-
     #endregion
+    #region Tài liệu
+    public static DataTable GetTaiLieuByGV(string maGV)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = "SELECT MaTL, TenTL, MoTa, Kieu, NgayTaiLen, TrangThaiChiaSe FROM TaiLieu WHERE MaGV=@gv";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@gv", maGV);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+    public static void InsertTaiLieu(string maGV, string ten, string moTa, string filePath, string trangThai)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = @"INSERT INTO TaiLieu (MaTL, TenTL, MoTa, Kieu, NgayTaiLen, TrangThaiChiaSe, MaGV)
+                       VALUES(@id, @ten, @moTa, @kieu, GETDATE(), @tt, @gv)";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N").Substring(0, 10));
+                cmd.Parameters.AddWithValue("@ten", ten);
+                cmd.Parameters.AddWithValue("@moTa", moTa ?? "");
+                cmd.Parameters.AddWithValue("@kieu", filePath); // lưu đường dẫn
+                cmd.Parameters.AddWithValue("@tt", trangThai ?? "Riêng tư");
+                cmd.Parameters.AddWithValue("@gv", maGV);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+
+    public static void DeleteTaiLieu(string maTL)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "DELETE FROM TaiLieu WHERE MaTL=@id";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", maTL);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static void ShareTaiLieu(string maTL)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "UPDATE TaiLieu SET TrangThaiChiaSe=N'Chia sẻ' WHERE MaTL=@id";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", maTL);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static string GetMaGVByUsername(string username)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "SELECT MaGV FROM GiaoVien WHERE Username=@u OR Ten=@u";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@u", username);
+                object result = cmd.ExecuteScalar();
+                return result?.ToString();
+            }
+        }
+    }
+    #endregion
+
 
 }

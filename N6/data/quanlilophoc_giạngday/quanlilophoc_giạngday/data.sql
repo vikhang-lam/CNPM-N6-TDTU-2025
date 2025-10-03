@@ -204,24 +204,39 @@ VALUES
 --------------------------------------------------
 -- PROCEDURE: TẠO ĐIỂM DANH MẶC ĐỊNH
 --------------------------------------------------
-IF OBJECT_ID('sp_TaoDiemDanhMacDinh', 'P') IS NOT NULL DROP PROCEDURE sp_TaoDiemDanhMacDinh;
+IF OBJECT_ID('sp_TaoDiemDanhMacDinh', 'P') IS NOT NULL
+    DROP PROCEDURE sp_TaoDiemDanhMacDinh;
 GO
-CREATE PROCEDURE sp_TaoDiemDanhMacDinh @MaLop VARCHAR(10)
+
+CREATE PROCEDURE sp_TaoDiemDanhMacDinh
+    @MaLop VARCHAR(10),
+    @Ngay DATE = NULL,            -- nếu NULL -> mặc định hôm nay
+    @Buoi NVARCHAR(10) = N'Sáng'  -- mặc định Sáng
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @today DATE = CAST(GETDATE() AS DATE);
+
+    IF @Ngay IS NULL
+        SET @Ngay = CAST(GETDATE() AS DATE);
 
     INSERT INTO DiemDanh (MaDD, MaHS, NgayDD, Buoi, TrangThai)
-    SELECT LEFT(NEWID(), 8), hs.MaHS, @today, N'Sáng', N'Có mặt'
+    SELECT LEFT(NEWID(), 8),
+           hs.MaHS,
+           CAST(@Ngay AS DATETIME),    -- lưu ngày (giờ = 00:00:00)
+           @Buoi,
+           N'Có mặt'
     FROM HocSinh hs
     WHERE hs.MaLop = @MaLop
-    AND NOT EXISTS (
-        SELECT 1 FROM DiemDanh dd
-        WHERE dd.MaHS = hs.MaHS AND dd.NgayDD = @today
-    );
+      AND NOT EXISTS (
+          SELECT 1
+          FROM DiemDanh dd
+          WHERE dd.MaHS = hs.MaHS
+            AND CAST(dd.NgayDD AS DATE) = @Ngay
+            AND dd.Buoi = @Buoi
+      );
 END;
 GO
+
 
 
 --------------------------------------------------
@@ -303,3 +318,38 @@ EXEC sp_TaoKetQuaHocTapMacDinh;
 -- Kiểm tra
 SELECT * FROM DiemDanh;
 SELECT * FROM KetQuaHocTap;
+------------------------------------------------
+-- Thêm giáo viên 2 (Toán - dạy lớp 5A10)
+------------------------------------------------
+INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaLop, MaMon, Email, SDT, MaAdmin, AnhDaiDien, TrangThai)
+VALUES (
+    'GV002',
+    N'Thầy Quốc Hưng',
+    'quochung',
+    '123456',
+    '5A10',   -- dạy chung lớp 5A10
+    'TOAN',   -- môn Toán
+    'quochung@example.com',
+    '0912345002',
+    'AD001',
+    NULL,
+    N'Đã xác nhận'
+);
+
+------------------------------------------------
+-- Thêm giáo viên 3 (Tiếng Anh - dạy lớp 5A10)
+------------------------------------------------
+INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaLop, MaMon, Email, SDT, MaAdmin, AnhDaiDien, TrangThai)
+VALUES (
+    'GV003',
+    N'Cô Thu Hà',
+    'thuha',
+    '123456',
+    '5A10',   -- dạy chung lớp 5A10
+    'ANH',    -- môn Tiếng Anh
+    'thuha@example.com',
+    '0912345003',
+    'AD001',
+    NULL,
+    N'Đã xác nhận'
+);

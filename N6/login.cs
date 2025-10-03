@@ -232,6 +232,32 @@ namespace N6
         private void paneluser2_Click(object sender, EventArgs e) => HandleUserPanelClick(2);
         private void paneluser3_Click(object sender, EventArgs e) => HandleUserPanelClick(3);
         private void paneluser4_Click(object sender, EventArgs e) => HandleUserPanelClick(4);
+        private void UpdateSavedUsers(string username)
+        {
+            var users = new List<string>();
+
+            string u1 = Properties.Settings.Default["User1"]?.ToString();
+            string u2 = Properties.Settings.Default["User2"]?.ToString();
+            string u3 = Properties.Settings.Default["User3"]?.ToString();
+
+            if (!string.IsNullOrEmpty(u1)) users.Add(u1);
+            if (!string.IsNullOrEmpty(u2)) users.Add(u2);
+            if (!string.IsNullOrEmpty(u3)) users.Add(u3);
+
+            // loại bỏ user trùng nếu đã có
+            users = users.Where(u => !u.Equals(username, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            // chèn user mới lên đầu
+            users.Insert(0, username);
+            // giữ lại tối đa 3 user
+            if (users.Count > 3)
+                users = users.Take(3).ToList();
+
+            Properties.Settings.Default["User1"] = users.ElementAtOrDefault(0) ?? "";
+            Properties.Settings.Default["User2"] = users.ElementAtOrDefault(1) ?? "";
+            Properties.Settings.Default["User3"] = users.ElementAtOrDefault(2) ?? "";
+            Properties.Settings.Default.Save();
+        }
 
         private void HandleUserPanelClick(int panelIndex)
         {
@@ -266,11 +292,8 @@ namespace N6
                             {
                                 if (DatabaseHelper.CheckTeacherLogin(username, password))
                                 {
-                                    if (panelIndex != 4)
-                                    {
-                                        Properties.Settings.Default[$"User{panelIndex}"] = username;
-                                        Properties.Settings.Default.Save();
-                                    }
+                                    UpdateSavedUsers(username);
+
                                     this.DialogResult = DialogResult.OK;
                                     Properties.Settings.Default.isAdmin = false;
                                     Properties.Settings.Default.Save();
@@ -315,12 +338,7 @@ namespace N6
                                 {
                                     if (DatabaseHelper.CheckTeacherLogin(enteredUser, enteredPass))
                                     {
-                                        // nếu user nhập khác với savedUser thì update lại slot
-                                        if (!enteredUser.Equals(savedUser, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            Properties.Settings.Default[$"User{panelIndex}"] = enteredUser;
-                                            Properties.Settings.Default.Save();
-                                        }
+                                        UpdateSavedUsers(enteredUser);
 
                                         this.DialogResult = DialogResult.OK;
                                         Properties.Settings.Default.isAdmin = false;

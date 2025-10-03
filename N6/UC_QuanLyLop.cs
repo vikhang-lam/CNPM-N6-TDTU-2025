@@ -13,7 +13,10 @@ namespace N6
     {
         private string _username;
         private string _maLop;
-
+        private DateTimePicker dtpNgay;
+        private ComboBox cbBuoi;
+        private Button btnBatDau;
+        private Button btnXem;
         // QR / camera
         private FilterInfoCollection videoDevices;
         private VideoCaptureDevice videoSource;
@@ -149,82 +152,125 @@ namespace N6
                 return;
             }
 
-            // Lấy dữ liệu điểm danh (các cột: MaDD, MaHS, HoTen, NgayDD, Buoi, TrangThai)
-            DataTable dtAll = DatabaseHelper.GetDiemDanhByLop(_maLop);
-
-            // Lọc ngày hôm nay
-            DataTable dtToday = dtAll.Clone();
-            DateTime today = DateTime.Today;
-            foreach (DataRow r in dtAll.Rows)
+            // Panel chọn ngày/buổi + nút
+            FlowLayoutPanel topPanel = new FlowLayoutPanel()
             {
-                if (r["NgayDD"] != DBNull.Value)
-                {
-                    DateTime ngay = Convert.ToDateTime(r["NgayDD"]);
-                    if (ngay.Date == today.Date)
-                        dtToday.ImportRow(r);
-                }
-            }
+                Dock = DockStyle.Top,
+                Height = 50,
+                Padding = new Padding(10),
+                FlowDirection = FlowDirection.LeftToRight
+            };
 
-            // Nếu hôm nay chưa có thì tạo mặc định
-            if (dtToday.Rows.Count == 0)
+            dtpNgay = new DateTimePicker()
             {
-                try
-                {
-                    DatabaseHelper.ExecTaoDiemDanhMacDinh(_maLop);
-                    dtAll = DatabaseHelper.GetDiemDanhByLop(_maLop);
-                    foreach (DataRow r in dtAll.Rows)
-                    {
-                        if (r["NgayDD"] != DBNull.Value)
-                        {
-                            DateTime ngay = Convert.ToDateTime(r["NgayDD"]);
-                            if (ngay.Date == today.Date)
-                                dtToday.ImportRow(r);
-                        }
-                    }
-                }
-                catch { /* ignore if helper not present */ }
-            }
+                Format = DateTimePickerFormat.Short,
+                Value = DateTime.Today,
+                Width = 120
+            };
 
-            // Nếu cột TrangThai rỗng thì mặc định "Có mặt"
-            foreach (DataRow row in dtToday.Rows)
+            cbBuoi = new ComboBox()
             {
-                if (row["TrangThai"] == DBNull.Value || string.IsNullOrWhiteSpace(row["TrangThai"].ToString()))
-                {
-                    row["TrangThai"] = "Có mặt";
-                }
-            }
-
-            // Bind vào DataGridView
-            dgvDiemDanh.DataSource = null;
-            dgvDiemDanh.Columns.Clear();
-            dgvDiemDanh.AutoGenerateColumns = true;
-            dgvDiemDanh.DataSource = dtToday;
-
-            // Thay cột TrangThai thành ComboBox
-            if (dtToday.Columns.Contains("TrangThai") && dgvDiemDanh.Columns["TrangThai"] != null)
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Width = 100
+            };
+            cbBuoi.Items.AddRange(new[] { "Sáng", "Chiều" });
+            cbBuoi.SelectedIndex = DateTime.Now.Hour < 12 ? 0 : 1;
+            btnXem = new Button()
             {
-                int idx = dgvDiemDanh.Columns["TrangThai"].Index;
-                dgvDiemDanh.Columns.Remove("TrangThai");
+                Text = "Xem",
+                BackColor = Color.DodgerBlue,
+                ForeColor = Color.White,
+                Width = 100,
+                Height = 30
+            };
+            btnXem.Click += BtnXem_Click;
 
-                DataGridViewComboBoxColumn cb = new DataGridViewComboBoxColumn();
-                cb.Name = "TrangThai";
-                cb.HeaderText = "Trạng thái";
-                cb.DataPropertyName = "TrangThai";
-                cb.Items.AddRange("Có mặt", "Vắng mặt", "Đi trễ");
-                cb.FlatStyle = FlatStyle.Flat;
+            topPanel.Controls.Add(btnXem);
 
-                dgvDiemDanh.Columns.Insert(idx, cb);
-            }
+            btnBatDau = new Button()
+            {
+                Text = "Bắt đầu điểm danh",
+                BackColor = Color.SeaGreen,
+                ForeColor = Color.White,
+                Width = 150,
+                Height = 30
+            };
+            btnBatDau.Click += BtnBatDau_Click;
 
-            // Các event để xử lý lưu thay đổi
-            dgvDiemDanh.CurrentCellDirtyStateChanged -= DgvDiemDanh_CurrentCellDirtyStateChanged;
-            dgvDiemDanh.CurrentCellDirtyStateChanged += DgvDiemDanh_CurrentCellDirtyStateChanged;
+            topPanel.Controls.Add(new Label() { Text = "Ngày:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft });
+            topPanel.Controls.Add(dtpNgay);
+            topPanel.Controls.Add(new Label() { Text = "Buổi:", AutoSize = true, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(20, 0, 0, 0) });
+            topPanel.Controls.Add(cbBuoi);
+            topPanel.Controls.Add(btnBatDau);
 
-            dgvDiemDanh.CellEndEdit -= DgvDiemDanh_CellEndEdit;
-            dgvDiemDanh.CellEndEdit += DgvDiemDanh_CellEndEdit;
-
+            panelContent.Controls.Add(topPanel);
             panelContent.Controls.Add(dgvDiemDanh);
+
+            // load mặc định hôm nay
+            LoadDiemDanh(dtpNgay.Value.Date, cbBuoi.SelectedItem?.ToString());
         }
+
+        private void BtnBatDau_Click(object sender, EventArgs e)
+        {
+            DateTime ngayChon = dtpNgay.Value.Date;
+            string buoi = cbBuoi.SelectedItem?.ToString();
+
+            if (ngayChon < DateTime.Today)
+            {
+                MessageBox.Show("Không thể sửa điểm danh của ngày đã qua. Bạn chỉ có thể xem lại.");
+                LoadDiemDanh(ngayChon, buoi, readOnly: true);
+                return;
+            }
+
+            // hôm nay hoặc tương lai → cho phép tạo mới nếu chưa có
+            LoadDiemDanh(ngayChon, buoi, readOnly: false);
+        }
+        private void BtnXem_Click(object sender, EventArgs e)
+        {
+            DateTime ngayChon = dtpNgay.Value.Date;
+            string buoi = cbBuoi.SelectedItem?.ToString();
+
+            // Gọi LoadDiemDanh với readOnly = (ngày < hôm nay)
+            bool readOnly = ngayChon < DateTime.Today;
+            LoadDiemDanh(ngayChon, buoi, readOnly);
+        }
+
+
+        private void LoadDiemDanh(DateTime ngay, string buoi, bool readOnly = false)
+        {
+            try
+            {
+                // lấy toàn bộ học sinh + bản ghi điểm danh (nếu có)
+                DataTable dt = DatabaseHelper.GetDiemDanhByLopAndDate(_maLop, ngay, buoi);
+
+                dgvDiemDanh.DataSource = null;
+                dgvDiemDanh.Columns.Clear();
+                dgvDiemDanh.AutoGenerateColumns = true;
+                dgvDiemDanh.DataSource = dt;
+
+                // setup combobox cho cột TrangThai
+                if (dgvDiemDanh.Columns.Contains("TrangThai"))
+                {
+                    int idx = dgvDiemDanh.Columns["TrangThai"].Index;
+                    dgvDiemDanh.Columns.Remove("TrangThai");
+
+                    DataGridViewComboBoxColumn cb = new DataGridViewComboBoxColumn();
+                    cb.Name = "TrangThai";
+                    cb.HeaderText = "Trạng thái";
+                    cb.DataPropertyName = "TrangThai";
+                    cb.Items.AddRange("Có mặt", "Vắng mặt", "Đi trễ");
+                    dgvDiemDanh.Columns.Insert(idx, cb);
+
+                    cb.ReadOnly = readOnly;
+                    dgvDiemDanh.ReadOnly = readOnly;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi load điểm danh: " + ex.Message);
+            }
+        }
+
 
 
         private void DgvDiemDanh_CurrentCellDirtyStateChanged(object sender, EventArgs e)

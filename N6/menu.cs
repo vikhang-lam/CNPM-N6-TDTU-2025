@@ -214,6 +214,17 @@ namespace N6
                     }
                     return;
                 }
+                if (btn.Text.Contains("quản lí tài liệu"))
+                {
+                    panelContent.Controls.Clear();
+                    string user = Properties.Settings.Default["CurrentUser"]?.ToString();
+                    string maGV = DatabaseHelper.GetMaGVByUsername(user);
+                    UC_QuanLyTaiLieu uc = new UC_QuanLyTaiLieu(maGV);
+                    uc.Dock = DockStyle.Fill;
+                    panelContent.Controls.Add(uc);
+                    return;
+                }
+
 
             }
         }
