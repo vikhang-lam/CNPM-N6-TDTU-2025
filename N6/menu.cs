@@ -35,7 +35,7 @@ namespace N6
             {"topBarBg", Color.FromArgb(46, 51, 73)},
             {"textPrimary", Color.White},
             {"textSecondary", Color.FromArgb(158, 161, 176)},
-            {"menuBtnText", Color.FromArgb(158, 161, 176)},
+            {"menuBtnText", Color.White},
             {"menuBtnActiveBg", Color.FromArgb(46, 51, 73)},
             {"btnHover", Color.FromArgb(64, 70, 90)},
             {"userPanelText", Color.White}
@@ -224,7 +224,25 @@ namespace N6
                     panelContent.Controls.Add(uc);
                     return;
                 }
+                if (btn.Text.Contains("Thời khóa biểu"))
+                {
+                    panelContent.Controls.Clear();
+                    string user = Properties.Settings.Default["CurrentUser"]?.ToString();
+                    string maGV = DatabaseHelper.GetMaGVByUsername(user);
 
+                    UC_ThoiKhoaBieu uc = new UC_ThoiKhoaBieu(maGV);
+                    uc.Dock = DockStyle.Fill;
+                    panelContent.Controls.Add(uc);
+                    return;
+                }
+                if (btn.Text.Contains("Mini-games"))
+                {
+                    panelContent.Controls.Clear();
+                    UC_MiniGames uc = new UC_MiniGames();
+                    uc.Dock = DockStyle.Fill;
+                    panelContent.Controls.Add(uc);
+                    return;
+                }
 
             }
         }
@@ -254,6 +272,14 @@ namespace N6
             labelAppTitle.ForeColor = colors["textPrimary"];
             labelUserName.ForeColor = colors["userPanelText"];
             labelSubject.ForeColor = colors["userPanelText"];
+            foreach (Control c in panelMenu.Controls)
+            {
+                if (c is Button btn)
+                {
+                    btn.ForeColor = colors["menuBtnText"];
+                    btn.BackColor = colors["menuBg"]; // đảm bảo nền khớp
+                }
+            }
         }
 
         private void btnCollapseMenu_Click(object sender, EventArgs e) => btnToggleMenu_Click(sender, e);

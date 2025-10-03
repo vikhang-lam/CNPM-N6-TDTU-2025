@@ -284,7 +284,17 @@ BEGIN
     );
 END;
 GO
-
+INSERT INTO Minigame (MaMNG, Ten, DuLieu) VALUES
+('MNG01', N'Quiz nhanh', NULL),
+('MNG02', N'Gọi tên ngẫu nhiên', NULL),
+('MNG03', N'Flashcard', NULL),
+('MNG04', N'Ghép chữ', NULL),
+('MNG05', N'Nghe - chọn hình', NULL),
+('MNG06', N'Sắp xếp câu', NULL),
+('MNG07', N'Điền từ', NULL),
+('MNG08', N'Lật thẻ', NULL),
+('MNG09', N'Random số', NULL),
+('MNG10', N'Pass a ball', NULL);
 --------------------------------------------------
 -- TRIGGER: KHI THÊM HỌC SINH MỚI THÌ TỰ TẠO KẾT QUẢ HỌC TẬP MẶC ĐỊNH
 --------------------------------------------------
@@ -306,6 +316,41 @@ BEGIN
     FROM INSERTED i
     CROSS JOIN MonHoc m
     CROSS JOIN @loai l;
+END;
+GO
+IF OBJECT_ID('sp_GetTKBByGV', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetTKBByGV;
+GO
+
+CREATE PROCEDURE sp_GetTKBByGV
+    @MaGV VARCHAR(10),     -- mã giáo viên
+    @Ngay DATE             -- một ngày bất kỳ trong tuần cần xem
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Xác định thứ 2 đầu tuần
+    DECLARE @Monday DATE;
+    SET @Monday = DATEADD(DAY, -(DATEPART(WEEKDAY, @Ngay) + @@DATEFIRST - 2) % 7, @Ngay);
+
+    -- Chủ nhật cuối tuần
+    DECLARE @Sunday DATE;
+    SET @Sunday = DATEADD(DAY, 6, @Monday);
+
+    -- Lấy dữ liệu thời khóa biểu của GV trong tuần đó
+    SELECT 
+        tkb.MaTKB,
+        tkb.Ngay,
+        tkb.Tiet,
+        mh.TenMon,
+        l.TenLop,
+        tkb.GhiChu
+    FROM ThoiKhoaBieu tkb
+    JOIN MonHoc mh ON tkb.MaMon = mh.MaMon
+    JOIN LopHoc l ON tkb.MaLop = l.MaLop
+    WHERE tkb.MaGV = @MaGV
+      AND tkb.Ngay BETWEEN @Monday AND @Sunday
+    ORDER BY tkb.Ngay, tkb.Tiet;
 END;
 GO
 
@@ -353,3 +398,23 @@ VALUES (
     NULL,
     N'Đã xác nhận'
 );
+INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, GhiChu, MaGV, MaLop) VALUES
+-- Thứ 2 (06/10/2025)
+('TKB001', '2025-10-06', 1, 'VAN', N'Ôn tập chương 1', 'GV001', '5A10'),
+('TKB002', '2025-10-06', 2, 'TOAN', N'Luyện tập cộng trừ phân số', 'GV002', '5A10'),
+
+-- Thứ 3 (07/10/2025)
+('TKB003', '2025-10-07', 1, 'ANH', N'Học từ vựng chủ đề gia đình', 'GV003', '5A10'),
+('TKB004', '2025-10-07', 2, 'TOAN', N'Bài tập ứng dụng thực tế', 'GV002', '5A10'),
+
+-- Thứ 4 (08/10/2025)
+('TKB005', '2025-10-08', 3, 'VAN', N'Đọc hiểu văn bản', 'GV001', '5A10'),
+('TKB006', '2025-10-08', 4, 'ANH', N'Luyện nghe hội thoại', 'GV003', '5A10'),
+
+-- Thứ 5 (09/10/2025)
+('TKB007', '2025-10-09', 1, 'TOAN', N'Giải toán có lời văn', 'GV002', '5A10'),
+('TKB008', '2025-10-09', 5, 'VAN', N'Tập làm văn miêu tả', 'GV001', '5A10'),
+
+-- Thứ 6 (10/10/2025)
+('TKB009', '2025-10-10', 2, 'ANH', N'Kiểm tra 15 phút', 'GV003', '5A10'),
+('TKB010', '2025-10-10', 3, 'TOAN', N'Ôn tập chương 2', 'GV002', '5A10');

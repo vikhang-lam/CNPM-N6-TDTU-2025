@@ -604,7 +604,17 @@ public static class DatabaseHelper
         }
     }
 
-
+    public static DataTable GetTaiLieuShared()
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = "SELECT MaTL, TenTL, MoTa, Kieu, NgayTaiLen, TrangThaiChiaSe FROM TaiLieu WHERE TrangThaiChiaSe=N'Chia sẻ'";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
     public static void DeleteTaiLieu(string maTL)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -648,6 +658,91 @@ public static class DatabaseHelper
         }
     }
     #endregion
+    // Lấy TKB theo tuần của GV
+    public static DataTable GetTKBByGV(string maGV, DateTime ngay)
+    {
+        DataTable dt = new DataTable();
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            SqlCommand cmd = new SqlCommand("sp_GetTKBByGV", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@MaGV", maGV);
+            cmd.Parameters.AddWithValue("@Ngay", ngay);
 
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            da.Fill(dt);
+        }
+        return dt;
+    }
 
+    // Cập nhật ghi chú
+    public static void UpdateGhiChuTKB(string maGV, DateTime ngay, int tiet, string note)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = "UPDATE ThoiKhoaBieu SET GhiChu=@Note WHERE MaGV=@MaGV AND Ngay=@Ngay AND Tiet=@Tiet";
+            SqlCommand cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@Note", note);
+            cmd.Parameters.AddWithValue("@MaGV", maGV);
+            cmd.Parameters.AddWithValue("@Ngay", ngay);
+            cmd.Parameters.AddWithValue("@Tiet", tiet);
+            conn.Open();
+            cmd.ExecuteNonQuery();
+        }
+    }
+    public static DataTable GetMiniGames()
+    {
+        DataTable dt = new DataTable();
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                string sql = "SELECT MaMNG, Ten, DuLieu FROM Minigame ORDER BY MaMNG";
+                SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+                da.Fill(dt);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Lỗi khi lấy danh sách Minigame: " + ex.Message);
+        }
+        return dt;
+    }
+    #region Minigame Data
+    /// <summary>
+    /// Lấy chuỗi dữ liệu (JSON) của một minigame cụ thể.
+    /// </summary>
+    public static string GetGameData(string maMNG)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "SELECT DuLieu FROM Minigame WHERE MaMNG = @maMNG";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@maMNG", maMNG);
+                object result = cmd.ExecuteScalar();
+                return result?.ToString();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Lưu chuỗi dữ liệu (JSON) cho một minigame.
+    /// </summary>
+    public static void SaveGameData(string maMNG, string data)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "UPDATE Minigame SET DuLieu = @data WHERE MaMNG = @maMNG";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@data", (object)data ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@maMNG", maMNG);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+    #endregion
 }

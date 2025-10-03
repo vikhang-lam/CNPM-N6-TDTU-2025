@@ -3,10 +3,14 @@
     partial class UC_QuanLyTaiLieu
     {
         private System.ComponentModel.IContainer components = null;
-        private System.Windows.Forms.FlowLayoutPanel flowDocs;
         private System.Windows.Forms.Panel panelToolbar;
         private System.Windows.Forms.Button btnUpload;
         private System.Windows.Forms.Button btnRefresh;
+        private System.Windows.Forms.TabControl tabDocs;
+        private System.Windows.Forms.TabPage tabMyDocs;
+        private System.Windows.Forms.TabPage tabSharedDocs;
+        private System.Windows.Forms.FlowLayoutPanel flowMyDocs;
+        private System.Windows.Forms.FlowLayoutPanel flowSharedDocs;
 
         protected override void Dispose(bool disposing)
         {
@@ -22,8 +26,15 @@
             this.panelToolbar = new System.Windows.Forms.Panel();
             this.btnUpload = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
-            this.flowDocs = new System.Windows.Forms.FlowLayoutPanel();
+            this.tabDocs = new System.Windows.Forms.TabControl();
+            this.tabMyDocs = new System.Windows.Forms.TabPage();
+            this.flowMyDocs = new System.Windows.Forms.FlowLayoutPanel();
+            this.tabSharedDocs = new System.Windows.Forms.TabPage();
+            this.flowSharedDocs = new System.Windows.Forms.FlowLayoutPanel();
             this.panelToolbar.SuspendLayout();
+            this.tabDocs.SuspendLayout();
+            this.tabMyDocs.SuspendLayout();
+            this.tabSharedDocs.SuspendLayout();
             this.SuspendLayout();
             // 
             // panelToolbar
@@ -65,27 +76,73 @@
             this.btnRefresh.UseVisualStyleBackColor = true;
             this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
             // 
-            // flowDocs
+            // tabDocs
             // 
-            this.flowDocs.AutoScroll = true;
-            this.flowDocs.BackColor = System.Drawing.Color.FromArgb(240, 248, 255);
-            this.flowDocs.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.flowDocs.Location = new System.Drawing.Point(0, 50);
-            this.flowDocs.Name = "flowDocs";
-            this.flowDocs.Padding = new System.Windows.Forms.Padding(15);
-            this.flowDocs.Size = new System.Drawing.Size(800, 550);
-            this.flowDocs.TabIndex = 1;
+            this.tabDocs.Controls.Add(this.tabMyDocs);
+            this.tabDocs.Controls.Add(this.tabSharedDocs);
+            this.tabDocs.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabDocs.Location = new System.Drawing.Point(0, 50);
+            this.tabDocs.Name = "tabDocs";
+            this.tabDocs.SelectedIndex = 0;
+            this.tabDocs.Size = new System.Drawing.Size(800, 550);
+            this.tabDocs.TabIndex = 1;
+            // 
+            // tabMyDocs
+            // 
+            this.tabMyDocs.Controls.Add(this.flowMyDocs);
+            this.tabMyDocs.Location = new System.Drawing.Point(4, 24);
+            this.tabMyDocs.Name = "tabMyDocs";
+            this.tabMyDocs.Padding = new System.Windows.Forms.Padding(3);
+            this.tabMyDocs.Size = new System.Drawing.Size(792, 522);
+            this.tabMyDocs.TabIndex = 0;
+            this.tabMyDocs.Text = "📂 Tài liệu của tôi";
+            this.tabMyDocs.UseVisualStyleBackColor = true;
+            // 
+            // flowMyDocs
+            // 
+            this.flowMyDocs.AutoScroll = true;
+            this.flowMyDocs.BackColor = System.Drawing.Color.FromArgb(240, 248, 255);
+            this.flowMyDocs.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flowMyDocs.Location = new System.Drawing.Point(3, 3);
+            this.flowMyDocs.Name = "flowMyDocs";
+            this.flowMyDocs.Padding = new System.Windows.Forms.Padding(15);
+            this.flowMyDocs.Size = new System.Drawing.Size(786, 516);
+            this.flowMyDocs.TabIndex = 0;
+            // 
+            // tabSharedDocs
+            // 
+            this.tabSharedDocs.Controls.Add(this.flowSharedDocs);
+            this.tabSharedDocs.Location = new System.Drawing.Point(4, 24);
+            this.tabSharedDocs.Name = "tabSharedDocs";
+            this.tabSharedDocs.Padding = new System.Windows.Forms.Padding(3);
+            this.tabSharedDocs.Size = new System.Drawing.Size(792, 522);
+            this.tabSharedDocs.TabIndex = 1;
+            this.tabSharedDocs.Text = "🤝 Được chia sẻ";
+            this.tabSharedDocs.UseVisualStyleBackColor = true;
+            // 
+            // flowSharedDocs
+            // 
+            this.flowSharedDocs.AutoScroll = true;
+            this.flowSharedDocs.BackColor = System.Drawing.Color.FromArgb(240, 248, 255);
+            this.flowSharedDocs.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flowSharedDocs.Location = new System.Drawing.Point(3, 3);
+            this.flowSharedDocs.Name = "flowSharedDocs";
+            this.flowSharedDocs.Padding = new System.Windows.Forms.Padding(15);
+            this.flowSharedDocs.Size = new System.Drawing.Size(786, 516);
+            this.flowSharedDocs.TabIndex = 0;
             // 
             // UC_QuanLyTaiLieu
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.Controls.Add(this.flowDocs);
+            this.Controls.Add(this.tabDocs);
             this.Controls.Add(this.panelToolbar);
             this.Name = "UC_QuanLyTaiLieu";
             this.Size = new System.Drawing.Size(800, 600);
             this.panelToolbar.ResumeLayout(false);
+            this.tabDocs.ResumeLayout(false);
+            this.tabMyDocs.ResumeLayout(false);
+            this.tabSharedDocs.ResumeLayout(false);
             this.ResumeLayout(false);
-
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using PdfiumViewer;
 
 namespace N6
 {
@@ -16,29 +17,36 @@ namespace N6
             InitializeComponent();
             maGV = maGVien;
 
-            // Thư mục lưu trữ riêng của app
+            // Tạo thư mục lưu trữ riêng nếu chưa có
             storagePath = Path.Combine(Application.StartupPath, "TaiLieu");
             if (!Directory.Exists(storagePath))
                 Directory.CreateDirectory(storagePath);
 
-            LoadTaiLieu();
+            LoadTaiLieu(false); // tài liệu của tôi
+            LoadTaiLieu(true);  // tài liệu được chia sẻ
         }
 
-        private void LoadTaiLieu()
+        private void LoadTaiLieu(bool shared = false)
         {
-            flowDocs.Controls.Clear();
-            DataTable dt = DatabaseHelper.GetTaiLieuByGV(maGV);
+            FlowLayoutPanel targetPanel = shared ? flowSharedDocs : flowMyDocs;
+            targetPanel.Controls.Clear();
+
+            DataTable dt = shared
+                ? DatabaseHelper.GetTaiLieuShared()
+                : DatabaseHelper.GetTaiLieuByGV(maGV);
 
             foreach (DataRow r in dt.Rows)
             {
-                Panel card = new Panel();
-                card.Width = 180;
-                card.Height = 120;
-                card.Margin = new Padding(15);
-                card.BackColor = Color.White;
-                card.BorderStyle = BorderStyle.FixedSingle;
+                Panel card = new Panel
+                {
+                    Width = 200,
+                    Height = 160,
+                    Margin = new Padding(15),
+                    BackColor = Color.White,
+                    BorderStyle = BorderStyle.FixedSingle
+                };
 
-                Label lblIcon = new Label()
+                Label lblIcon = new Label
                 {
                     Text = "📄",
                     Font = new Font("Segoe UI Emoji", 28),
@@ -46,82 +54,106 @@ namespace N6
                     Height = 50,
                     TextAlign = ContentAlignment.MiddleCenter
                 };
-                Label lblName = new Label()
+
+                Label lblName = new Label
                 {
                     Text = r["TenTL"].ToString(),
                     Dock = DockStyle.Top,
                     Height = 30,
                     TextAlign = ContentAlignment.MiddleCenter
                 };
-                Label lblDate = new Label()
+
+                FlowLayoutPanel panelButtons = new FlowLayoutPanel
                 {
-                    Text = Convert.ToDateTime(r["NgayTaiLen"]).ToShortDateString(),
                     Dock = DockStyle.Bottom,
-                    Height = 20,
-                    Font = new Font("Segoe UI", 8, FontStyle.Italic),
-                    ForeColor = Color.Gray,
-                    TextAlign = ContentAlignment.MiddleCenter
+                    Height = 40,
+                    FlowDirection = FlowDirection.LeftToRight
                 };
 
-                ContextMenuStrip menu = new ContextMenuStrip();
-                menu.Items.Add("👁 Xem", null, (s, e) =>
+                // Nút Xem
+                Button btnView = new Button { Text = "👁 Xem", Width = 55, Height = 28 };
+                btnView.Click += (s, e) =>
                 {
-                    string path = r["Kieu"].ToString(); // lưu full path file
-
-                    if (!File.Exists(path))
+                    try
                     {
-                        MessageBox.Show("File không tồn tại!");
-                        return;
-                    }
+                        string path = r["Kieu"].ToString();
+                        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                        {
+                            MessageBox.Show("File không tồn tại: " + path);
+                            return;
+                        }
 
-                    string ext = Path.GetExtension(path).ToLower();
-
-                    if (ext == ".pdf")
-                    {
-                        try
+                        string ext = Path.GetExtension(path).ToLower();
+                        if (ext == ".pdf")
                         {
                             Form viewer = new Form();
                             viewer.Text = "Xem PDF - " + r["TenTL"].ToString();
                             viewer.Size = new Size(900, 600);
 
-                            // dùng PdfiumViewer
-                            var pdfViewer = new PdfiumViewer.PdfViewer();
+                            var pdfViewer = new PdfViewer();
                             pdfViewer.Dock = DockStyle.Fill;
-                            pdfViewer.Document = PdfiumViewer.PdfDocument.Load(path);
+                            pdfViewer.Document = PdfDocument.Load(path);
 
                             viewer.Controls.Add(pdfViewer);
                             viewer.ShowDialog();
                         }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show("Không mở được PDF: " + ex.Message);
-                        }
-                    }
-                    else
-                    {
-                        // với file Word/Excel/PowerPoint mở bằng ứng dụng mặc định
-                        try
+                        else
                         {
                             System.Diagnostics.Process.Start(path);
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Lỗi khi mở file: " + ex.Message);
+                    }
+                };
+
+                // Nút Chia sẻ (chỉ hiển thị trong tab tài liệu của tôi)
+                Button btnShare = new Button { Text = "🔗 Chia sẻ", Width = 65, Height = 28 };
+                btnShare.Click += (s, e) =>
+                {
+                    try
+                    {
+                        DatabaseHelper.ShareTaiLieu(r["MaTL"].ToString());
+                        MessageBox.Show("Đã chia sẻ!");
+                        LoadTaiLieu(false);
+                        LoadTaiLieu(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Lỗi khi chia sẻ: " + ex.Message);
+                    }
+                };
+
+                // Nút Xóa
+                Button btnDelete = new Button { Text = "🗑 Xóa", Width = 55, Height = 28 };
+                btnDelete.Click += (s, e) =>
+                {
+                    if (MessageBox.Show("Bạn có chắc chắn muốn xóa tài liệu này?",
+                        "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    {
+                        try
+                        {
+                            DatabaseHelper.DeleteTaiLieu(r["MaTL"].ToString());
+                            LoadTaiLieu(shared);
+                        }
                         catch (Exception ex)
                         {
-                            MessageBox.Show("Không mở được file: " + ex.Message);
+                            MessageBox.Show("Lỗi khi xóa: " + ex.Message);
                         }
                     }
-                });
+                };
 
-                card.ContextMenuStrip = menu;
+                // Thêm nút vào card
+                if (!shared) panelButtons.Controls.Add(btnShare);
+                panelButtons.Controls.Add(btnView);
+                panelButtons.Controls.Add(btnDelete);
 
-                // hover effect
-                card.MouseEnter += (s, e) => card.BackColor = Color.FromArgb(220, 240, 250);
-                card.MouseLeave += (s, e) => card.BackColor = Color.White;
-
-                card.Controls.Add(lblDate);
+                card.Controls.Add(panelButtons);
                 card.Controls.Add(lblName);
                 card.Controls.Add(lblIcon);
 
-                flowDocs.Controls.Add(card);
+                targetPanel.Controls.Add(card);
             }
         }
 
@@ -140,14 +172,14 @@ namespace N6
                         return;
                     }
 
-                    // Copy file vào thư mục lưu trữ riêng của app
+                    // Copy file vào thư mục lưu trữ riêng
                     string destPath = Path.Combine(storagePath, fileName);
                     File.Copy(ofd.FileName, destPath, true);
 
-                    // Lưu đường dẫn file đã copy vào DB (cột Kieu)
+                    // Lưu vào DB
                     DatabaseHelper.InsertTaiLieu(maGV, fileName, "Tài liệu mới", destPath, "Riêng tư");
 
-                    LoadTaiLieu();
+                    LoadTaiLieu(false);
                     MessageBox.Show("Tải tài liệu thành công!");
                 }
             }
@@ -159,7 +191,8 @@ namespace N6
 
         private void btnRefresh_Click(object sender, EventArgs e)
         {
-            LoadTaiLieu();
+            LoadTaiLieu(false);
+            LoadTaiLieu(true);
         }
     }
 }

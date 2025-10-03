@@ -121,6 +121,36 @@
   <data name="color4bg_2025-09-18 11_19_52" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Style\color4bg_2025-09-18 11_19_52.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="MNG01" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG01.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MNG02" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG02.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MNG03" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG03.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MNG04" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG04.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MNG05" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG05.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MNG06" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG06.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MNG07" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG07.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MNG08" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG08.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MNG09" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG09.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MNG10" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\MNG10.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="player" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\player.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
