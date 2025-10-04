@@ -81,7 +81,20 @@ public static class DatabaseHelper
         }
         return null;
     }
-
+    public static void UpdateTeacherAvatar(string username, string avatarPath)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "UPDATE GiaoVien SET AnhDaiDien = @avatar WHERE Username = @user OR Ten = @user";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@avatar", (object)avatarPath ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@user", username);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
     public static string GetLopByTeacher(string identifier)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -569,6 +582,86 @@ public static class DatabaseHelper
             }
         }
     }
+    // Lấy profile admin
+    public static DataRow GetAdminProfile(string username)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "SELECT * FROM Admin WHERE Username=@u";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@u", username);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+            }
+        }
+    }
+
+    // Cập nhật email
+    public static void UpdateAdminEmail(string username, string email)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "UPDATE Admin SET Email=@e WHERE Username=@u OR Ten =@admin";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@e", email);
+                cmd.Parameters.AddWithValue("@u", username);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    // Cập nhật ảnh nền
+    
+    public static bool ChangeAdminPassword(string username, string oldPass, string newPass)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+
+            // 1. Kiểm tra mật khẩu cũ
+            string check = "SELECT Password FROM Admin WHERE Username=@u";
+            string currentPass = null;
+            using (SqlCommand cmd = new SqlCommand(check, conn))
+            {
+                cmd.Parameters.AddWithValue("@u", username);
+                var result = cmd.ExecuteScalar();
+                if (result != null) currentPass = result.ToString();
+            }
+
+            if (currentPass == null || currentPass != oldPass)
+            {
+                return false; // sai mật khẩu cũ
+            }
+
+            // 2. Kiểm tra mật khẩu mới
+            if (string.IsNullOrWhiteSpace(newPass))
+            {
+                throw new ArgumentException("Mật khẩu mới không được để trống!");
+            }
+
+            if (System.Text.RegularExpressions.Regex.IsMatch(newPass, @"[^a-zA-Z0-9]"))
+            {
+                throw new ArgumentException("Mật khẩu mới không được chứa ký tự đặc biệt!");
+            }
+
+            // 3. Cập nhật mật khẩu mới
+            string update = "UPDATE Admin SET Password=@new WHERE Username=@u";
+            using (SqlCommand cmd = new SqlCommand(update, conn))
+            {
+                cmd.Parameters.AddWithValue("@new", newPass);
+                cmd.Parameters.AddWithValue("@u", username);
+                cmd.ExecuteNonQuery();
+                return true;
+            }
+        }
+    }
+
     #endregion
     #region Tài liệu
     public static DataTable GetTaiLieuByGV(string maGV)
@@ -854,6 +947,249 @@ public static class DatabaseHelper
                 }
             }
         }
+    }
+    public static DataTable GetGiaoVienByTrangThai(string trangThai)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = "SELECT MaGV, Ten, Username, Email, SDT, TrangThai FROM GiaoVien WHERE TrangThai = @tt";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@tt", trangThai);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+    public static void UpdateTrangThaiGiaoVien(string maGV, string trangThai)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "UPDATE GiaoVien SET TrangThai=@tt WHERE MaGV=@id";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@tt", trangThai);
+                cmd.Parameters.AddWithValue("@id", maGV);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static void UpdateGiaoVien(string maGV, string ten, string email, string sdt)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "UPDATE GiaoVien SET Ten=@t, Email=@e, SDT=@s WHERE MaGV=@id";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@t", ten);
+                cmd.Parameters.AddWithValue("@e", email);
+                cmd.Parameters.AddWithValue("@s", sdt);
+                cmd.Parameters.AddWithValue("@id", maGV);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static void DeleteGiaoVien(string maGV)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "DELETE FROM GiaoVien WHERE MaGV=@id";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", maGV);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+    public static DataTable GetAllGiaoVien()
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = "SELECT MaGV, Ten, Username, Email, SDT, TrangThai FROM GiaoVien";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+    public static DataTable GetAllHocSinh()
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = "SELECT MaHS, MaLop, HoTen, NgaySinh, GioiTinh, SDTPhuHuynh, DiaChi, DanToc FROM HocSinh ORDER BY MaLop, HoTen";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+
+    public static void InsertHocSinh(string maHS, string maLop, string hoTen, DateTime ngaySinh,
+                                     string gioiTinh, string sdtPH, string diaChi, string danToc)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            // Nếu đã tồn tại MaHS -> ném ngoại lệ lên caller
+            string check = "SELECT COUNT(1) FROM HocSinh WHERE MaHS=@MaHS";
+            using (SqlCommand chk = new SqlCommand(check, conn))
+            {
+                chk.Parameters.AddWithValue("@MaHS", maHS);
+                int cnt = Convert.ToInt32(chk.ExecuteScalar());
+                if (cnt > 0) throw new Exception($"Học sinh {maHS} đã tồn tại.");
+            }
+
+            string sql = @"INSERT INTO HocSinh (MaHS, MaLop, HoTen, NgaySinh, GioiTinh, SDTPhuHuynh, DiaChi, DanToc)
+                           VALUES (@MaHS, @MaLop, @HoTen, @NgaySinh, @GioiTinh, @SDT, @DiaChi, @DanToc)";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaHS", maHS);
+                cmd.Parameters.AddWithValue("@MaLop", string.IsNullOrWhiteSpace(maLop) ? (object)DBNull.Value : maLop);
+                cmd.Parameters.AddWithValue("@HoTen", hoTen ?? "");
+                cmd.Parameters.AddWithValue("@NgaySinh", ngaySinh);
+                cmd.Parameters.AddWithValue("@GioiTinh", gioiTinh ?? "");
+                cmd.Parameters.AddWithValue("@SDT", sdtPH ?? "");
+                cmd.Parameters.AddWithValue("@DiaChi", diaChi ?? "");
+                cmd.Parameters.AddWithValue("@DanToc", danToc ?? "");
+                cmd.ExecuteNonQuery();
+            }
+            // triggers in DB will create DiemDanh and KetQuaHocTap automatically
+        }
+    }
+
+
+    public static void UpdateHocSinh(string maHS, string hoTen, DateTime ngaySinh,
+                                     string gioiTinh, string sdtPH, string diaChi, string danToc)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = @"UPDATE HocSinh
+                           SET HoTen=@HoTen, NgaySinh=@NgaySinh, GioiTinh=@GioiTinh,
+                               SDTPhuHuynh=@SDT, DiaChi=@DiaChi, DanToc=@DanToc
+                           WHERE MaHS=@MaHS";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaHS", maHS);
+                cmd.Parameters.AddWithValue("@HoTen", hoTen ?? "");
+                cmd.Parameters.AddWithValue("@NgaySinh", ngaySinh);
+                cmd.Parameters.AddWithValue("@GioiTinh", gioiTinh ?? "");
+                cmd.Parameters.AddWithValue("@SDT", sdtPH ?? "");
+                cmd.Parameters.AddWithValue("@DiaChi", diaChi ?? "");
+                cmd.Parameters.AddWithValue("@DanToc", danToc ?? "");
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+
+    public static void DeleteHocSinh(string maHS)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "DELETE FROM HocSinh WHERE MaHS=@MaHS";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaHS", maHS);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+    public struct ImportResult
+    {
+        public int Success;   // số dòng thêm thành công
+        public int Skipped;   // số dòng bị bỏ qua (đã tồn tại)
+        public int Failed;    // số dòng lỗi
+    }
+    public static ImportResult ImportHocSinhFromDataTable(DataTable dt)
+    {
+        var result = new ImportResult();
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            using (SqlTransaction tran = conn.BeginTransaction())
+            {
+                try
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        string maHS = row["MaHS"]?.ToString().Trim();
+                        if (string.IsNullOrWhiteSpace(maHS))
+                        {
+                            result.Failed++;
+                            continue;
+                        }
+
+                        // parse ngay sinh
+                        DateTime ngaySinh;
+                        string ngayStr = row["NgaySinh"]?.ToString().Trim();
+                        if (!DateTime.TryParseExact(ngayStr, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out ngaySinh))
+                        {
+                            // try ISO parse
+                            if (!DateTime.TryParse(ngayStr, out ngaySinh))
+                            {
+                                result.Failed++;
+                                continue;
+                            }
+                        }
+
+                        string maLop = row["MaLop"]?.ToString().Trim();
+                        string hoTen = row["HoTen"]?.ToString().Trim();
+                        string gioiTinh = row["GioiTinh"]?.ToString().Trim();
+                        string sdt = row["SDTPhuHuynh"]?.ToString().Trim();
+                        string diaChi = row["DiaChi"]?.ToString().Trim();
+                        string danToc = row["DanToc"]?.ToString().Trim();
+
+                        // kiểm tra tồn tại
+                        string check = "SELECT COUNT(1) FROM HocSinh WHERE MaHS=@MaHS";
+                        using (SqlCommand chk = new SqlCommand(check, conn, tran))
+                        {
+                            chk.Parameters.AddWithValue("@MaHS", maHS);
+                            int cnt = Convert.ToInt32(chk.ExecuteScalar());
+                            if (cnt > 0)
+                            {
+                                result.Skipped++;
+                                continue;
+                            }
+                        }
+
+                        // insert
+                        string insert = @"INSERT INTO HocSinh (MaHS, MaLop, HoTen, NgaySinh, GioiTinh, SDTPhuHuynh, DiaChi, DanToc)
+                                          VALUES(@MaHS, @MaLop, @HoTen, @NgaySinh, @GioiTinh, @SDT, @DiaChi, @DanToc)";
+                        using (SqlCommand cmd = new SqlCommand(insert, conn, tran))
+                        {
+                            cmd.Parameters.AddWithValue("@MaHS", maHS);
+                            cmd.Parameters.AddWithValue("@MaLop", string.IsNullOrWhiteSpace(maLop) ? (object)DBNull.Value : maLop);
+                            cmd.Parameters.AddWithValue("@HoTen", hoTen ?? "");
+                            cmd.Parameters.AddWithValue("@NgaySinh", ngaySinh);
+                            cmd.Parameters.AddWithValue("@GioiTinh", gioiTinh ?? "");
+                            cmd.Parameters.AddWithValue("@SDT", sdt ?? "");
+                            cmd.Parameters.AddWithValue("@DiaChi", diaChi ?? "");
+                            cmd.Parameters.AddWithValue("@DanToc", danToc ?? "");
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        result.Success++;
+                        // triggers in DB will create DiemDanh and KetQuaHocTap
+                    }
+
+                    tran.Commit();
+                }
+                catch
+                {
+                    tran.Rollback();
+                    throw;
+                }
+            }
+        }
+        return result;
     }
 
 }

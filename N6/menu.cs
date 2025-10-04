@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Microsoft.VisualBasic.ApplicationServices;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Windows.Forms;
-
 namespace N6
 {
     public partial class dashboard : Form
@@ -44,6 +46,7 @@ namespace N6
         public dashboard()
         {
             InitializeComponent();
+            LoadHome();
             this.DoubleBuffered = true;
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -51,7 +54,63 @@ namespace N6
             // giữ delegate logoutHandler tránh bị GC
             logoutHandler = LogoutItem_Click;
         }
+        private void LoadHome()
+        {
+            panelMain.Controls.Clear();
+            string tenGV = Properties.Settings.Default.CurrentUser?? "Giáo viên";
+            var home = new UC_Home(tenGV);
+            home.Dock = DockStyle.Fill;
+            home.ChonChucNang += MoChucNang;
+            panelMain.Controls.Add(home);
+        }
 
+        private void MoChucNang(string maCN)
+        {
+            string user = Properties.Settings.Default["CurrentUser"]?.ToString();
+            string maGV = DatabaseHelper.GetMaGVByUsername(user);
+            panelMain.Controls.Clear();
+            UserControl uc = null;
+            switch (maCN)
+            {
+                case "CN1":
+                    
+                    UC_Home homeUc = new UC_Home(user ?? "Giáo viên");
+                    homeUc.ChonChucNang += MoChucNang; 
+                    uc = homeUc;
+                    break;
+                case "CN2":
+                    uc = new UC_QuanLyLop(user);
+                    break;
+                case "CN3":
+                    uc = new UC_ThoiKhoaBieu(maGV);
+                    break;
+                case "CN4":
+                    uc = new UC_QuanLyTaiLieu(maGV);
+                    break;
+                case "CN5":
+                    uc = new UC_MiniGames();
+                    break;
+                case "CN6":
+                    uc = new UC_BaoCao();
+                    break;
+                case "CN7":
+                    uc = new UC_PhanTichAI();
+                    break;
+                case "CN8":
+                    // Đăng xuất
+                    DialogResult r = MessageBox.Show("Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", MessageBoxButtons.YesNo);
+                    if (r == DialogResult.Yes)
+                    {
+                        Application.Restart();
+                    }
+                    return;
+            }
+            if (uc != null)
+            {
+                uc.Dock = DockStyle.Fill;
+                panelMain.Controls.Add(uc);
+            }
+        }
         private void dashboard_Load(object sender, EventArgs e)
         {
             LoadUserInfo();
@@ -62,28 +121,47 @@ namespace N6
 
         private void LoadUserInfo()
         {
-            string userName = Properties.Settings.Default["CurrentUser"]?.ToString();
-            string subject = Properties.Settings.Default["CurrentSubject"]?.ToString();
-            if (string.IsNullOrWhiteSpace(userName)) userName = "Người dùng";
-            if (string.IsNullOrWhiteSpace(subject)) subject = "";
-            labelUserName.Text = userName;
-            labelSubject.Text = subject;
-
-            string avatarPath = Properties.Settings.Default["CurrentUserAvatar"]?.ToString();
-
-            if (!string.IsNullOrWhiteSpace(avatarPath) && System.IO.File.Exists(avatarPath))
+            string username = Properties.Settings.Default["CurrentUser"]?.ToString();
+            if (string.IsNullOrEmpty(username))
             {
-                try
+                labelUserName.Text = "Người dùng";
+                labelSubject.Text = "";
+                pictureBoxUser.Image = Properties.Resources.user_avatar;
+                return;
+            }
+
+            TeacherProfile profile = DatabaseHelper.GetTeacherProfile(username);
+
+            if (profile != null)
+            {
+                labelUserName.Text = profile.Ten;
+                labelSubject.Text = profile.TenMon;
+
+                string avatarPath = Path.Combine(Application.StartupPath, profile.AnhDaiDien ?? "");
+
+                if (!string.IsNullOrWhiteSpace(profile.AnhDaiDien) && File.Exists(avatarPath))
                 {
-                    pictureBoxUser.Image = Image.FromFile(avatarPath);
+                    try
+                    {
+                        using (var stream = new MemoryStream(File.ReadAllBytes(avatarPath)))
+                        {
+                            pictureBoxUser.Image = Image.FromStream(stream);
+                        }
+                    }
+                    catch
+                    {
+                        pictureBoxUser.Image = Properties.Resources.user_avatar;
+                    }
                 }
-                catch
+                else
                 {
                     pictureBoxUser.Image = Properties.Resources.user_avatar;
                 }
             }
             else
             {
+                labelUserName.Text = "Không tìm thấy";
+                labelSubject.Text = "";
                 pictureBoxUser.Image = Properties.Resources.user_avatar;
             }
 
@@ -123,6 +201,9 @@ namespace N6
             string currentUser = Properties.Settings.Default["CurrentUser"]?.ToString();
             using (ProfileForm pf = new ProfileForm(currentUser))
             {
+                pf.AvatarChanged += (s, args) => {
+                 LoadUserInfo();
+                };
                 pf.ShowDialog(this);
             }
         }
@@ -182,69 +263,29 @@ namespace N6
 
         private void MenuItem_Click(object sender, EventArgs e)
         {
-            if (sender is Button btn)
+            if (!(sender is Button btn)) return;
+
+            string text = btn.Text.Trim();
+            string maCN = "";
+
+            // Gán mã chức năng tương ứng với text của nút
+            if (text.Contains("Trang chủ")) maCN = "CN1";
+            else if (text.Contains("Quản lý lớp học")) maCN = "CN2";
+            else if (text.Contains("Thời khóa biểu")) maCN = "CN3";
+            else if (text.Contains("quản lí tài liệu")) maCN = "CN4";
+            else if (text.Contains("Mini-games")) maCN = "CN5";
+            else if (text.Contains("Báo cáo")) maCN = "CN6";
+            else if (text.Contains("Phân tích AI")) maCN = "CN7";
+            else if (text.Contains("Đăng xuất")) maCN = "CN8";
+            else
             {
-                if (btn.Text.Contains("Quản lý lớp học"))
-                {
-                    panelContent.Controls.Clear();
-                    string currentUser = Properties.Settings.Default["CurrentUser"]?.ToString();
-                    UC_QuanLyLop uc = new UC_QuanLyLop(currentUser);
-                    uc.Dock = DockStyle.Fill;
-                    panelContent.Controls.Add(uc);
-                    return;
-                }
-
-                // Xử lý Đăng xuất
-                if (btn.Text.Contains("Đăng xuất"))
-                {
-                    DialogResult result = MessageBox.Show(
-                        "Bạn có chắc chắn muốn đăng xuất không?",
-                        "Xác nhận",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Question);
-
-                    if (result == DialogResult.Yes)
-                    {
-                        Properties.Settings.Default["CurrentUser"] = "";
-                        Properties.Settings.Default["CurrentSubject"] = "";
-                        Properties.Settings.Default["CurrentUserAvatar"] = "";
-                        Properties.Settings.Default.Save();
-
-                        this.Close(); // chỉ Close, Program.cs sẽ quay về login
-                    }
-                    return;
-                }
-                if (btn.Text.Contains("quản lí tài liệu"))
-                {
-                    panelContent.Controls.Clear();
-                    string user = Properties.Settings.Default["CurrentUser"]?.ToString();
-                    string maGV = DatabaseHelper.GetMaGVByUsername(user);
-                    UC_QuanLyTaiLieu uc = new UC_QuanLyTaiLieu(maGV);
-                    uc.Dock = DockStyle.Fill;
-                    panelContent.Controls.Add(uc);
-                    return;
-                }
-                if (btn.Text.Contains("Thời khóa biểu"))
-                {
-                    panelContent.Controls.Clear();
-                    string user = Properties.Settings.Default["CurrentUser"]?.ToString();
-                    string maGV = DatabaseHelper.GetMaGVByUsername(user);
-
-                    UC_ThoiKhoaBieu uc = new UC_ThoiKhoaBieu(maGV);
-                    uc.Dock = DockStyle.Fill;
-                    panelContent.Controls.Add(uc);
-                    return;
-                }
-                if (btn.Text.Contains("Mini-games"))
-                {
-                    panelContent.Controls.Clear();
-                    UC_MiniGames uc = new UC_MiniGames();
-                    uc.Dock = DockStyle.Fill;
-                    panelContent.Controls.Add(uc);
-                    return;
-                }
-
+                MessageBox.Show("Chức năng này đang được phát triển!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
             }
+
+            // Luôn gọi MoChucNang để xử lý việc chuyển đổi UserControl
+            // Điều này đảm bảo rằng UC_Home sẽ được tạo và đăng ký sự kiện đúng cách
+            MoChucNang(maCN);
         }
 
         private void btnToggleMenu_Click(object sender, EventArgs e)

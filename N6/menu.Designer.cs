@@ -183,6 +183,12 @@
             // 
             // panelContent
             // 
+            this.panelMain = new System.Windows.Forms.Panel();
+            this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelMain.Location = new System.Drawing.Point(0, 0);
+            this.panelMain.Name = "panelMain";
+            this.panelMain.Size = new System.Drawing.Size(940, 600);
+            this.Controls.Add(this.panelMain);
             this.panelContent.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelContent.Location = new System.Drawing.Point(200, 50);
             this.panelContent.Name = "panelContent";
@@ -220,7 +226,7 @@
         private System.Windows.Forms.Panel panelMenu;
         private System.Windows.Forms.Panel panelContent;
         private System.Windows.Forms.Label labelSubject;
-
+        private System.Windows.Forms.Panel panelMain;
         // Mới thêm
         private System.Windows.Forms.PictureBox pictureBoxUser;
         private System.Windows.Forms.Label labelUserName;
