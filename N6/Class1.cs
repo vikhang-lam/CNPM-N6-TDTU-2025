@@ -658,38 +658,99 @@ public static class DatabaseHelper
         }
     }
     #endregion
-    // Lấy TKB theo tuần của GV
-    public static DataTable GetTKBByGV(string maGV, DateTime ngay)
+    #region Thời khóa biểu
+    public static DataTable GetTKBByGV(string maGV, DateTime monday)
     {
         DataTable dt = new DataTable();
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            SqlCommand cmd = new SqlCommand("sp_GetTKBByGV", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@MaGV", maGV);
-            cmd.Parameters.AddWithValue("@Ngay", ngay);
+            conn.Open();
+            DateTime sunday = monday.AddDays(6);
 
-            SqlDataAdapter da = new SqlDataAdapter(cmd);
-            da.Fill(dt);
+            // *** THAY ĐỔI CÂU TRUY VẤN TẠI ĐÂY ***
+            // Sử dụng LEFT JOIN để lấy cả những tiết chỉ có ghi chú (MaMon là NULL)
+            string sql = @"
+                SELECT 
+                    t.Ngay, 
+                    t.Tiet, 
+                    ISNULL(m.TenMon, '') AS TenMon,  -- Nếu TenMon là NULL thì trả về chuỗi rỗng
+                    ISNULL(l.TenLop, '') AS TenLop,  -- Nếu TenLop là NULL thì trả về chuỗi rỗng
+                    ISNULL(t.GhiChu, '') AS GhiChu
+                FROM 
+                    ThoiKhoaBieu t
+                LEFT JOIN 
+                    MonHoc m ON t.MaMon = m.MaMon
+                LEFT JOIN 
+                    LopHoc l ON t.MaLop = l.MaLop
+                WHERE 
+                    t.MaGV = @MaGV 
+                    AND t.Ngay >= @Monday 
+                    AND t.Ngay <= @Sunday";
+
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaGV", maGV);
+                cmd.Parameters.AddWithValue("@Monday", monday.Date);
+                cmd.Parameters.AddWithValue("@Sunday", sunday.Date);
+                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                {
+                    da.Fill(dt);
+                }
+            }
         }
         return dt;
     }
 
-    // Cập nhật ghi chú
-    public static void UpdateGhiChuTKB(string maGV, DateTime ngay, int tiet, string note)
+    public static void UpsertGhiChuTKB(string maGV, DateTime ngay, int tiet, string note)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            string sql = "UPDATE ThoiKhoaBieu SET GhiChu=@Note WHERE MaGV=@MaGV AND Ngay=@Ngay AND Tiet=@Tiet";
-            SqlCommand cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@Note", note);
-            cmd.Parameters.AddWithValue("@MaGV", maGV);
-            cmd.Parameters.AddWithValue("@Ngay", ngay);
-            cmd.Parameters.AddWithValue("@Tiet", tiet);
             conn.Open();
-            cmd.ExecuteNonQuery();
+
+            // 1. Kiểm tra xem đã có bản ghi cho ngày và tiết này chưa
+            string checkSql = "SELECT MaTKB FROM ThoiKhoaBieu WHERE MaGV=@MaGV AND Ngay=@Ngay AND Tiet=@Tiet";
+            object maTKB = null;
+            using (SqlCommand checkCmd = new SqlCommand(checkSql, conn))
+            {
+                checkCmd.Parameters.AddWithValue("@MaGV", maGV);
+                checkCmd.Parameters.AddWithValue("@Ngay", ngay.Date);
+                checkCmd.Parameters.AddWithValue("@Tiet", tiet);
+                maTKB = checkCmd.ExecuteScalar();
+            }
+
+            // 2. Cập nhật hoặc Thêm mới
+            if (maTKB != null)
+            {
+                // 2a. Nếu đã tồn tại -> Cập nhật ghi chú
+                string updateSql = "UPDATE ThoiKhoaBieu SET GhiChu=@Note WHERE MaTKB=@MaTKB";
+                using (SqlCommand updateCmd = new SqlCommand(updateSql, conn))
+                {
+                    updateCmd.Parameters.AddWithValue("@Note", note);
+                    updateCmd.Parameters.AddWithValue("@MaTKB", maTKB);
+                    updateCmd.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                // 2b. Nếu chưa tồn tại -> Chèn bản ghi mới
+                // Giả định rằng nếu tạo mới từ ô trống, nó chỉ là một ghi chú cá nhân
+                // nên MaMon và MaLop sẽ là NULL.
+                string insertSql = "INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, GhiChu, MaGV) VALUES (@MaTKB, @Ngay, @Tiet, @GhiChu, @MaGV)";
+                using (SqlCommand insertCmd = new SqlCommand(insertSql, conn))
+                {
+                    // Tạo một MaTKB ngẫu nhiên, không trùng lặp
+                    insertCmd.Parameters.AddWithValue("@MaTKB", "TKB" + Guid.NewGuid().ToString("N").Substring(0, 7));
+                    insertCmd.Parameters.AddWithValue("@Ngay", ngay.Date);
+                    insertCmd.Parameters.AddWithValue("@Tiet", tiet);
+                    insertCmd.Parameters.AddWithValue("@GhiChu", note);
+                    insertCmd.Parameters.AddWithValue("@MaGV", maGV);
+                    insertCmd.ExecuteNonQuery();
+                }
+            }
         }
     }
+
+    #endregion
     public static DataTable GetMiniGames()
     {
         DataTable dt = new DataTable();
@@ -745,4 +806,54 @@ public static class DatabaseHelper
         }
     }
     #endregion
+    public static void DeleteGhiChuTKB(string maGV, DateTime ngay, int tiet)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string maMon = null;
+            string maTKB = null;
+
+            string checkSql = "SELECT MaTKB, MaMon FROM ThoiKhoaBieu WHERE MaGV=@MaGV AND Ngay=@Ngay AND Tiet=@Tiet";
+            using (SqlCommand checkCmd = new SqlCommand(checkSql, conn))
+            {
+                checkCmd.Parameters.AddWithValue("@MaGV", maGV);
+                checkCmd.Parameters.AddWithValue("@Ngay", ngay.Date);
+                checkCmd.Parameters.AddWithValue("@Tiet", tiet);
+                using (SqlDataReader reader = checkCmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        maTKB = reader["MaTKB"].ToString();
+                        if (reader["MaMon"] != DBNull.Value)
+                        {
+                            maMon = reader["MaMon"].ToString();
+                        }
+                    }
+                }
+            }
+
+            if (maTKB == null) return;
+
+            if (string.IsNullOrEmpty(maMon))
+            {
+                string deleteSql = "DELETE FROM ThoiKhoaBieu WHERE MaTKB=@MaTKB";
+                using (SqlCommand deleteCmd = new SqlCommand(deleteSql, conn))
+                {
+                    deleteCmd.Parameters.AddWithValue("@MaTKB", maTKB);
+                    deleteCmd.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                string updateSql = "UPDATE ThoiKhoaBieu SET GhiChu = NULL WHERE MaTKB=@MaTKB";
+                using (SqlCommand updateCmd = new SqlCommand(updateSql, conn))
+                {
+                    updateCmd.Parameters.AddWithValue("@MaTKB", maTKB);
+                    updateCmd.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+
 }

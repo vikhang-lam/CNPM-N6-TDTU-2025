@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace N6
@@ -9,17 +11,24 @@ namespace N6
         private string maGV;
         private DateTime currentMonday;
 
+        private Dictionary<string, Color> subjectColors = new Dictionary<string, Color>();
+        private Dictionary<Point, Color> cellColors = new Dictionary<Point, Color>();
+        private Point selectedCellForColorChange;
+
         public UC_ThoiKhoaBieu(string maGVien)
         {
             InitializeComponent();
             maGV = maGVien;
             InitGrid();
 
-            // Xác định ngày thứ 2 của tuần hiện tại
             DateTime today = DateTime.Today;
-            currentMonday = today.AddDays(-(int)today.DayOfWeek + 1);
+            currentMonday = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
             if (today.DayOfWeek == DayOfWeek.Sunday)
+            {
                 currentMonday = today.AddDays(-6);
+            }
+
+            dgvTKB.CellPainting += DgvTKB_CellPainting;
 
             LoadThoiKhoaBieu();
         }
@@ -28,27 +37,40 @@ namespace N6
         {
             dgvTKB.Columns.Clear();
             dgvTKB.Rows.Clear();
-
             dgvTKB.ColumnCount = 7;
-            string[] thu = { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN" };
+
             for (int i = 0; i < 7; i++)
             {
-                dgvTKB.Columns[i].Name = thu[i];
                 dgvTKB.Columns[i].SortMode = DataGridViewColumnSortMode.NotSortable;
+                dgvTKB.Columns[i].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
             }
 
-            dgvTKB.RowCount = 10; // ví dụ có 10 tiết
+            dgvTKB.RowCount = 10;
             for (int i = 0; i < 10; i++)
+            {
                 dgvTKB.Rows[i].HeaderCell.Value = "Tiết " + (i + 1);
+                dgvTKB.Rows[i].Height = 60;
+            }
+            dgvTKB.RowHeadersWidth = 100;
 
-            dgvTKB.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvTKB.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            dgvTKB.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            dgvTKB.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+        }
 
-            dgvTKB.CellDoubleClick += DgvTKB_CellDoubleClick;
+        private void UpdateColumnHeaders()
+        {
+            string[] thu = { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật" };
+            for (int i = 0; i < 7; i++)
+            {
+                DateTime currentDate = currentMonday.AddDays(i);
+                dgvTKB.Columns[i].HeaderText = $"{thu[i]}\n{currentDate:dd/MM}";
+            }
         }
 
         private void LoadThoiKhoaBieu()
         {
+            UpdateColumnHeaders();
+
             foreach (DataGridViewRow row in dgvTKB.Rows)
                 foreach (DataGridViewCell cell in row.Cells)
                     cell.Value = "";
@@ -57,6 +79,7 @@ namespace N6
             lblWeek.Text = $"Thời khóa biểu: {currentMonday:dd/MM} - {weekEnd:dd/MM/yyyy}";
 
             DataTable dt = DatabaseHelper.GetTKBByGV(maGV, currentMonday);
+            Random rand = new Random();
 
             foreach (DataRow r in dt.Rows)
             {
@@ -66,12 +89,125 @@ namespace N6
                 string lop = r["TenLop"].ToString();
                 string ghichu = r["GhiChu"].ToString();
 
-                int col = (int)ngay.DayOfWeek - 1;
-                if (col < 0) col = 6; // CN
+                int col = (int)ngay.DayOfWeek - (int)DayOfWeek.Monday;
 
-                dgvTKB[col, tiet].Value = mon + " - " + lop +
-                    (string.IsNullOrEmpty(ghichu) ? "" : "\n(" + ghichu + ")");
+                if (tiet >= 0 && tiet < dgvTKB.RowCount && col >= 0 && col < dgvTKB.ColumnCount)
+                {
+                    Point cellPosition = new Point(col, tiet);
+                    string displayValue = "";
+
+                    if (!string.IsNullOrEmpty(mon))
+                    {
+                        displayValue = mon + " - " + lop;
+                        if (!subjectColors.ContainsKey(mon))
+                        {
+                            Color randomColor = Color.FromArgb(200, rand.Next(180, 256), rand.Next(180, 256), rand.Next(180, 256));
+                            subjectColors.Add(mon, randomColor);
+                        }
+                        if (!cellColors.ContainsKey(cellPosition))
+                        {
+                            cellColors[cellPosition] = subjectColors[mon];
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(ghichu))
+                    {
+                        if (!cellColors.ContainsKey(cellPosition))
+                        {
+                            cellColors[cellPosition] = Color.FromArgb(230, 230, 230);
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(ghichu))
+                    {
+                        displayValue += (string.IsNullOrEmpty(displayValue) ? "" : "\n") + "(" + ghichu + ")";
+                    }
+
+                    dgvTKB[col, tiet].Value = displayValue;
+                }
             }
+            dgvTKB.Invalidate();
+        }
+
+        private void dgvTKB_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right && e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                dgvTKB.CurrentCell = dgvTKB[e.ColumnIndex, e.RowIndex];
+                selectedCellForColorChange = new Point(e.ColumnIndex, e.RowIndex);
+
+                string cellValue = dgvTKB.CurrentCell.Value as string ?? string.Empty;
+
+                doiMauMenuItem.Enabled = !string.IsNullOrEmpty(cellValue);
+                xoaGhiChuMenuItem.Enabled = cellValue.Contains("(");
+            }
+        }
+
+        private void doiMauMenuItem_Click(object sender, EventArgs e)
+        {
+            using (ColorDialog colorDialog = new ColorDialog())
+            {
+                if (cellColors.ContainsKey(selectedCellForColorChange))
+                {
+                    colorDialog.Color = cellColors[selectedCellForColorChange];
+                }
+                else
+                {
+                    colorDialog.Color = Color.White;
+                }
+
+                if (colorDialog.ShowDialog() == DialogResult.OK)
+                {
+                    cellColors[selectedCellForColorChange] = colorDialog.Color;
+                    dgvTKB.Invalidate();
+                }
+            }
+        }
+
+        private void xoaGhiChuMenuItem_Click(object sender, EventArgs e)
+        {
+            DateTime cellDate = currentMonday.AddDays(selectedCellForColorChange.X);
+            int tiet = selectedCellForColorChange.Y + 1;
+
+            DatabaseHelper.DeleteGhiChuTKB(maGV, cellDate, tiet);
+
+            cellColors.Remove(selectedCellForColorChange);
+
+            LoadThoiKhoaBieu();
+        }
+
+        private void DgvTKB_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
+            e.PaintBackground(e.ClipBounds, true);
+
+            Point cellPosition = new Point(e.ColumnIndex, e.RowIndex);
+            Color cellColor = Color.White;
+
+            if (cellColors.ContainsKey(cellPosition))
+            {
+                cellColor = cellColors[cellPosition];
+            }
+
+            if (cellColor != Color.White)
+            {
+                using (Brush backBrush = new SolidBrush(cellColor))
+                {
+                    e.Graphics.FillRectangle(backBrush, e.CellBounds);
+                }
+            }
+
+            e.Graphics.DrawRectangle(Pens.LightGray, e.CellBounds.X, e.CellBounds.Y, e.CellBounds.Width - 1, e.CellBounds.Height - 1);
+
+            string cellValue = e.Value as string ?? string.Empty;
+            if (!string.IsNullOrEmpty(cellValue))
+            {
+                Color fontColor = (cellColor.GetBrightness() < 0.6 && cellColor != Color.White) ? Color.White : Color.Black;
+                TextRenderer.DrawText(e.Graphics, cellValue, e.CellStyle.Font,
+                    e.CellBounds, fontColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
+            }
+
+            e.Handled = true;
         }
 
         private void DgvTKB_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
@@ -81,42 +217,52 @@ namespace N6
             DateTime cellDate = currentMonday.AddDays(e.ColumnIndex);
             int tiet = e.RowIndex + 1;
 
-            // Tạo InputBox đơn giản
-            Form inputForm = new Form()
+            string currentValue = dgvTKB[e.ColumnIndex, e.RowIndex].Value?.ToString() ?? "";
+            string currentNote = "";
+            int noteStartIndex = currentValue.IndexOf('(');
+            if (noteStartIndex != -1)
+            {
+                currentNote = currentValue.Substring(noteStartIndex + 1).TrimEnd(')');
+            }
+
+            using (Form inputForm = new Form()
             {
                 Width = 400,
                 Height = 180,
                 Text = "Ghi chú",
                 StartPosition = FormStartPosition.CenterParent
-            };
-            Label lbl = new Label() { Text = "Nhập ghi chú:", Left = 10, Top = 20, Width = 360 };
-            TextBox txt = new TextBox() { Left = 10, Top = 50, Width = 360 };
-            Button ok = new Button() { Text = "OK", Left = 220, Width = 70, Top = 90, DialogResult = DialogResult.OK };
-            Button cancel = new Button() { Text = "Hủy", Left = 300, Width = 70, Top = 90, DialogResult = DialogResult.Cancel };
-            inputForm.Controls.Add(lbl);
-            inputForm.Controls.Add(txt);
-            inputForm.Controls.Add(ok);
-            inputForm.Controls.Add(cancel);
-            inputForm.AcceptButton = ok;
-            inputForm.CancelButton = cancel;
-
-            if (inputForm.ShowDialog() == DialogResult.OK)
+            })
             {
-                string note = txt.Text.Trim();
-                DatabaseHelper.UpdateGhiChuTKB(maGV, cellDate, tiet, note);
-                LoadThoiKhoaBieu();
+                Label lbl = new Label() { Text = "Nhập ghi chú:", Left = 10, Top = 20, Width = 360 };
+                TextBox txt = new TextBox() { Left = 10, Top = 50, Width = 360, Text = currentNote };
+                Button ok = new Button() { Text = "OK", Left = 220, Width = 70, Top = 90, DialogResult = DialogResult.OK };
+                Button cancel = new Button() { Text = "Hủy", Left = 300, Width = 70, Top = 90, DialogResult = DialogResult.Cancel };
+                inputForm.Controls.AddRange(new Control[] { lbl, txt, ok, cancel });
+                inputForm.AcceptButton = ok;
+                inputForm.CancelButton = cancel;
+
+                if (inputForm.ShowDialog() == DialogResult.OK)
+                {
+                    string note = txt.Text.Trim();
+                    DatabaseHelper.UpsertGhiChuTKB(maGV, cellDate, tiet, note);
+                    LoadThoiKhoaBieu();
+                }
             }
         }
 
         private void btnPrevWeek_Click(object sender, EventArgs e)
         {
             currentMonday = currentMonday.AddDays(-7);
+            subjectColors.Clear();
+            cellColors.Clear();
             LoadThoiKhoaBieu();
         }
 
         private void btnNextWeek_Click(object sender, EventArgs e)
         {
             currentMonday = currentMonday.AddDays(7);
+            subjectColors.Clear();
+            cellColors.Clear();
             LoadThoiKhoaBieu();
         }
     }
