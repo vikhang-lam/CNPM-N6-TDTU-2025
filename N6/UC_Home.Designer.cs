@@ -45,67 +45,6 @@ namespace N6
             this.flowPanel.AutoScroll = true;
             this.flowPanel.WrapContents = true;
 
-            // ======= Danh sách chức năng =======
-            string[] cnTen = {
-                "🏠 Trang chủ",
-                "👨‍🎓 Quản lý lớp học",
-                "☁️ Thời khóa biểu",
-                "📑 Quản lý tài liệu",
-                "🎮 Mini-games",
-                "📑 Báo cáo & Xuất dữ liệu",
-                "📊 Phân tích AI",
-                "🚪 Đăng xuất"
-            };
-
-            for (int i = 0; i < cnTen.Length; i++)
-            {
-                Panel card = new Panel();
-                card.Width = 250;
-                card.Height = 160;
-                card.Margin = new Padding(20);
-                card.BackColor = Color.White;
-                card.BorderStyle = BorderStyle.None;
-                card.Tag = $"CN{i + 1}";
-                card.Cursor = Cursors.Hand;
-
-                // Ảnh minh họa
-                PictureBox pic = new PictureBox();
-                pic.Size = new Size(90, 90);
-                pic.Location = new Point((card.Width - 90) / 2, 15);
-                pic.SizeMode = PictureBoxSizeMode.Zoom;
-                pic.Image = (Image)Properties.Resources.ResourceManager.GetObject($"cn{i + 1}");
-                pic.BackColor = Color.Transparent;
-
-                // Tên chức năng
-                Label lbl = new Label();
-                lbl.Text = cnTen[i];
-                lbl.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
-                lbl.ForeColor = Color.FromArgb(30, 40, 60);
-                lbl.AutoSize = false;
-                lbl.TextAlign = ContentAlignment.MiddleCenter;
-                lbl.Dock = DockStyle.Bottom;
-                lbl.Height = 50;
-
-                // Đổ bóng nhẹ (giả lập)
-                card.Paint += (s, e) =>
-                {
-                    var g = e.Graphics;
-                    using (var shadow = new SolidBrush(Color.FromArgb(30, 0, 0, 0)))
-                        g.FillRectangle(shadow, 3, 3, card.Width - 3, card.Height - 3);
-                };
-
-                // Gắn sự kiện
-                card.Controls.Add(pic);
-                card.Controls.Add(lbl);
-                card.MouseEnter += Card_MouseEnter;
-                card.MouseLeave += Card_MouseLeave;
-                card.Click += Card_Click;
-                pic.Click += Card_Click;
-                lbl.Click += Card_Click;
-
-                flowPanel.Controls.Add(card);
-            }
-
             // ======= Toàn màn hình =======
             this.AutoScaleMode = AutoScaleMode.Font;
             this.BackColor = Color.FromArgb(240, 245, 255); // nền sáng dịu

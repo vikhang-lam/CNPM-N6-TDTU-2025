@@ -95,20 +95,7 @@ namespace N6
             this.txtSDT.Width = 200;
 
             // === BUTTON STYLE ===
-            Button[] btns = { btnReload, btnChoDuyet, btnXacNhan, btnHuy, btnSua, btnXoa };
-            int x = 20;
-            foreach (var b in btns)
-            {
-                b.Font = new System.Drawing.Font("Segoe UI", 10, System.Drawing.FontStyle.Bold);
-                b.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-                b.BackColor = System.Drawing.Color.FromArgb(0, 150, 200);
-                b.ForeColor = System.Drawing.Color.White;
-                b.Size = new System.Drawing.Size(130, 35);
-                b.Location = new System.Drawing.Point(x, 80);
-                b.FlatAppearance.BorderSize = 0;
-                b.Cursor = Cursors.Hand;
-                x += 140;
-            }
+            
 
             this.btnReload.Text = "🔄 Tải lại";
             this.btnReload.Click += new System.EventHandler(this.btnReload_Click);

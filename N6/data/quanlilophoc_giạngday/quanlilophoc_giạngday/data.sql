@@ -1,4 +1,5 @@
-﻿
+﻿Create database quanlilophoc_giangday;
+go
 USE quanlilophoc_giangday;
 GO
 
@@ -192,7 +193,7 @@ VALUES (
     NULL,
     N'Đã xác nhận'
 );
-
+UPDATE GiaoVien SET Password = '123456' WHERE MaGV = 'GV001';
 UPDATE LopHoc SET MaGVCN = 'GV001' WHERE MaLop = '5A10';
 
 INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh)
@@ -380,7 +381,20 @@ VALUES (
     NULL,
     N'Đã xác nhận'
 );
-
+INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaLop, MaMon, Email, SDT, MaAdmin, AnhDaiDien, TrangThai)
+VALUES (
+    'GV004',
+    N'Thầy Trung',
+    'quoTrung',
+    '123456',
+    '5A10',   -- dạy chung lớp 5A10
+    'LichSu',   -- môn Toán
+    'quochung@example.com',
+    '09123450012',
+    'AD001',
+    NULL,
+    N'Chưa xác nhận'
+);
 ------------------------------------------------
 -- Thêm giáo viên 3 (Tiếng Anh - dạy lớp 5A10)
 ------------------------------------------------

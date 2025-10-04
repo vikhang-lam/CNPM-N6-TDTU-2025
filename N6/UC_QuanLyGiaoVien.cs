@@ -9,7 +9,22 @@ namespace N6
     {
         public UC_QuanLyGiaoVien()
         {
+
             InitializeComponent();
+            Button[] btns = { btnReload, btnChoDuyet, btnXacNhan, btnHuy, btnSua, btnXoa };
+            int x = 20;
+            foreach (var b in btns)
+            {
+                b.Font = new System.Drawing.Font("Segoe UI", 10, FontStyle.Bold);
+                b.FlatStyle = FlatStyle.Flat;
+                b.BackColor = Color.FromArgb(0, 150, 200);
+                b.ForeColor = Color.White;
+                b.Size = new Size(130, 35);
+                b.Location = new Point(x, 80);
+                b.FlatAppearance.BorderSize = 0;
+                b.Cursor = Cursors.Hand;
+                x += 140;
+            }
             LoadTatCaGiaoVien();
         }
 
