@@ -253,6 +253,12 @@
     <Compile Include="UC_Home.Designer.cs">
       <DependentUpon>UC_Home.cs</DependentUpon>
     </Compile>
+    <Compile Include="UC_HoTroGiangDay.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UC_HoTroGiangDay.Designer.cs">
+      <DependentUpon>UC_HoTroGiangDay.cs</DependentUpon>
+    </Compile>
     <Compile Include="UC_MiniGames.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -378,6 +384,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\MNG10.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="data\migrations\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
