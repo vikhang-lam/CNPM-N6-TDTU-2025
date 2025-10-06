@@ -100,6 +100,9 @@ namespace N6
                     uc = new UC_PhanTichAI();
                     break;
                 case "CN8":
+                    uc = new UC_HoTroGiangDay();
+                    break;
+                case "CN9":
                     // Đăng xuất
                     DialogResult r = MessageBox.Show("Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", MessageBoxButtons.YesNo);
                     if (r == DialogResult.Yes)
@@ -245,6 +248,7 @@ namespace N6
                 "📊 Phân tích AI",
                 "📑 Báo cáo & Xuất dữ liệu",
                 "🎮 Mini-games",
+                "🧑‍🏫 Hỗ trợ giảng dạy",
                 "📑 quản lí tài liệu",
                 "☁️ Thời khóa biểu",
                 "👨‍🎓 Quản lý lớp học",
@@ -316,7 +320,8 @@ namespace N6
             else if (text.Contains("Mini-games")) maCN = "CN5";
             else if (text.Contains("Báo cáo")) maCN = "CN6";
             else if (text.Contains("Phân tích AI")) maCN = "CN7";
-            else if (text.Contains("Đăng xuất")) maCN = "CN8";
+            else if (text.Contains("Hỗ trợ giảng dạy")) maCN = "CN8";
+            else if (text.Contains("Đăng xuất")) maCN = "CN9";
             else
             {
                 MessageBox.Show("Chức năng này đang được phát triển!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
