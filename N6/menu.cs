@@ -17,6 +17,9 @@ namespace N6
         // Giữ delegate (tránh GC thu gom rác gây lỗi CallbackOnCollectedDelegate)
         private EventHandler logoutHandler;
 
+        // Track nút menu đang active để tô màu khác
+        private Button currentActiveBtn;
+
         private Dictionary<string, Color> lightModeColors = new Dictionary<string, Color>()
         {
             {"mainBg", Color.FromArgb(185, 235, 250)},
@@ -115,6 +118,11 @@ namespace N6
         {
             LoadUserInfo();
             CreateMainMenuItems();
+
+            // Chọn mặc định "Trang chủ" là tab đang mở
+            var homeBtn = FindMenuButtonContains("Trang chủ");
+            if (homeBtn != null) SetActiveMenuButton(homeBtn);
+
             ApplyTheme();
             InitUserMenu();
         }
@@ -250,7 +258,8 @@ namespace N6
                 btn.Dock = DockStyle.Top;
                 btn.FlatStyle = FlatStyle.Flat;
                 btn.FlatAppearance.BorderSize = 0;
-                btn.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+                // Mặc định: Regular; Tab đang chọn sẽ được in đậm
+                btn.Font = new Font("Segoe UI", 11, FontStyle.Regular);
                 btn.Height = 55;
                 btn.TextAlign = ContentAlignment.MiddleLeft;
                 btn.Padding = new Padding(15, 0, 0, 0);
@@ -259,6 +268,37 @@ namespace N6
                 panelMenu.Controls.Add(btn);
                 panelMenu.Controls.SetChildIndex(btn, panelMenu.Controls.Count - 1);
             }
+        }
+
+        // Chuyển trạng thái nhấn cho nút đang chọn: nền đậm + chữ đậm
+        private void SetActiveMenuButton(Button btn)
+        {
+            var colors = isDarkMode ? darkModeColors : lightModeColors;
+
+            foreach (Control c in panelMenu.Controls)
+            {
+                if (c is Button b)
+                {
+                    bool isActive = b == btn;
+                    b.BackColor = isActive ? colors["menuBtnActiveBg"] : colors["menuBg"];
+                    b.ForeColor = isActive ? colors["textPrimary"] : colors["menuBtnText"];
+                    b.Font = new Font("Segoe UI", 11, isActive ? FontStyle.Bold : FontStyle.Regular);
+                    b.FlatAppearance.MouseOverBackColor = isActive ? colors["menuBtnActiveBg"] : colors["btnHover"];
+                }
+            }
+            currentActiveBtn = btn;
+        }
+
+        private Button FindMenuButtonContains(string keyword)
+        {
+            foreach (Control c in panelMenu.Controls)
+            {
+                if (c is Button b && b.Text.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return b;
+                }
+            }
+            return null;
         }
 
         private void MenuItem_Click(object sender, EventArgs e)
@@ -282,6 +322,9 @@ namespace N6
                 MessageBox.Show("Chức năng này đang được phát triển!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
+
+            // Đổi màu tab đang mở
+            SetActiveMenuButton(btn);
 
             // Luôn gọi MoChucNang để xử lý việc chuyển đổi UserControl
             // Điều này đảm bảo rằng UC_Home sẽ được tạo và đăng ký sự kiện đúng cách
@@ -313,12 +356,16 @@ namespace N6
             labelAppTitle.ForeColor = colors["textPrimary"];
             labelUserName.ForeColor = colors["userPanelText"];
             labelSubject.ForeColor = colors["userPanelText"];
+
             foreach (Control c in panelMenu.Controls)
             {
                 if (c is Button btn)
                 {
-                    btn.ForeColor = colors["menuBtnText"];
-                    btn.BackColor = colors["menuBg"]; // đảm bảo nền khớp
+                    bool isActive = (btn == currentActiveBtn);
+                    btn.ForeColor = isActive ? colors["textPrimary"] : colors["menuBtnText"];
+                    btn.BackColor = isActive ? colors["menuBtnActiveBg"] : colors["menuBg"];
+                    btn.Font = new Font("Segoe UI", 11, isActive ? FontStyle.Bold : FontStyle.Regular);
+                    btn.FlatAppearance.MouseOverBackColor = isActive ? colors["menuBtnActiveBg"] : colors["btnHover"];
                 }
             }
         }
