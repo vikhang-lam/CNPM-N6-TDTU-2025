@@ -15,7 +15,8 @@ public class TeacherProfile
 public static class DatabaseHelper
 {
     private static string connectionString =
-        @"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+        //@"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+        @"Data Source=DESKTOP-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
 
     #region Đăng nhập
     public static bool CheckTeacherLogin(string username, string password)
@@ -766,9 +767,10 @@ public static class DatabaseHelper
                 SELECT 
                     t.Ngay, 
                     t.Tiet, 
-                    ISNULL(m.TenMon, '') AS TenMon,  -- Nếu TenMon là NULL thì trả về chuỗi rỗng
-                    ISNULL(l.TenLop, '') AS TenLop,  -- Nếu TenLop là NULL thì trả về chuỗi rỗng
-                    ISNULL(t.GhiChu, '') AS GhiChu
+                    ISNULL(m.TenMon, '') AS TenMon,
+                    ISNULL(l.TenLop, '') AS TenLop,
+                    ISNULL(t.GhiChu, '') AS GhiChu,
+                    ISNULL(t.MauSac, '') AS MauSac
                 FROM 
                     ThoiKhoaBieu t
                 LEFT JOIN 
@@ -792,6 +794,51 @@ public static class DatabaseHelper
             }
         }
         return dt;
+    }
+
+    public static void UpdateCellColor(string maGV, DateTime ngay, int tiet, string colorHex)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+
+            // Kiểm tra xem đã có bản ghi chưa
+            string checkSql = "SELECT MaTKB FROM ThoiKhoaBieu WHERE MaGV=@MaGV AND Ngay=@Ngay AND Tiet=@Tiet";
+            object maTKB = null;
+            using (SqlCommand checkCmd = new SqlCommand(checkSql, conn))
+            {
+                checkCmd.Parameters.AddWithValue("@MaGV", maGV);
+                checkCmd.Parameters.AddWithValue("@Ngay", ngay.Date);
+                checkCmd.Parameters.AddWithValue("@Tiet", tiet);
+                maTKB = checkCmd.ExecuteScalar();
+            }
+
+            if (maTKB != null)
+            {
+                // Cập nhật màu cho bản ghi đã tồn tại
+                string updateSql = "UPDATE ThoiKhoaBieu SET MauSac=@MauSac WHERE MaTKB=@MaTKB";
+                using (SqlCommand updateCmd = new SqlCommand(updateSql, conn))
+                {
+                    updateCmd.Parameters.AddWithValue("@MauSac", string.IsNullOrEmpty(colorHex) ? (object)DBNull.Value : colorHex);
+                    updateCmd.Parameters.AddWithValue("@MaTKB", maTKB);
+                    updateCmd.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                // Tạo bản ghi mới nếu chưa tồn tại (chỉ lưu màu, không có môn học)
+                string insertSql = "INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MauSac, MaGV) VALUES (@MaTKB, @Ngay, @Tiet, @MauSac, @MaGV)";
+                using (SqlCommand insertCmd = new SqlCommand(insertSql, conn))
+                {
+                    insertCmd.Parameters.AddWithValue("@MaTKB", "TKB" + Guid.NewGuid().ToString("N").Substring(0, 7));
+                    insertCmd.Parameters.AddWithValue("@Ngay", ngay.Date);
+                    insertCmd.Parameters.AddWithValue("@Tiet", tiet);
+                    insertCmd.Parameters.AddWithValue("@MauSac", string.IsNullOrEmpty(colorHex) ? (object)DBNull.Value : colorHex);
+                    insertCmd.Parameters.AddWithValue("@MaGV", maGV);
+                    insertCmd.ExecuteNonQuery();
+                }
+            }
+        }
     }
 
     public static void UpsertGhiChuTKB(string maGV, DateTime ngay, int tiet, string note)

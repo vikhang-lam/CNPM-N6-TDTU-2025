@@ -358,7 +358,7 @@ GO
 --------------------------------------------------
 -- KHỞI TẠO DỮ LIỆU MẶC ĐỊNH
 --------------------------------------------------
-EXEC sp_TaoDiemDanhMacDinh;
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A10';
 EXEC sp_TaoKetQuaHocTapMacDinh;
 
 -- Kiểm tra
@@ -432,3 +432,6 @@ INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, GhiChu, MaGV, MaLop) VALUES
 -- Thứ 6 (10/10/2025)
 ('TKB009', '2025-10-10', 2, 'ANH', N'Kiểm tra 15 phút', 'GV003', '5A10'),
 ('TKB010', '2025-10-10', 3, 'TOAN', N'Ôn tập chương 2', 'GV002', '5A10');
+
+ALTER TABLE ThoiKhoaBieu
+ADD MauSac VARCHAR(20) NULL;

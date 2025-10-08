@@ -75,6 +75,8 @@ namespace N6
                 foreach (DataGridViewCell cell in row.Cells)
                     cell.Value = "";
 
+            cellColors.Clear(); // Xóa màu cũ
+
             DateTime weekEnd = currentMonday.AddDays(6);
             lblWeek.Text = $"Thời khóa biểu: {currentMonday:dd/MM} - {weekEnd:dd/MM/yyyy}";
 
@@ -88,6 +90,7 @@ namespace N6
                 string mon = r["TenMon"].ToString();
                 string lop = r["TenLop"].ToString();
                 string ghichu = r["GhiChu"].ToString();
+                string mauSac = r["MauSac"].ToString(); // Lấy mã màu từ DB
 
                 int col = (int)ngay.DayOfWeek - (int)DayOfWeek.Monday;
 
@@ -104,17 +107,6 @@ namespace N6
                             Color randomColor = Color.FromArgb(200, rand.Next(180, 256), rand.Next(180, 256), rand.Next(180, 256));
                             subjectColors.Add(mon, randomColor);
                         }
-                        if (!cellColors.ContainsKey(cellPosition))
-                        {
-                            cellColors[cellPosition] = subjectColors[mon];
-                        }
-                    }
-                    else if (!string.IsNullOrEmpty(ghichu))
-                    {
-                        if (!cellColors.ContainsKey(cellPosition))
-                        {
-                            cellColors[cellPosition] = Color.FromArgb(230, 230, 230);
-                        }
                     }
 
                     if (!string.IsNullOrEmpty(ghichu))
@@ -123,6 +115,29 @@ namespace N6
                     }
 
                     dgvTKB[col, tiet].Value = displayValue;
+
+                    // QUAN TRỌNG: Khôi phục màu từ database
+                    if (!string.IsNullOrEmpty(mauSac))
+                    {
+                        try
+                        {
+                            cellColors[cellPosition] = ColorTranslator.FromHtml(mauSac);
+                        }
+                        catch
+                        {
+                            // Nếu mã màu không hợp lệ, bỏ qua
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(mon) && subjectColors.ContainsKey(mon))
+                    {
+                        // Nếu không có màu custom, dùng màu mặc định của môn học
+                        cellColors[cellPosition] = subjectColors[mon];
+                    }
+                    else if (!string.IsNullOrEmpty(ghichu))
+                    {
+                        // Nếu chỉ có ghi chú, dùng màu xám
+                        cellColors[cellPosition] = Color.FromArgb(230, 230, 230);
+                    }
                 }
             }
             dgvTKB.Invalidate();
@@ -157,7 +172,16 @@ namespace N6
 
                 if (colorDialog.ShowDialog() == DialogResult.OK)
                 {
+                    // Lưu màu vào dictionary
                     cellColors[selectedCellForColorChange] = colorDialog.Color;
+
+                    // LƯU VÀO DATABASE
+                    DateTime cellDate = currentMonday.AddDays(selectedCellForColorChange.X);
+                    int tiet = selectedCellForColorChange.Y + 1;
+                    string colorHex = ColorTranslator.ToHtml(colorDialog.Color);
+
+                    DatabaseHelper.UpdateCellColor(maGV, cellDate, tiet, colorHex);
+
                     dgvTKB.Invalidate();
                 }
             }
@@ -169,6 +193,9 @@ namespace N6
             int tiet = selectedCellForColorChange.Y + 1;
 
             DatabaseHelper.DeleteGhiChuTKB(maGV, cellDate, tiet);
+
+            // XÓA MÀU KHỎI DATABASE
+            DatabaseHelper.UpdateCellColor(maGV, cellDate, tiet, null);
 
             cellColors.Remove(selectedCellForColorChange);
 
@@ -253,16 +280,12 @@ namespace N6
         private void btnPrevWeek_Click(object sender, EventArgs e)
         {
             currentMonday = currentMonday.AddDays(-7);
-            subjectColors.Clear();
-            cellColors.Clear();
             LoadThoiKhoaBieu();
         }
 
         private void btnNextWeek_Click(object sender, EventArgs e)
         {
             currentMonday = currentMonday.AddDays(7);
-            subjectColors.Clear();
-            cellColors.Clear();
             LoadThoiKhoaBieu();
         }
     }
