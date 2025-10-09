@@ -213,6 +213,56 @@ public static class DatabaseHelper
     /// Lấy danh sách điểm danh cho 1 lớp, 1 ngày cụ thể và 1 buổi cụ thể.
     /// Trả về tất cả học sinh lớp (nếu học sinh chưa có bản ghi cho ngày đó thì các cột dd sẽ NULL).
     /// </summary>
+    /// // ... trong class DatabaseHelper, ngay dưới vùng #region Điểm danh (sau UpdateDiemDanh hoặc trước đó) thêm:
+    public static void UpsertDiemDanh(string maHS, string maLop, DateTime ngay, string buoi, string trangThai)
+    {
+        if (string.IsNullOrWhiteSpace(maHS)) return;
+        if (string.IsNullOrWhiteSpace(buoi)) buoi = "Sáng";
+        trangThai = string.IsNullOrWhiteSpace(trangThai) ? "Có mặt" : trangThai;
+
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+
+            // Kiểm tra tồn tại
+            string check = @"SELECT MaDD 
+                         FROM DiemDanh 
+                         WHERE MaHS=@MaHS AND CAST(NgayDD AS DATE)=@Ngay AND Buoi=@Buoi";
+            object existingId = null;
+            using (SqlCommand cmd = new SqlCommand(check, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaHS", maHS);
+                cmd.Parameters.Add("@Ngay", SqlDbType.Date).Value = ngay.Date;
+                cmd.Parameters.AddWithValue("@Buoi", buoi);
+                existingId = cmd.ExecuteScalar();
+            }
+
+            if (existingId != null)
+            {
+                string update = "UPDATE DiemDanh SET TrangThai=@TrangThai WHERE MaDD=@MaDD";
+                using (SqlCommand up = new SqlCommand(update, conn))
+                {
+                    up.Parameters.AddWithValue("@TrangThai", trangThai);
+                    up.Parameters.AddWithValue("@MaDD", existingId.ToString());
+                    up.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                string insert = @"INSERT INTO DiemDanh(MaDD, MaHS, NgayDD, Buoi, TrangThai)
+                              VALUES(@MaDD, @MaHS, @NgayDD, @Buoi, @TrangThai)";
+                using (SqlCommand ins = new SqlCommand(insert, conn))
+                {
+                    ins.Parameters.AddWithValue("@MaDD", Guid.NewGuid().ToString().Substring(0, 8));
+                    ins.Parameters.AddWithValue("@MaHS", maHS);
+                    ins.Parameters.Add("@NgayDD", SqlDbType.DateTime).Value = ngay.Date;
+                    ins.Parameters.AddWithValue("@Buoi", buoi);
+                    ins.Parameters.AddWithValue("@TrangThai", trangThai);
+                    ins.ExecuteNonQuery();
+                }
+            }
+        }
+    }
     public static DataTable GetDiemDanhByLopAndDate(string maLop, DateTime ngay, string buoi)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -1238,5 +1288,132 @@ public static class DatabaseHelper
         }
         return result;
     }
+
+    #region Báo cáo
+    public static DataTable GetLopByGiaoVien(string maGV)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = @"SELECT DISTINCT l.MaLop, l.TenLop 
+                      FROM LopHoc l 
+                      INNER JOIN GiaoVien gv ON l.MaLop = gv.MaLop 
+                      WHERE gv.MaGV = @maGV";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@maGV", maGV);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+    public static DataTable GetBaoCaoChuyenCan(string tenLop)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = @"SELECT 
+            hs.MaHS,
+            hs.HoTen,
+            COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) as SoNgayCoMat,
+            COUNT(CASE WHEN dd.TrangThai = N'Vắng' THEN 1 END) as SoNgayVang,
+            COUNT(CASE WHEN dd.TrangThai = N'Có phép' THEN 1 END) as SoNgayCoPhep,
+            COUNT(*) as TongSoNgay,
+            CAST(COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) as DECIMAL(5,2)) as TyLeChuyenCan
+        FROM HocSinh hs
+        LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS
+        WHERE hs.MaLop = @tenLop
+        GROUP BY hs.MaHS, hs.HoTen
+        ORDER BY hs.HoTen";
+
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@tenLop", tenLop);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+    public static DataTable GetBangDiemHocKy(string tenLop, int hocKy)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string loaiFilter = hocKy == 1 ? "Ki1" : "Ki2";
+
+            string sql = $@"SELECT 
+            hs.MaHS,
+            hs.HoTen,
+            mh.TenMon,
+            AVG(CASE 
+                WHEN kq.Loai LIKE '%{loaiFilter}%' THEN kq.Diem 
+                ELSE NULL 
+            END) as DiemTrungBinh,
+            MAX(CASE 
+                WHEN kq.Loai = 'CuoiKi{hocKy}' THEN kq.Diem 
+                ELSE NULL 
+            END) as DiemCuoiKy
+        FROM HocSinh hs
+        CROSS JOIN MonHoc mh
+        LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND mh.MaMon = kq.MaMon 
+            AND kq.Loai LIKE '%{loaiFilter}%'
+        WHERE hs.MaLop = @tenLop
+        GROUP BY hs.MaHS, hs.HoTen, mh.TenMon, mh.MaMon
+        ORDER BY hs.HoTen, mh.MaMon";
+
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@tenLop", tenLop);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+    public static DataTable GetHoSoHocSinh(string tenLop)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = @"SELECT 
+            MaHS,
+            HoTen,
+            GioiTinh,
+            NgaySinh,
+            DanToc,
+            DiaChi,
+            SDTPhuHuynh
+        FROM HocSinh 
+        WHERE MaLop = @tenLop
+        ORDER BY HoTen";
+
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@tenLop", tenLop);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+    public static DataTable GetThongKeKhoi(string khoi)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = @"SELECT 
+            l.TenLop,
+            COUNT(hs.MaHS) as SoHocSinh,
+            AVG(kq.Diem) as DiemTrungBinh,
+            COUNT(CASE WHEN hs.GioiTinh = N'Nam' THEN 1 END) as SoNam,
+            COUNT(CASE WHEN hs.GioiTinh = N'Nữ' THEN 1 END) as SoNu
+        FROM LopHoc l
+        LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
+        LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
+        WHERE l.Khoi = @khoi
+        GROUP BY l.TenLop
+        ORDER BY l.TenLop";
+
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@khoi", khoi);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+    #endregion
 
 }
