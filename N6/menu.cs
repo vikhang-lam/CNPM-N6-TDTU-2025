@@ -94,7 +94,7 @@ namespace N6
                     uc = new UC_MiniGames();
                     break;
                 case "CN6":
-                    uc = new UC_BaoCao();
+                    uc = new UC_BaoCao(maGV);
                     break;
                 case "CN7":
                     uc = new UC_PhanTichAI();
