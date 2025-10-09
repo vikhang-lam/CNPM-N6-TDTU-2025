@@ -324,6 +324,9 @@
     <EmbeddedResource Include="UC_PhanTichAI.resx">
       <DependentUpon>UC_PhanTichAI.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="UC_ThoiKhoaBieu.resx">
+      <DependentUpon>UC_ThoiKhoaBieu.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

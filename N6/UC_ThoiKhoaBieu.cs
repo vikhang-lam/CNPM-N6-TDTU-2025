@@ -102,11 +102,6 @@ namespace N6
                     if (!string.IsNullOrEmpty(mon))
                     {
                         displayValue = mon + " - " + lop;
-                        if (!subjectColors.ContainsKey(mon))
-                        {
-                            Color randomColor = Color.FromArgb(200, rand.Next(180, 256), rand.Next(180, 256), rand.Next(180, 256));
-                            subjectColors.Add(mon, randomColor);
-                        }
                     }
 
                     if (!string.IsNullOrEmpty(ghichu))
@@ -130,8 +125,7 @@ namespace N6
                     }
                     else if (!string.IsNullOrEmpty(mon) && subjectColors.ContainsKey(mon))
                     {
-                        // Nếu không có màu custom, dùng màu mặc định của môn học
-                        cellColors[cellPosition] = subjectColors[mon];
+                        cellColors[cellPosition] = Color.White;
                     }
                     else if (!string.IsNullOrEmpty(ghichu))
                     {
