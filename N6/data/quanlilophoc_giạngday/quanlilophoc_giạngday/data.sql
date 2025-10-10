@@ -301,3 +301,28 @@ GO
 -- SELECT * FROM GiaoVien;
 -- SELECT * FROM PhanCongGiangDay;
 -- GO
+-- Cập nhật điểm cho học sinh lớp 5A10
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS001' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 7.0 WHERE MaHS = 'HS001' AND MaMon = 'VAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS001' AND MaMon = 'ANH' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS001' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
+
+
+UPDATE KetQuaHocTap SET Diem = 6.5 WHERE MaHS = 'HS002' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 5.0 WHERE MaHS = 'HS002' AND MaMon = 'VAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 4.0 WHERE MaHS = 'HS002' AND MaMon = 'ANH' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 2.0 WHERE MaHS = 'HS002' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
+
+
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS003' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 10.0 WHERE MaHS = 'HS003' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
+
+-- Cập nhật điểm cho học sinh lớp 5A11
+UPDATE KetQuaHocTap SET Diem = 4.5 WHERE MaHS = 'HS004' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS004' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1'; -- Điểm tiến bộ
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS004' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
+
+
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS005' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS005' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
+GO

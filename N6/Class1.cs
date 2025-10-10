@@ -4,7 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Windows.Forms;
 using System.Drawing;
-using System.Windows.Forms; 
+
 public class TeacherProfile
 {
     public string Ten { get; set; }
@@ -1488,4 +1488,67 @@ public static class DatabaseHelper
         dgv.RowTemplate.Height = 40;
     }
     #endregion
+    // Lấy danh sách tất cả môn học để đổ vào ComboBox
+    public static DataTable GetAllMonHoc()
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = "SELECT MaMon, TenMon FROM MonHoc ORDER BY TenMon";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+    // Hàm mới, hiệu suất cao để lấy dữ liệu cho việc phân tích
+    public static DataTable GetScoresForAnalysis(string maGV, string phamVi, string chiTiet, string maMon, int hocKy)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            // Xây dựng câu lệnh SQL linh hoạt
+            var sqlBuilder = new System.Text.StringBuilder(@"
+            SELECT 
+                hs.MaHS, hs.HoTen, lh.MaLop, lh.TenLop,
+                mh.MaMon, mh.TenMon, kq.Loai, kq.Diem
+            FROM KetQuaHocTap kq
+            JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+            JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+            JOIN MonHoc mh ON kq.MaMon = mh.MaMon
+            WHERE kq.Diem IS NOT NULL
+        ");
+
+            var sqlParams = new List<SqlParameter>();
+
+            // 1. Lọc theo học kỳ
+            string kyFilter = $"%Ki{hocKy}";
+            sqlBuilder.Append(" AND kq.Loai LIKE @kyFilter");
+            sqlParams.Add(new SqlParameter("@kyFilter", kyFilter));
+
+            // 2. Lọc theo phạm vi (Lớp của GV hay Toàn Khối)
+            if (phamVi == "LopGV")
+            {
+                sqlBuilder.Append(" AND lh.MaLop = @chiTiet");
+                sqlParams.Add(new SqlParameter("@chiTiet", chiTiet));
+            }
+            else if (phamVi == "Khoi")
+            {
+                sqlBuilder.Append(" AND lh.Khoi = @chiTiet");
+                sqlParams.Add(new SqlParameter("@chiTiet", chiTiet));
+            }
+
+            // 3. Lọc theo môn học (nếu có chọn)
+            if (!string.IsNullOrEmpty(maMon) && maMon != "ALL")
+            {
+                sqlBuilder.Append(" AND mh.MaMon = @maMon");
+                sqlParams.Add(new SqlParameter("@maMon", maMon));
+            }
+
+            SqlDataAdapter da = new SqlDataAdapter(sqlBuilder.ToString(), conn);
+            da.SelectCommand.Parameters.AddRange(sqlParams.ToArray());
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
 }

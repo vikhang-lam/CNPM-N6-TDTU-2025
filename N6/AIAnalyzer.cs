@@ -3,7 +3,7 @@ using System.Data;
 using System.Linq;
 using System.Collections.Generic;
 
-// Lớp lưu kết quả phân tích học sinh
+#region Các lớp chứa kết quả phân tích
 public class HocSinhAnalysisResult
 {
     public string HoTen { get; set; }
@@ -11,11 +11,29 @@ public class HocSinhAnalysisResult
     public string LyDo { get; set; }
 }
 
+public class ChuyenCanResult
+{
+    public string HoTen { get; set; }
+    public string TenLop { get; set; }
+    public int SoBuoiVang { get; set; }
+    public double TyLeChuyenCan { get; set; }
+}
+
+public class SoSanhLopResult
+{
+    public string TenLop { get; set; }
+    public double DiemTB { get; set; }
+    public int SoHocSinhGioi { get; set; }
+    public int SiSo { get; set; }
+}
+#endregion
+
 public static class AIAnalyzer
 {
-    // Mô hình 1: Tìm học sinh có điểm trung bình thấp
+    #region Phân tích Điểm số
     public static List<HocSinhAnalysisResult> TimHocSinhDiemThap(DataTable scores, double nguongDiem)
     {
+        if (scores == null || scores.Rows.Count == 0) return new List<HocSinhAnalysisResult>();
         return scores.AsEnumerable()
             .GroupBy(row => new { MaHS = row.Field<string>("MaHS"), HoTen = row.Field<string>("HoTen"), TenLop = row.Field<string>("TenLop") })
             .Select(g => new { g.Key.HoTen, g.Key.TenLop, DiemTB = g.Average(r => r.Field<double?>("Diem") ?? 0) })
@@ -25,9 +43,9 @@ public static class AIAnalyzer
             .ToList();
     }
 
-    // Mô hình 2: Tìm học sinh có điểm thất thường
     public static List<HocSinhAnalysisResult> TimHocSinhDiemThatThuong(DataTable scores, double nguongBienDong)
     {
+        if (scores == null || scores.Rows.Count == 0) return new List<HocSinhAnalysisResult>();
         return scores.AsEnumerable()
             .GroupBy(row => new { MaHS = row.Field<string>("MaHS"), HoTen = row.Field<string>("HoTen"), TenLop = row.Field<string>("TenLop") })
             .Select(g => {
@@ -43,39 +61,67 @@ public static class AIAnalyzer
             .ToList();
     }
 
-    // Mô hình 3: Tìm học sinh đáng khen thưởng (tiến bộ hoặc điểm trung bình rất cao)
     public static List<HocSinhAnalysisResult> TimHocSinhKhenThuong(DataTable scores, double diemCaoThreshold)
     {
+        if (scores == null || scores.Rows.Count == 0) return new List<HocSinhAnalysisResult>();
         var hocSinhKhenThuong = new List<HocSinhAnalysisResult>();
-
         var hocSinhGroups = scores.AsEnumerable()
             .GroupBy(row => new { MaHS = row.Field<string>("MaHS"), HoTen = row.Field<string>("HoTen"), TenLop = row.Field<string>("TenLop") });
 
         foreach (var group in hocSinhGroups)
         {
             var diemList = group.Select(r => r.Field<double?>("Diem") ?? 0).ToList();
-            var diemTB = diemList.Average();
+            var diemTB = diemList.Any() ? diemList.Average() : 0;
 
             if (diemTB >= diemCaoThreshold)
             {
                 hocSinhKhenThuong.Add(new HocSinhAnalysisResult { HoTen = group.Key.HoTen, TenLop = group.Key.TenLop, LyDo = $"Thành tích xuất sắc (ĐTB: {diemTB:F1})" });
             }
-            else // Kiểm tra sự tiến bộ
-            {
-                var diemKi1 = group.Where(r => r.Field<string>("Loai").Contains("Ki1")).Select(r => r.Field<double?>("Diem") ?? 0).ToList();
-                var diemKi2 = group.Where(r => r.Field<string>("Loai").Contains("Ki2")).Select(r => r.Field<double?>("Diem") ?? 0).ToList();
-
-                if (diemKi1.Any() && diemKi2.Any())
-                {
-                    var avgKi1 = diemKi1.Average();
-                    var avgKi2 = diemKi2.Average();
-                    if (avgKi2 > avgKi1 + 1.5) // Nếu điểm kì 2 tăng hơn 1.5 so với kì 1 -> tiến bộ
-                    {
-                        hocSinhKhenThuong.Add(new HocSinhAnalysisResult { HoTen = group.Key.HoTen, TenLop = group.Key.TenLop, LyDo = $"Tiến bộ vượt bậc (từ {avgKi1:F1} lên {avgKi2:F1})" });
-                    }
-                }
-            }
         }
-        return hocSinhKhenThuong;
+        return hocSinhKhenThuong.OrderByDescending(hs => hs.LyDo).ToList();
     }
+    #endregion
+
+    #region Phân tích Chuyên cần và So sánh
+    // (Các chức năng này cần dữ liệu từ các hàm DatabaseHelper tương ứng)
+    public static List<ChuyenCanResult> PhanTichChuyenCan(DataTable attendanceData)
+    {
+        if (attendanceData == null || attendanceData.Rows.Count == 0) return new List<ChuyenCanResult>();
+        return attendanceData.AsEnumerable()
+            .GroupBy(row => new { MaHS = row.Field<string>("MaHS"), HoTen = row.Field<string>("HoTen"), TenLop = row.Field<string>("TenLop") })
+            .Select(g => {
+                int tongSoBuoi = g.Count();
+                int soBuoiVang = g.Count(r => r.Field<string>("TrangThai") == "Vắng");
+                return new ChuyenCanResult
+                {
+                    HoTen = g.Key.HoTen,
+                    TenLop = g.Key.TenLop,
+                    SoBuoiVang = soBuoiVang,
+                    TyLeChuyenCan = (tongSoBuoi > 0) ? (100.0 * (tongSoBuoi - soBuoiVang) / tongSoBuoi) : 100.0
+                };
+            })
+            .Where(r => r.SoBuoiVang > 3)
+            .OrderByDescending(r => r.SoBuoiVang)
+            .ToList();
+    }
+
+    public static List<SoSanhLopResult> SoSanhHocTap(DataTable scoreData)
+    {
+        if (scoreData == null || scoreData.Rows.Count == 0) return new List<SoSanhLopResult>();
+        return scoreData.AsEnumerable()
+            .GroupBy(row => row.Field<string>("TenLop"))
+            .Select(g => {
+                var diemList = g.Select(r => r.Field<double?>("Diem") ?? 0).ToList();
+                return new SoSanhLopResult
+                {
+                    TenLop = g.Key,
+                    SiSo = g.Select(r => r.Field<string>("MaHS")).Distinct().Count(),
+                    DiemTB = diemList.Any() ? diemList.Average() : 0,
+                    SoHocSinhGioi = diemList.Count(d => d >= 8.0)
+                };
+            })
+            .OrderByDescending(r => r.DiemTB)
+            .ToList();
+    }
+    #endregion
 }

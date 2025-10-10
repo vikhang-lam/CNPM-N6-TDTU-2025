@@ -67,6 +67,7 @@ namespace N6
 
             // Gán sự kiện cho nút trợ năng mới
             this.lblAssistiveToggle.Click += new System.EventHandler(this.lblAssistiveToggle_Click);
+            
         }
         private void lblAssistiveToggle_Click(object sender, EventArgs e)
         {
@@ -127,7 +128,7 @@ namespace N6
                     uc = new UC_BaoCao(maGV);
                     break;
                 case "CN7":
-                    uc = new UC_PhanTichAI();
+                    uc = new UC_PhanTichAI(maGV);
                     break;
                 case "CN8":
                     DialogResult r = MessageBox.Show("Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", MessageBoxButtons.YesNo);
