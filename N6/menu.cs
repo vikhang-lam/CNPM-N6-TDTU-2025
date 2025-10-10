@@ -321,12 +321,6 @@ namespace N6
             MoChucNang(maCN);
         }
 
-        private void btnToggleMenu_Click(object sender, EventArgs e)
-        {
-            panelMenu.Width = isMenuCollapsed ? menuWidth : collapsedMenuWidth;
-            isMenuCollapsed = !isMenuCollapsed;
-        }
-
         private void btnThemeToggle_Click(object sender, EventArgs e)
         {
             isDarkMode = !isDarkMode;
@@ -357,7 +351,6 @@ namespace N6
             }
         }
 
-        private void btnCollapseMenu_Click(object sender, EventArgs e) => btnToggleMenu_Click(sender, e);
         private void labelClose_Click(object sender, EventArgs e) => Application.Exit();
         private void labelMinimize_Click(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
         private void labelMaximize_Click(object sender, EventArgs e) =>

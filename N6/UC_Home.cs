@@ -14,7 +14,16 @@ namespace N6
         {
             InitializeComponent();
             lblLoiChao.Text = $"Xin chào, {tenGV}! 👋";
-            CreateFunctionCards(); // Call the new method here
+            CreateFunctionCards();
+
+            // Gán sự kiện Resize cho flowPanel để layout co giãn
+            this.flowPanel.Resize += new System.EventHandler(this.FlowPanel_Resize);
+        }
+
+        private void UC_Home_Load(object sender, EventArgs e)
+        {
+            // Gọi phương thức resize một lần khi tải để áp dụng layout ban đầu
+            FlowPanel_Resize(this, EventArgs.Empty);
         }
 
         private void CreateFunctionCards()
@@ -34,6 +43,7 @@ namespace N6
             for (int i = 0; i < cnTen.Length; i++)
             {
                 Panel card = new Panel();
+                // Kích thước ban đầu, sẽ được cập nhật bởi FlowPanel_Resize
                 card.Width = 250;
                 card.Height = 160;
                 card.Margin = new Padding(20);
@@ -41,14 +51,14 @@ namespace N6
                 card.BorderStyle = BorderStyle.None;
                 card.Tag = $"CN{i + 1}";
                 card.Cursor = Cursors.Hand;
+                card.Resize += Card_Resize; // Để cập nhật lại ảnh bên trong
 
                 // Ảnh minh họa
                 PictureBox pic = new PictureBox();
-                pic.Size = new Size(90, 90);
-                pic.Location = new Point((card.Width - 90) / 2, 15);
+                pic.Dock = DockStyle.Fill; // Dùng Dock để lấp đầy
                 pic.SizeMode = PictureBoxSizeMode.Zoom;
                 pic.Image = (Image)Properties.Resources.ResourceManager.GetObject($"cn{i + 1}");
-                pic.BackColor = Color.Transparent;
+                pic.BackColor = Color.White; // Nền của khung ảnh là màu trắng
 
                 // Tên chức năng
                 Label lbl = new Label();
@@ -68,14 +78,14 @@ namespace N6
                         g.FillRectangle(shadow, 3, 3, card.Width - 3, card.Height - 3);
                 };
 
-                // Gắn sự kiện
-                card.Controls.Add(pic);
+                // Gắn sự kiện (Thêm Label trước, PictureBox sau)
                 card.Controls.Add(lbl);
+                card.Controls.Add(pic);
                 card.MouseEnter += Card_MouseEnter;
                 card.MouseLeave += Card_MouseLeave;
                 card.Click += Card_Click;
-                pic.Click += Card_Click; // Ensure child controls also trigger the event
-                lbl.Click += Card_Click; // Ensure child controls also trigger the event
+                pic.Click += Card_Click; // Đảm bảo các control con cũng kích hoạt sự kiện
+                lbl.Click += Card_Click;
 
                 flowPanel.Controls.Add(card);
             }
@@ -83,12 +93,11 @@ namespace N6
 
         private void Card_MouseEnter(object sender, EventArgs e)
         {
-            // Note: The 'sender' might be the Label or PictureBox, so we find the parent Panel.
             Control control = sender as Control;
             Panel card = control is Panel ? control as Panel : control.Parent as Panel;
             if (card == null) return;
 
-            card.BackColor = Color.FromArgb(230, 243, 255); // xanh nhạt dịu
+            card.BackColor = Color.White; // Giữ nền trắng khi di chuột qua
             card.BorderStyle = BorderStyle.FixedSingle;
             card.Refresh();
         }
@@ -105,13 +114,46 @@ namespace N6
 
         private void Card_Click(object sender, EventArgs e)
         {
-            // Find the parent Panel regardless of what was clicked (Panel, PictureBox, or Label)
             Control control = sender as Control;
             Panel p = control as Panel ?? control.Parent as Panel;
 
             if (p != null && p.Tag != null)
             {
                 ChonChucNang?.Invoke(p.Tag.ToString());
+            }
+        }
+
+        private void FlowPanel_Resize(object sender, EventArgs e)
+        {
+            int panelWidth = flowPanel.ClientSize.Width;
+            int columns = Math.Max(1, panelWidth / 250);
+            int newCardWidth = (panelWidth / columns) - 45;
+            int newCardHeight = (int)(newCardWidth * 0.75) + 50;
+
+
+            foreach (Control control in flowPanel.Controls)
+            {
+                if (control is Panel card)
+                {
+                    card.Width = newCardWidth;
+                    card.Height = newCardHeight;
+                }
+            }
+        }
+
+        private void Card_Resize(object sender, EventArgs e)
+        {
+            Panel card = sender as Panel;
+            if (card == null) return;
+
+            foreach (Control control in card.Controls)
+            {
+                if (control is PictureBox pic)
+                {
+                    // Phần này giờ không cần thiết vì PictureBox đã được Dock = Fill
+                    // Nó sẽ tự động thay đổi kích thước theo thẻ cha
+                    break;
+                }
             }
         }
     }

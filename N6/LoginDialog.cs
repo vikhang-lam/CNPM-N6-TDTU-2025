@@ -16,6 +16,9 @@ namespace N6
         private Color usernameBorderColor = Color.RoyalBlue;
         private Color passwordBorderColor = Color.RoyalBlue;
 
+        private readonly Color linkHoverColor = ColorTranslator.FromHtml("#2fcaf5");
+        private readonly Color linkIdleColor = Color.Gray;
+
         public LoginDialog(bool requireUsername, string presetUsername = "", Image backgroundImage = null)
         {
             InitializeComponent();
@@ -60,6 +63,16 @@ namespace N6
             btnOK.Click += BtnOK_Click;
             btnCancel.Click += BtnCancel_Click;
             lblClose.Click += LblClose_Click;
+
+            // Gán sự kiện click cho các label link
+            lblNewTeacherLink.Click += LblNewTeacherLink_Click;
+            lblForgotPassword.Click += LblForgotPassword_Click;
+
+            // Gán sự kiện hover cho các label link
+            lblNewTeacherLink.MouseEnter += Link_MouseEnter;
+            lblNewTeacherLink.MouseLeave += Link_MouseLeave;
+            lblForgotPassword.MouseEnter += Link_MouseEnter;
+            lblForgotPassword.MouseLeave += Link_MouseLeave;
 
             pnlUsernameBorder.Paint += PnlUsernameBorder_Paint;
             pnlPasswordBorder.Paint += PnlPasswordBorder_Paint;
@@ -268,8 +281,42 @@ namespace N6
         private void PnlPasswordBorder_Paint(object sender, PaintEventArgs e) =>
             DrawBorder(e.Graphics, pnlPasswordBorder.ClientRectangle, passwordBorderColor);
 
+
+
         private void LoginDialog_Resize(object sender, EventArgs e) =>
             SetRoundedRegion(12);
+
+        private void LblNewTeacherLink_Click(object sender, EventArgs e)
+        {
+            // Ẩn form hiện tại
+            using (var registrationForm = new TeacherRegistrationForm())
+            {
+                registrationForm.ShowDialog();
+            }
+           // Hiện lại form sau khi form đăng ký đóng
+        }
+
+        private void LblForgotPassword_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("Chức năng này đang được phát triển.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void Link_MouseEnter(object sender, EventArgs e)
+        {
+            if (sender is Label label)
+            {
+                label.ForeColor = linkHoverColor;
+            }
+        }
+
+        private void Link_MouseLeave(object sender, EventArgs e)
+        {
+            if (sender is Label label)
+            {
+                label.ForeColor = linkIdleColor;
+            }
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -281,7 +328,20 @@ namespace N6
                 pnlUsernameBorder.Paint -= PnlUsernameBorder_Paint;
                 pnlPasswordBorder.Paint -= PnlPasswordBorder_Paint;
                 this.Resize -= LoginDialog_Resize;
-                // Detach các event khác
+
+                if (lblNewTeacherLink != null)
+                {
+                    lblNewTeacherLink.Click -= LblNewTeacherLink_Click;
+                    lblNewTeacherLink.MouseEnter -= Link_MouseEnter;
+                    lblNewTeacherLink.MouseLeave -= Link_MouseLeave;
+                }
+
+                if (lblForgotPassword != null)
+                {
+                    lblForgotPassword.Click -= LblForgotPassword_Click;
+                    lblForgotPassword.MouseEnter -= Link_MouseEnter;
+                    lblForgotPassword.MouseLeave -= Link_MouseLeave;
+                }
             }
             base.Dispose(disposing);
         }

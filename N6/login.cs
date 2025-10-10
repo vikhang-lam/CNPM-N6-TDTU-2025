@@ -65,6 +65,11 @@ namespace N6
             this.paneluser2.Resize += paneluser_Resize;
             this.paneluser3.Resize += paneluser_Resize;
             this.paneluser4.Resize += paneluser_Resize;
+
+            this.paneluser1.Click += new System.EventHandler(this.paneluser1_Click);
+            this.paneluser2.Click += new System.EventHandler(this.paneluser2_Click);
+            this.paneluser3.Click += new System.EventHandler(this.paneluser3_Click);
+            this.paneluser4.Click += new System.EventHandler(this.paneluser4_Click);
         }
 
         private void paneluser_Resize(object sender, EventArgs e)

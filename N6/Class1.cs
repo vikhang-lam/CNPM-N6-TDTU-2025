@@ -1551,4 +1551,48 @@ public static class DatabaseHelper
             return dt;
         }
     }
+    public static void CreateTeacherRequest(string ten, string username, string password, string maMon, string email, string sdt)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+
+            // Kiểm tra tên đăng nhập đã tồn tại chưa
+            string checkUser = "SELECT COUNT(*) FROM GiaoVien WHERE Username=@user";
+            using (SqlCommand cmdCheck = new SqlCommand(checkUser, conn))
+            {
+                cmdCheck.Parameters.AddWithValue("@user", username);
+                if ((int)cmdCheck.ExecuteScalar() > 0)
+                {
+                    throw new Exception("Tên đăng nhập này đã tồn tại. Vui lòng chọn tên khác.");
+                }
+            }
+
+            // Tạo MaGV mới một cách tự động
+            string getNewIdSql = "SELECT ISNULL(MAX(CAST(SUBSTRING(MaGV, 3, LEN(MaGV)) AS INT)), 0) + 1 FROM GiaoVien";
+            int newId;
+            using (SqlCommand cmdNewId = new SqlCommand(getNewIdSql, conn))
+            {
+                newId = (int)cmdNewId.ExecuteScalar();
+            }
+            string newMaGV = "GV" + newId.ToString("D3"); // Định dạng GV001, GV012, v.v.
+
+            string sql = @"INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaMon, Email, SDT, MaAdmin, TrangThai) 
+                           VALUES (@MaGV, @Ten, @Username, @Password, @MaMon, @Email, @SDT, @MaAdmin, @TrangThai)";
+
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaGV", newMaGV);
+                cmd.Parameters.AddWithValue("@Ten", ten);
+                cmd.Parameters.AddWithValue("@Username", username);
+                cmd.Parameters.AddWithValue("@Password", password);
+                cmd.Parameters.AddWithValue("@MaMon", maMon);
+                cmd.Parameters.AddWithValue("@Email", email);
+                cmd.Parameters.AddWithValue("@SDT", sdt);
+                cmd.Parameters.AddWithValue("@MaAdmin", "AD001"); // Gán cho Admin mặc định
+                cmd.Parameters.AddWithValue("@TrangThai", "Chưa xác nhận"); // Trạng thái mặc định
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
 }

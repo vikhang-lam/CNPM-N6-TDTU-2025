@@ -18,32 +18,33 @@
         private void InitializeComponent()
         {
             this.panelTopBar = new System.Windows.Forms.Panel();
-            this.btnToggleMenu = new System.Windows.Forms.Button();
+            this.labelAppTitle = new System.Windows.Forms.Label();
             this.btnThemeToggle = new System.Windows.Forms.Button();
             this.labelMaximize = new System.Windows.Forms.Label();
             this.labelClose = new System.Windows.Forms.Label();
             this.labelMinimize = new System.Windows.Forms.Label();
-            this.labelAppTitle = new System.Windows.Forms.Label();
             this.pictureBoxAppIcon = new System.Windows.Forms.PictureBox();
             this.pictureBoxUser = new System.Windows.Forms.PictureBox();
             this.labelUserName = new System.Windows.Forms.Label();
             this.labelSubject = new System.Windows.Forms.Label();
             this.panelMenu = new System.Windows.Forms.Panel();
             this.panelContent = new System.Windows.Forms.Panel();
+            this.panelMain = new System.Windows.Forms.Panel();
+            this.lblAssistiveToggle = new System.Windows.Forms.Label();
             this.panelTopBar.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxUser)).BeginInit();
+            this.panelContent.SuspendLayout();
             this.SuspendLayout();
             // 
             // panelTopBar
             // 
             this.panelTopBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(150)))), ((int)(((byte)(200)))));
-            this.panelTopBar.Controls.Add(this.btnToggleMenu);
+            this.panelTopBar.Controls.Add(this.labelAppTitle);
             this.panelTopBar.Controls.Add(this.btnThemeToggle);
             this.panelTopBar.Controls.Add(this.labelMaximize);
             this.panelTopBar.Controls.Add(this.labelClose);
             this.panelTopBar.Controls.Add(this.labelMinimize);
-            this.panelTopBar.Controls.Add(this.labelAppTitle);
             this.panelTopBar.Controls.Add(this.pictureBoxAppIcon);
             this.panelTopBar.Controls.Add(this.pictureBoxUser);
             this.panelTopBar.Controls.Add(this.labelUserName);
@@ -54,18 +55,16 @@
             this.panelTopBar.Size = new System.Drawing.Size(1200, 50);
             this.panelTopBar.TabIndex = 0;
             // 
-            // btnToggleMenu
+            // labelAppTitle
             // 
-            this.btnToggleMenu.FlatAppearance.BorderSize = 0;
-            this.btnToggleMenu.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnToggleMenu.Font = new System.Drawing.Font("Segoe UI", 14F);
-            this.btnToggleMenu.ForeColor = System.Drawing.Color.White;
-            this.btnToggleMenu.Location = new System.Drawing.Point(10, 0);
-            this.btnToggleMenu.Name = "btnToggleMenu";
-            this.btnToggleMenu.Size = new System.Drawing.Size(40, 50);
-            this.btnToggleMenu.TabIndex = 0;
-            this.btnToggleMenu.Text = "☰";
-            this.btnToggleMenu.Click += new System.EventHandler(this.btnToggleMenu_Click);
+            this.labelAppTitle.AutoSize = true;
+            this.labelAppTitle.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.labelAppTitle.ForeColor = System.Drawing.Color.White;
+            this.labelAppTitle.Location = new System.Drawing.Point(60, 15);
+            this.labelAppTitle.Name = "labelAppTitle";
+            this.labelAppTitle.Size = new System.Drawing.Size(206, 25);
+            this.labelAppTitle.TabIndex = 5;
+            this.labelAppTitle.Text = "Quản Lý và Giảng Dạy";
             // 
             // btnThemeToggle
             // 
@@ -120,22 +119,12 @@
             this.labelMinimize.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.labelMinimize.Click += new System.EventHandler(this.labelMinimize_Click);
             // 
-            // labelAppTitle
-            // 
-            this.labelAppTitle.AutoSize = true;
-            this.labelAppTitle.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
-            this.labelAppTitle.ForeColor = System.Drawing.Color.White;
-            this.labelAppTitle.Location = new System.Drawing.Point(60, 15);
-            this.labelAppTitle.Name = "labelAppTitle";
-            this.labelAppTitle.Size = new System.Drawing.Size(126, 25);
-            this.labelAppTitle.TabIndex = 5;
-            this.labelAppTitle.Text = "EduManager";
-            // 
             // pictureBoxAppIcon
             // 
-            this.pictureBoxAppIcon.Location = new System.Drawing.Point(30, 10);
+            this.pictureBoxAppIcon.Image = global::N6.Properties.Resources.logo;
+            this.pictureBoxAppIcon.Location = new System.Drawing.Point(12, 7);
             this.pictureBoxAppIcon.Name = "pictureBoxAppIcon";
-            this.pictureBoxAppIcon.Size = new System.Drawing.Size(30, 30);
+            this.pictureBoxAppIcon.Size = new System.Drawing.Size(42, 40);
             this.pictureBoxAppIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBoxAppIcon.TabIndex = 6;
             this.pictureBoxAppIcon.TabStop = false;
@@ -143,9 +132,9 @@
             // pictureBoxUser
             // 
             this.pictureBoxUser.BackColor = System.Drawing.Color.LightGray;
-            this.pictureBoxUser.Location = new System.Drawing.Point(180, 7);
+            this.pictureBoxUser.Location = new System.Drawing.Point(224, 3);
             this.pictureBoxUser.Name = "pictureBoxUser";
-            this.pictureBoxUser.Size = new System.Drawing.Size(36, 36);
+            this.pictureBoxUser.Size = new System.Drawing.Size(45, 43);
             this.pictureBoxUser.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBoxUser.TabIndex = 7;
             this.pictureBoxUser.TabStop = false;
@@ -155,7 +144,7 @@
             this.labelUserName.AutoSize = true;
             this.labelUserName.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.labelUserName.ForeColor = System.Drawing.Color.White;
-            this.labelUserName.Location = new System.Drawing.Point(225, 14);
+            this.labelUserName.Location = new System.Drawing.Point(275, 7);
             this.labelUserName.Name = "labelUserName";
             this.labelUserName.Size = new System.Drawing.Size(108, 23);
             this.labelUserName.TabIndex = 8;
@@ -166,7 +155,7 @@
             this.labelSubject.AutoSize = true;
             this.labelSubject.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
             this.labelSubject.ForeColor = System.Drawing.Color.White;
-            this.labelSubject.Location = new System.Drawing.Point(225, 30);
+            this.labelSubject.Location = new System.Drawing.Point(275, 30);
             this.labelSubject.Name = "labelSubject";
             this.labelSubject.Size = new System.Drawing.Size(0, 20);
             this.labelSubject.TabIndex = 9;
@@ -183,21 +172,39 @@
             // 
             // panelContent
             // 
-            this.panelMain = new System.Windows.Forms.Panel();
-            this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelMain.Location = new System.Drawing.Point(0, 0);
-            this.panelMain.Name = "panelMain";
-            this.panelMain.Size = new System.Drawing.Size(940, 600);
-            this.Controls.Add(this.panelMain);
+            this.panelContent.Controls.Add(this.panelMain);
             this.panelContent.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelContent.Location = new System.Drawing.Point(200, 50);
             this.panelContent.Name = "panelContent";
             this.panelContent.Size = new System.Drawing.Size(1000, 700);
             this.panelContent.TabIndex = 2;
             // 
+            // panelMain
+            // 
+            this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelMain.Location = new System.Drawing.Point(0, 0);
+            this.panelMain.Name = "panelMain";
+            this.panelMain.Size = new System.Drawing.Size(1000, 700);
+            this.panelMain.TabIndex = 0;
+            // 
+            // lblAssistiveToggle
+            // 
+            this.lblAssistiveToggle.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblAssistiveToggle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(65)))));
+            this.lblAssistiveToggle.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.lblAssistiveToggle.Font = new System.Drawing.Font("Segoe UI Emoji", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblAssistiveToggle.ForeColor = System.Drawing.Color.White;
+            this.lblAssistiveToggle.Location = new System.Drawing.Point(1140, 690);
+            this.lblAssistiveToggle.Name = "lblAssistiveToggle";
+            this.lblAssistiveToggle.Size = new System.Drawing.Size(50, 50);
+            this.lblAssistiveToggle.TabIndex = 99;
+            this.lblAssistiveToggle.Text = "✨";
+            this.lblAssistiveToggle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
             // dashboard
             // 
             this.ClientSize = new System.Drawing.Size(1200, 750);
+            this.Controls.Add(this.lblAssistiveToggle);
             this.Controls.Add(this.panelContent);
             this.Controls.Add(this.panelMenu);
             this.Controls.Add(this.panelTopBar);
@@ -209,42 +216,26 @@
             this.panelTopBar.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxUser)).EndInit();
+            this.panelContent.ResumeLayout(false);
             this.ResumeLayout(false);
-            // lblAssistiveToggle
-            // 
-            this.lblAssistiveToggle = new System.Windows.Forms.Label();
-            this.lblAssistiveToggle.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.lblAssistiveToggle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(65)))));
-            this.lblAssistiveToggle.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.lblAssistiveToggle.Font = new System.Drawing.Font("Segoe UI Emoji", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblAssistiveToggle.ForeColor = System.Drawing.Color.White;
-            this.lblAssistiveToggle.Location = new System.Drawing.Point(this.Width - 60, this.Height - 60); // Vị trí góc dưới phải
-            this.lblAssistiveToggle.Name = "lblAssistiveToggle";
-            this.lblAssistiveToggle.Size = new System.Drawing.Size(50, 50);
-            this.lblAssistiveToggle.TabIndex = 99;
-            this.lblAssistiveToggle.Text = "✨";
-            this.lblAssistiveToggle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.Controls.Add(this.lblAssistiveToggle);
-            this.lblAssistiveToggle.BringToFront();
+
         }
 
         #endregion
 
         private System.Windows.Forms.Panel panelTopBar;
-        private System.Windows.Forms.Button btnToggleMenu;
         private System.Windows.Forms.Button btnThemeToggle;
         private System.Windows.Forms.Label labelMaximize;
         private System.Windows.Forms.Label labelClose;
         private System.Windows.Forms.Label labelMinimize;
-        private System.Windows.Forms.Label labelAppTitle;
         private System.Windows.Forms.PictureBox pictureBoxAppIcon;
         private System.Windows.Forms.Panel panelMenu;
         private System.Windows.Forms.Panel panelContent;
         private System.Windows.Forms.Label labelSubject;
         private System.Windows.Forms.Panel panelMain;
-        // Mới thêm
         private System.Windows.Forms.PictureBox pictureBoxUser;
         private System.Windows.Forms.Label labelUserName;
         private System.Windows.Forms.Label lblAssistiveToggle;
+        private System.Windows.Forms.Label labelAppTitle;
     }
 }

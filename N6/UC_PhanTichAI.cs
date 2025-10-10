@@ -182,10 +182,10 @@ namespace N6
                 {
                     var textLabel = formsPlot1.Plot.Add.Text(distribution[i].ToString("0"), i, distribution[i]);
                     textLabel.Bold = true;
-                    textLabel.FontSize = 14;
+                    textLabel.FontSize = 12;
                     textLabel.Color = ScottPlot.Colors.Black;
                     textLabel.Alignment = Alignment.LowerCenter;
-                    textLabel.OffsetY = -5;
+                    textLabel.OffsetY = -15;
                 }
             }
 

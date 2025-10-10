@@ -31,13 +31,17 @@
             this.paneluser3 = new System.Windows.Forms.Panel();
             this.paneluser4 = new System.Windows.Forms.Panel();
             this.label1 = new System.Windows.Forms.Label();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.footerFlowLayoutPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.panelTopBar.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).BeginInit();
             this.tableLayoutPanel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            this.footerFlowLayoutPanel.SuspendLayout();
             this.SuspendLayout();
-            //
+            // 
             // panelTopBar
-            //
+            // 
             this.panelTopBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(150)))), ((int)(((byte)(200)))));
             this.panelTopBar.Controls.Add(this.labelMaximize);
             this.panelTopBar.Controls.Add(this.labelClose);
@@ -49,9 +53,9 @@
             this.panelTopBar.Name = "panelTopBar";
             this.panelTopBar.Size = new System.Drawing.Size(1407, 50);
             this.panelTopBar.TabIndex = 0;
-            //
+            // 
             // labelMaximize
-            //
+            // 
             this.labelMaximize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.labelMaximize.Cursor = System.Windows.Forms.Cursors.Hand;
             this.labelMaximize.Font = new System.Drawing.Font("Arial", 16.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -63,9 +67,9 @@
             this.labelMaximize.Text = "◻";
             this.labelMaximize.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.labelMaximize.Click += new System.EventHandler(this.labelMaximize_Click);
-            //
+            // 
             // labelClose
-            //
+            // 
             this.labelClose.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.labelClose.Cursor = System.Windows.Forms.Cursors.Hand;
             this.labelClose.Font = new System.Drawing.Font("Arial", 16.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -77,9 +81,9 @@
             this.labelClose.Text = "×";
             this.labelClose.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.labelClose.Click += new System.EventHandler(this.labelClose_Click);
-            //
+            // 
             // labelMinimize
-            //
+            // 
             this.labelMinimize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.labelMinimize.Cursor = System.Windows.Forms.Cursors.Hand;
             this.labelMinimize.Font = new System.Drawing.Font("Arial", 16.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -91,29 +95,30 @@
             this.labelMinimize.Text = "-";
             this.labelMinimize.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.labelMinimize.Click += new System.EventHandler(this.labelMinimize_Click);
-            //
+            // 
             // labelAppTitle
-            //
+            // 
             this.labelAppTitle.AutoSize = true;
-            this.labelAppTitle.Font = new System.Drawing.Font("Segoe UI Semibold", 10.2F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelAppTitle.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
             this.labelAppTitle.ForeColor = System.Drawing.Color.White;
-            this.labelAppTitle.Location = new System.Drawing.Point(50, 15);
+            this.labelAppTitle.Location = new System.Drawing.Point(58, 16);
             this.labelAppTitle.Name = "labelAppTitle";
-            this.labelAppTitle.Size = new System.Drawing.Size(108, 23);
+            this.labelAppTitle.Size = new System.Drawing.Size(206, 25);
             this.labelAppTitle.TabIndex = 1;
-            this.labelAppTitle.Text = "EduManager";
-            //
+            this.labelAppTitle.Text = "Quản Lý và Giảng Dạy";
+            // 
             // pictureBoxAppIcon
-            //
+            // 
+            this.pictureBoxAppIcon.Image = global::N6.Properties.Resources.logo;
             this.pictureBoxAppIcon.Location = new System.Drawing.Point(10, 10);
             this.pictureBoxAppIcon.Name = "pictureBoxAppIcon";
-            this.pictureBoxAppIcon.Size = new System.Drawing.Size(30, 30);
+            this.pictureBoxAppIcon.Size = new System.Drawing.Size(42, 40);
             this.pictureBoxAppIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBoxAppIcon.TabIndex = 0;
             this.pictureBoxAppIcon.TabStop = false;
-            //
+            // 
             // labelGreeting
-            //
+            // 
             this.labelGreeting.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.labelGreeting.BackColor = System.Drawing.Color.Transparent;
             this.labelGreeting.Font = new System.Drawing.Font("Segoe UI", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -124,9 +129,9 @@
             this.labelGreeting.TabIndex = 2;
             this.labelGreeting.Text = "Chào mừng trở lại!";
             this.labelGreeting.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            //
+            // 
             // labelInstruction
-            //
+            // 
             this.labelInstruction.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.labelInstruction.BackColor = System.Drawing.Color.Transparent;
             this.labelInstruction.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -137,9 +142,9 @@
             this.labelInstruction.TabIndex = 3;
             this.labelInstruction.Text = "Chọn tài khoản giáo viên để tiếp tục";
             this.labelInstruction.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            //
+            // 
             // tableLayoutPanel1
-            //
+            // 
             this.tableLayoutPanel1.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.tableLayoutPanel1.BackColor = System.Drawing.Color.Transparent;
             this.tableLayoutPanel1.ColumnCount = 4;
@@ -158,9 +163,9 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(1111, 400);
             this.tableLayoutPanel1.TabIndex = 4;
-            //
+            // 
             // paneluser1
-            //
+            // 
             this.paneluser1.BackColor = System.Drawing.Color.White;
             this.paneluser1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneluser1.Location = new System.Drawing.Point(25, 25);
@@ -168,11 +173,9 @@
             this.paneluser1.Name = "paneluser1";
             this.paneluser1.Size = new System.Drawing.Size(242, 350);
             this.paneluser1.TabIndex = 0;
-            this.paneluser1.Click += new System.EventHandler(this.paneluser1_Click);
-            
-            //
+            // 
             // paneluser2
-            //
+            // 
             this.paneluser2.BackColor = System.Drawing.Color.White;
             this.paneluser2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneluser2.Location = new System.Drawing.Point(297, 25);
@@ -180,11 +183,9 @@
             this.paneluser2.Name = "paneluser2";
             this.paneluser2.Size = new System.Drawing.Size(242, 350);
             this.paneluser2.TabIndex = 1;
-            this.paneluser2.Click += new System.EventHandler(this.paneluser2_Click);
-            
-            //
+            // 
             // paneluser3
-            //
+            // 
             this.paneluser3.BackColor = System.Drawing.Color.White;
             this.paneluser3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneluser3.Location = new System.Drawing.Point(569, 25);
@@ -192,11 +193,9 @@
             this.paneluser3.Name = "paneluser3";
             this.paneluser3.Size = new System.Drawing.Size(242, 350);
             this.paneluser3.TabIndex = 2;
-            this.paneluser3.Click += new System.EventHandler(this.paneluser3_Click);
-            
-            //
+            // 
             // paneluser4
-            //
+            // 
             this.paneluser4.BackColor = System.Drawing.Color.White;
             this.paneluser4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.paneluser4.Location = new System.Drawing.Point(841, 25);
@@ -204,28 +203,51 @@
             this.paneluser4.Name = "paneluser4";
             this.paneluser4.Size = new System.Drawing.Size(245, 350);
             this.paneluser4.TabIndex = 3;
-            this.paneluser4.Click += new System.EventHandler(this.paneluser4_Click);
-           
-            //
+            // 
             // label1
-            //
-            this.label1.Anchor = System.Windows.Forms.AnchorStyles.None;
+            // 
+            this.label1.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.label1.AutoSize = true;
             this.label1.BackColor = System.Drawing.Color.Transparent;
             this.label1.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.Color.White;
-            this.label1.Location = new System.Drawing.Point(4, 668);
+            this.label1.Location = new System.Drawing.Point(52, 6);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(1407, 46);
+            this.label1.Size = new System.Drawing.Size(184, 28);
             this.label1.TabIndex = 5;
-            this.label1.Text = "2025 EduManager - phần mềm quản lí học sinh";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            //
+            this.label1.Text = "2025 TECH4ALL,inc";
+            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.pictureBox1.Image = global::N6.Properties.Resources.logocom;
+            this.pictureBox1.Location = new System.Drawing.Point(3, 3);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(43, 34);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBox1.TabIndex = 6;
+            this.pictureBox1.TabStop = false;
+            // 
+            // footerFlowLayoutPanel
+            // 
+            this.footerFlowLayoutPanel.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
+            this.footerFlowLayoutPanel.AutoSize = true;
+            this.footerFlowLayoutPanel.BackColor = System.Drawing.Color.Transparent;
+            this.footerFlowLayoutPanel.Controls.Add(this.pictureBox1);
+            this.footerFlowLayoutPanel.Controls.Add(this.label1);
+            this.footerFlowLayoutPanel.Location = new System.Drawing.Point(584, 732);
+            this.footerFlowLayoutPanel.Name = "footerFlowLayoutPanel";
+            this.footerFlowLayoutPanel.Size = new System.Drawing.Size(239, 40);
+            this.footerFlowLayoutPanel.TabIndex = 7;
+            this.footerFlowLayoutPanel.WrapContents = false;
+            // 
             // login
-            //
+            // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1407, 782);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.footerFlowLayoutPanel);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.labelInstruction);
             this.Controls.Add(this.labelGreeting);
@@ -236,10 +258,13 @@
             this.Load += new System.EventHandler(this.login_Load);
             this.panelTopBar.ResumeLayout(false);
             this.panelTopBar.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).EndInit();
             this.tableLayoutPanel1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).EndInit();
+            this.footerFlowLayoutPanel.ResumeLayout(false);
+            this.footerFlowLayoutPanel.PerformLayout();
             this.ResumeLayout(false);
-
+            this.PerformLayout();
         }
 
         #endregion
@@ -257,5 +282,7 @@
         private System.Windows.Forms.Panel paneluser4;
         private System.Windows.Forms.Label labelMaximize;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.FlowLayoutPanel footerFlowLayoutPanel;
     }
 }

@@ -333,6 +333,12 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TeacherRegistrationForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TeacherRegistrationForm.Designer.cs">
+      <DependentUpon>TeacherRegistrationForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="UC_Baocao.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -390,6 +396,9 @@
     <EmbeddedResource Include="login.resx">
       <DependentUpon>login.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="LoginDialog.resx">
+      <DependentUpon>LoginDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="menu.resx">
       <DependentUpon>menu.cs</DependentUpon>
     </EmbeddedResource>
@@ -400,6 +409,9 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="TeacherRegistrationForm.resx">
+      <DependentUpon>TeacherRegistrationForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UC_Baocao.resx">
       <DependentUpon>UC_Baocao.cs</DependentUpon>
@@ -477,6 +489,36 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="data\migrations\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\logo.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\logocom.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\CN8.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\cn7.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\cn6.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\cn5.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\cn4.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\cn3.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\cn2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\cn1.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
