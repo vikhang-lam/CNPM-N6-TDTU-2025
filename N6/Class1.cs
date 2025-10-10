@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Collections.Generic;
-
+using System.Windows.Forms;
+using System.Drawing;
+using System.Windows.Forms; 
 public class TeacherProfile
 {
     public string Ten { get; set; }
@@ -15,8 +17,8 @@ public class TeacherProfile
 public static class DatabaseHelper
 {
     private static string connectionString =
-        //@"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
-        @"Data Source=DESKTOP-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+        @"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+    //@"Data Source=DESKTOP-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
 
     #region Đăng nhập
     public static bool CheckTeacherLogin(string username, string password)
@@ -96,11 +98,17 @@ public static class DatabaseHelper
             }
         }
     }
+
+    // =======================================================================================
+    // ====> HÀM BỊ XÓA: Hàm này không còn đúng với logic mới (GV dạy nhiều lớp)
+    // =======================================================================================
+    /*
     public static string GetLopByTeacher(string identifier)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
+            // Câu truy vấn này sai vì GiaoVien không còn cột MaLop
             string sql = @"SELECT MaLop FROM GiaoVien WHERE Username=@id OR Ten=@id";
             using (SqlCommand cmd = new SqlCommand(sql, conn))
             {
@@ -110,6 +118,7 @@ public static class DatabaseHelper
             }
         }
     }
+    */
 
     public static string GetMonByTeacher(string identifier)
     {
@@ -180,10 +189,6 @@ public static class DatabaseHelper
 
     #region Điểm danh
 
-    /// <summary>
-    /// Lấy tất cả bản ghi điểm danh kèm thông tin học sinh của 1 lớp (có thể có nhiều ngày).
-    /// Sử dụng khi cần xem lịch sử (UI có thể lọc theo ngày/buổi).
-    /// </summary>
     public static DataTable GetDiemDanhByLop(string maLop)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -209,11 +214,6 @@ public static class DatabaseHelper
         }
     }
 
-    /// <summary>
-    /// Lấy danh sách điểm danh cho 1 lớp, 1 ngày cụ thể và 1 buổi cụ thể.
-    /// Trả về tất cả học sinh lớp (nếu học sinh chưa có bản ghi cho ngày đó thì các cột dd sẽ NULL).
-    /// </summary>
-    /// // ... trong class DatabaseHelper, ngay dưới vùng #region Điểm danh (sau UpdateDiemDanh hoặc trước đó) thêm:
     public static void UpsertDiemDanh(string maHS, string maLop, DateTime ngay, string buoi, string trangThai)
     {
         if (string.IsNullOrWhiteSpace(maHS)) return;
@@ -224,7 +224,6 @@ public static class DatabaseHelper
         {
             conn.Open();
 
-            // Kiểm tra tồn tại
             string check = @"SELECT MaDD 
                          FROM DiemDanh 
                          WHERE MaHS=@MaHS AND CAST(NgayDD AS DATE)=@Ngay AND Buoi=@Buoi";
@@ -268,7 +267,6 @@ public static class DatabaseHelper
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-            // tạo subquery chỉ lấy bản ghi DiemDanh cho ngày & buổi cụ thể
             string sql = @"
                 SELECT
                     hs.MaHS,
@@ -302,17 +300,12 @@ public static class DatabaseHelper
         }
     }
 
-    /// <summary>
-    /// Tạo bản ghi điểm danh mặc định ("Có mặt") cho tất cả học sinh trong lớp cho 1 ngày & buổi nhất định.
-    /// Nếu đã có bản ghi cho học sinh đó ở ngày/buổi tương ứng thì không chèn trùng.
-    /// </summary>
     public static void ExecTaoDiemDanhMacDinh(string maLop, DateTime ngay, string buoi)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
 
-            // Lấy danh sách MaHS của lớp
             string getHs = "SELECT MaHS FROM HocSinh WHERE MaLop = @maLop";
             List<string> listHs = new List<string>();
             using (SqlCommand cmd = new SqlCommand(getHs, conn))
@@ -327,7 +320,6 @@ public static class DatabaseHelper
                 }
             }
 
-            // Chuẩn bị insert nếu chưa tồn tại
             string checkSql = @"SELECT COUNT(*) FROM DiemDanh WHERE MaHS=@MaHS AND CAST(NgayDD AS date)=@ngay AND (@buoi IS NULL OR Buoi=@buoi)";
             string insertSql = @"INSERT INTO DiemDanh(MaDD, MaHS, NgayDD, Buoi, TrangThai)
                                  VALUES(@MaDD, @MaHS, @NgayDD, @Buoi, @TrangThai)";
@@ -364,18 +356,11 @@ public static class DatabaseHelper
         }
     }
 
-    /// <summary>
-    /// Overload cũ cho backward-compatibility: nếu gọi không truyền ngày/buổi thì dùng ngày hôm nay & buổi 'Sáng'.
-    /// </summary>
     public static void ExecTaoDiemDanhMacDinh(string maLop)
     {
         ExecTaoDiemDanhMacDinh(maLop, DateTime.Today, "Sáng");
     }
 
-    /// <summary>
-    /// Lưu / cập nhật điểm danh cho 1 học sinh ở 1 ngày & buổi cụ thể.
-    /// Nếu 'ngay' null => dùng ngày hôm nay. Nếu 'buoi' null => mặc định "Sáng".
-    /// </summary>
     public static void LuuDiemDanh(string maHS, string trangThai, DateTime? ngay = null, string buoi = null)
     {
         DateTime actualDate = (ngay ?? DateTime.Now).Date;
@@ -384,8 +369,6 @@ public static class DatabaseHelper
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-
-            // check exists for that student/date/buoi
             string check = @"SELECT MaDD FROM DiemDanh WHERE MaHS=@MaHS AND CAST(NgayDD AS date)=@ngay AND Buoi=@buoi";
             using (SqlCommand cmdCheck = new SqlCommand(check, conn))
             {
@@ -598,8 +581,6 @@ public static class DatabaseHelper
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-
-            // 1. Kiểm tra mật khẩu cũ chính xác không
             string check = "SELECT Password FROM GiaoVien WHERE Username=@u OR Ten =@u";
             string currentPass = null;
 
@@ -613,16 +594,12 @@ public static class DatabaseHelper
 
             if (currentPass == null || currentPass != oldPass)
             {
-                return false; // Sai mật khẩu cũ
+                return false;
             }
-
-            // 2. Kiểm tra mật khẩu mới có ký tự đặc biệt không
             if (System.Text.RegularExpressions.Regex.IsMatch(newPass, @"[^a-zA-Z0-9]"))
             {
                 throw new ArgumentException("Mật khẩu không được chứa ký tự đặc biệt!");
             }
-
-            // 3. Cập nhật mật khẩu mới
             string update = "UPDATE GiaoVien SET Password=@new WHERE Username=@u OR Ten =@u";
             using (SqlCommand cmd = new SqlCommand(update, conn))
             {
@@ -633,7 +610,6 @@ public static class DatabaseHelper
             }
         }
     }
-    // Lấy profile admin
     public static DataRow GetAdminProfile(string username)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -650,8 +626,6 @@ public static class DatabaseHelper
             }
         }
     }
-
-    // Cập nhật email
     public static void UpdateAdminEmail(string username, string email)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -666,16 +640,11 @@ public static class DatabaseHelper
             }
         }
     }
-
-    // Cập nhật ảnh nền
-    
     public static bool ChangeAdminPassword(string username, string oldPass, string newPass)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-
-            // 1. Kiểm tra mật khẩu cũ
             string check = "SELECT Password FROM Admin WHERE Username=@u";
             string currentPass = null;
             using (SqlCommand cmd = new SqlCommand(check, conn))
@@ -687,10 +656,9 @@ public static class DatabaseHelper
 
             if (currentPass == null || currentPass != oldPass)
             {
-                return false; // sai mật khẩu cũ
+                return false;
             }
 
-            // 2. Kiểm tra mật khẩu mới
             if (string.IsNullOrWhiteSpace(newPass))
             {
                 throw new ArgumentException("Mật khẩu mới không được để trống!");
@@ -700,8 +668,6 @@ public static class DatabaseHelper
             {
                 throw new ArgumentException("Mật khẩu mới không được chứa ký tự đặc biệt!");
             }
-
-            // 3. Cập nhật mật khẩu mới
             string update = "UPDATE Admin SET Password=@new WHERE Username=@u";
             using (SqlCommand cmd = new SqlCommand(update, conn))
             {
@@ -740,7 +706,7 @@ public static class DatabaseHelper
                 cmd.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N").Substring(0, 10));
                 cmd.Parameters.AddWithValue("@ten", ten);
                 cmd.Parameters.AddWithValue("@moTa", moTa ?? "");
-                cmd.Parameters.AddWithValue("@kieu", filePath); // lưu đường dẫn
+                cmd.Parameters.AddWithValue("@kieu", filePath);
                 cmd.Parameters.AddWithValue("@tt", trangThai ?? "Riêng tư");
                 cmd.Parameters.AddWithValue("@gv", maGV);
                 cmd.ExecuteNonQuery();
@@ -810,9 +776,6 @@ public static class DatabaseHelper
         {
             conn.Open();
             DateTime sunday = monday.AddDays(6);
-
-            // *** THAY ĐỔI CÂU TRUY VẤN TẠI ĐÂY ***
-            // Sử dụng LEFT JOIN để lấy cả những tiết chỉ có ghi chú (MaMon là NULL)
             string sql = @"
                 SELECT 
                     t.Ngay, 
@@ -851,8 +814,6 @@ public static class DatabaseHelper
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-
-            // Kiểm tra xem đã có bản ghi chưa
             string checkSql = "SELECT MaTKB FROM ThoiKhoaBieu WHERE MaGV=@MaGV AND Ngay=@Ngay AND Tiet=@Tiet";
             object maTKB = null;
             using (SqlCommand checkCmd = new SqlCommand(checkSql, conn))
@@ -865,7 +826,6 @@ public static class DatabaseHelper
 
             if (maTKB != null)
             {
-                // Cập nhật màu cho bản ghi đã tồn tại
                 string updateSql = "UPDATE ThoiKhoaBieu SET MauSac=@MauSac WHERE MaTKB=@MaTKB";
                 using (SqlCommand updateCmd = new SqlCommand(updateSql, conn))
                 {
@@ -876,7 +836,6 @@ public static class DatabaseHelper
             }
             else
             {
-                // Tạo bản ghi mới nếu chưa tồn tại (chỉ lưu màu, không có môn học)
                 string insertSql = "INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MauSac, MaGV) VALUES (@MaTKB, @Ngay, @Tiet, @MauSac, @MaGV)";
                 using (SqlCommand insertCmd = new SqlCommand(insertSql, conn))
                 {
@@ -896,8 +855,6 @@ public static class DatabaseHelper
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-
-            // 1. Kiểm tra xem đã có bản ghi cho ngày và tiết này chưa
             string checkSql = "SELECT MaTKB FROM ThoiKhoaBieu WHERE MaGV=@MaGV AND Ngay=@Ngay AND Tiet=@Tiet";
             object maTKB = null;
             using (SqlCommand checkCmd = new SqlCommand(checkSql, conn))
@@ -907,11 +864,8 @@ public static class DatabaseHelper
                 checkCmd.Parameters.AddWithValue("@Tiet", tiet);
                 maTKB = checkCmd.ExecuteScalar();
             }
-
-            // 2. Cập nhật hoặc Thêm mới
             if (maTKB != null)
             {
-                // 2a. Nếu đã tồn tại -> Cập nhật ghi chú
                 string updateSql = "UPDATE ThoiKhoaBieu SET GhiChu=@Note WHERE MaTKB=@MaTKB";
                 using (SqlCommand updateCmd = new SqlCommand(updateSql, conn))
                 {
@@ -922,13 +876,9 @@ public static class DatabaseHelper
             }
             else
             {
-                // 2b. Nếu chưa tồn tại -> Chèn bản ghi mới
-                // Giả định rằng nếu tạo mới từ ô trống, nó chỉ là một ghi chú cá nhân
-                // nên MaMon và MaLop sẽ là NULL.
                 string insertSql = "INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, GhiChu, MaGV) VALUES (@MaTKB, @Ngay, @Tiet, @GhiChu, @MaGV)";
                 using (SqlCommand insertCmd = new SqlCommand(insertSql, conn))
                 {
-                    // Tạo một MaTKB ngẫu nhiên, không trùng lặp
                     insertCmd.Parameters.AddWithValue("@MaTKB", "TKB" + Guid.NewGuid().ToString("N").Substring(0, 7));
                     insertCmd.Parameters.AddWithValue("@Ngay", ngay.Date);
                     insertCmd.Parameters.AddWithValue("@Tiet", tiet);
@@ -960,9 +910,6 @@ public static class DatabaseHelper
         return dt;
     }
     #region Minigame Data
-    /// <summary>
-    /// Lấy chuỗi dữ liệu (JSON) của một minigame cụ thể.
-    /// </summary>
     public static string GetGameData(string maMNG)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -977,10 +924,6 @@ public static class DatabaseHelper
             }
         }
     }
-
-    /// <summary>
-    /// Lưu chuỗi dữ liệu (JSON) cho một minigame.
-    /// </summary>
     public static void SaveGameData(string maMNG, string data)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -1133,7 +1076,6 @@ public static class DatabaseHelper
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-            // Nếu đã tồn tại MaHS -> ném ngoại lệ lên caller
             string check = "SELECT COUNT(1) FROM HocSinh WHERE MaHS=@MaHS";
             using (SqlCommand chk = new SqlCommand(check, conn))
             {
@@ -1156,7 +1098,6 @@ public static class DatabaseHelper
                 cmd.Parameters.AddWithValue("@DanToc", danToc ?? "");
                 cmd.ExecuteNonQuery();
             }
-            // triggers in DB will create DiemDanh and KetQuaHocTap automatically
         }
     }
 
@@ -1201,9 +1142,9 @@ public static class DatabaseHelper
     }
     public struct ImportResult
     {
-        public int Success;   // số dòng thêm thành công
-        public int Skipped;   // số dòng bị bỏ qua (đã tồn tại)
-        public int Failed;    // số dòng lỗi
+        public int Success;
+        public int Skipped;
+        public int Failed;
     }
     public static ImportResult ImportHocSinhFromDataTable(DataTable dt)
     {
@@ -1224,12 +1165,10 @@ public static class DatabaseHelper
                             continue;
                         }
 
-                        // parse ngay sinh
                         DateTime ngaySinh;
                         string ngayStr = row["NgaySinh"]?.ToString().Trim();
                         if (!DateTime.TryParseExact(ngayStr, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out ngaySinh))
                         {
-                            // try ISO parse
                             if (!DateTime.TryParse(ngayStr, out ngaySinh))
                             {
                                 result.Failed++;
@@ -1243,8 +1182,6 @@ public static class DatabaseHelper
                         string sdt = row["SDTPhuHuynh"]?.ToString().Trim();
                         string diaChi = row["DiaChi"]?.ToString().Trim();
                         string danToc = row["DanToc"]?.ToString().Trim();
-
-                        // kiểm tra tồn tại
                         string check = "SELECT COUNT(1) FROM HocSinh WHERE MaHS=@MaHS";
                         using (SqlCommand chk = new SqlCommand(check, conn, tran))
                         {
@@ -1256,8 +1193,6 @@ public static class DatabaseHelper
                                 continue;
                             }
                         }
-
-                        // insert
                         string insert = @"INSERT INTO HocSinh (MaHS, MaLop, HoTen, NgaySinh, GioiTinh, SDTPhuHuynh, DiaChi, DanToc)
                                           VALUES(@MaHS, @MaLop, @HoTen, @NgaySinh, @GioiTinh, @SDT, @DiaChi, @DanToc)";
                         using (SqlCommand cmd = new SqlCommand(insert, conn, tran))
@@ -1274,7 +1209,6 @@ public static class DatabaseHelper
                         }
 
                         result.Success++;
-                        // triggers in DB will create DiemDanh and KetQuaHocTap
                     }
 
                     tran.Commit();
@@ -1290,14 +1224,20 @@ public static class DatabaseHelper
     }
 
     #region Báo cáo
+    // =======================================================================================
+    // ====> HÀM BỊ SỬA: Cập nhật câu SQL để lấy danh sách lớp một giáo viên dạy
+    // =======================================================================================
     public static DataTable GetLopByGiaoVien(string maGV)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            string sql = @"SELECT DISTINCT l.MaLop, l.TenLop 
-                      FROM LopHoc l 
-                      INNER JOIN GiaoVien gv ON l.MaLop = gv.MaLop 
-                      WHERE gv.MaGV = @maGV";
+            // Sửa câu SQL:
+            // - Join LopHoc với PhanCongGiangDay (thay vì GiaoVien)
+            // - Lọc theo MaGV từ bảng PhanCongGiangDay
+            string sql = @"SELECT l.MaLop, l.TenLop 
+                           FROM LopHoc l
+                           INNER JOIN PhanCongGiangDay pc ON l.MaLop = pc.MaLop
+                           WHERE pc.MaGV = @maGV";
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
             da.SelectCommand.Parameters.AddWithValue("@maGV", maGV);
             DataTable dt = new DataTable();
@@ -1306,7 +1246,7 @@ public static class DatabaseHelper
         }
     }
 
-    public static DataTable GetBaoCaoChuyenCan(string tenLop)
+    public static DataTable GetBaoCaoChuyenCan(string maLop)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
@@ -1316,23 +1256,23 @@ public static class DatabaseHelper
             COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) as SoNgayCoMat,
             COUNT(CASE WHEN dd.TrangThai = N'Vắng' THEN 1 END) as SoNgayVang,
             COUNT(CASE WHEN dd.TrangThai = N'Có phép' THEN 1 END) as SoNgayCoPhep,
-            COUNT(*) as TongSoNgay,
-            CAST(COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) as DECIMAL(5,2)) as TyLeChuyenCan
+            COUNT(dd.MaDD) as TongSoBuoi,
+            CAST(COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) * 100.0 / NULLIF(COUNT(dd.MaDD), 0) as DECIMAL(5,2)) as TyLeChuyenCan
         FROM HocSinh hs
         LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS
-        WHERE hs.MaLop = @tenLop
+        WHERE hs.MaLop = @maLop
         GROUP BY hs.MaHS, hs.HoTen
         ORDER BY hs.HoTen";
 
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
-            da.SelectCommand.Parameters.AddWithValue("@tenLop", tenLop);
+            da.SelectCommand.Parameters.AddWithValue("@maLop", maLop);
             DataTable dt = new DataTable();
             da.Fill(dt);
             return dt;
         }
     }
 
-    public static DataTable GetBangDiemHocKy(string tenLop, int hocKy)
+    public static DataTable GetBangDiemHocKy(string maLop, int hocKy)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
@@ -1354,19 +1294,19 @@ public static class DatabaseHelper
         CROSS JOIN MonHoc mh
         LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND mh.MaMon = kq.MaMon 
             AND kq.Loai LIKE '%{loaiFilter}%'
-        WHERE hs.MaLop = @tenLop
+        WHERE hs.MaLop = @maLop
         GROUP BY hs.MaHS, hs.HoTen, mh.TenMon, mh.MaMon
         ORDER BY hs.HoTen, mh.MaMon";
 
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
-            da.SelectCommand.Parameters.AddWithValue("@tenLop", tenLop);
+            da.SelectCommand.Parameters.AddWithValue("@maLop", maLop);
             DataTable dt = new DataTable();
             da.Fill(dt);
             return dt;
         }
     }
 
-    public static DataTable GetHoSoHocSinh(string tenLop)
+    public static DataTable GetHoSoHocSinh(string maLop)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
@@ -1379,11 +1319,11 @@ public static class DatabaseHelper
             DiaChi,
             SDTPhuHuynh
         FROM HocSinh 
-        WHERE MaLop = @tenLop
+        WHERE MaLop = @maLop
         ORDER BY HoTen";
 
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
-            da.SelectCommand.Parameters.AddWithValue("@tenLop", tenLop);
+            da.SelectCommand.Parameters.AddWithValue("@maLop", maLop);
             DataTable dt = new DataTable();
             da.Fill(dt);
             return dt;
@@ -1415,5 +1355,137 @@ public static class DatabaseHelper
         }
     }
     #endregion
+    // Thêm 2 phương thức này vào trong class DatabaseHelper trong file Class1.cs
 
+    #region Hỗ trợ Giảng dạy
+
+
+
+    // Dán vào class DatabaseHelper, thay thế hàm AddGhiChuTKB cũ
+
+    public static void AddGhiChuTKB(string maGV, string maLop, DateTime ngay, int tiet, string ghiChu)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sqlCheck = "SELECT MaTKB FROM ThoiKhoaBieu WHERE MaLop = @MaLop AND Ngay = @Ngay AND Tiet = @Tiet";
+            object maTKB = null;
+            using (var cmdCheck = new SqlCommand(sqlCheck, conn))
+            {
+                cmdCheck.Parameters.AddWithValue("@MaLop", maLop);
+                cmdCheck.Parameters.AddWithValue("@Ngay", ngay.Date);
+                cmdCheck.Parameters.AddWithValue("@Tiet", tiet);
+                maTKB = cmdCheck.ExecuteScalar();
+            }
+
+            if (maTKB != null)
+            {
+                // ====> THAY ĐỔI LOGIC Ở ĐÂY <====
+                // Nếu đã tồn tại, nối thêm ghi chú mới vào ghi chú cũ
+                string sqlUpdate = "UPDATE ThoiKhoaBieu SET GhiChu = ISNULL(GhiChu, '') + NCHAR(13) + NCHAR(10) + @AppendedGhiChu, MaGV = @MaGV WHERE MaTKB = @MaTKB";
+                using (SqlCommand cmd = new SqlCommand(sqlUpdate, conn))
+                {
+                    
+                    cmd.Parameters.AddWithValue("@AppendedGhiChu", " ," + ghiChu);
+                    cmd.Parameters.AddWithValue("@MaGV", maGV);
+                    cmd.Parameters.AddWithValue("@MaTKB", maTKB.ToString());
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            else
+            {
+                // Nếu chưa tồn tại, tạo một mục ghi chú mới (giữ nguyên như cũ)
+                string sqlInsert = @"INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, GhiChu, MaGV, MaLop)
+                           VALUES (@MaTKB, @Ngay, @Tiet, @GhiChu, @MaGV, @MaLop)";
+                using (SqlCommand cmd = new SqlCommand(sqlInsert, conn))
+                {
+                    cmd.Parameters.AddWithValue("@MaTKB", "GC" + Guid.NewGuid().ToString("N").Substring(0, 7));
+                    cmd.Parameters.AddWithValue("@Ngay", ngay.Date);
+                    cmd.Parameters.AddWithValue("@Tiet", tiet);
+                    cmd.Parameters.AddWithValue("@GhiChu", ghiChu); // Ghi chú đầu tiên không cần dấu +
+                    cmd.Parameters.AddWithValue("@MaGV", maGV);
+                    cmd.Parameters.AddWithValue("@MaLop", maLop);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+    public static void AddGhiChuChoHocSinh(string maHS, string maMon, string ghiChu)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            // Cập nhật ghi chú vào mục điểm cuối kì 2 (hoặc một mục chung khác)
+            // Nếu chưa có, tạo một mục mới.
+            string loaiGhiChu = "CuoiKi2";
+            string sql = $@"
+            IF EXISTS (SELECT 1 FROM KetQuaHocTap WHERE MaHS = @MaHS AND MaMon = @MaMon AND Loai = @Loai)
+            BEGIN
+                UPDATE KetQuaHocTap SET GhiChu = @GhiChu WHERE MaHS = @MaHS AND MaMon = @MaMon AND Loai = @Loai
+            END
+            ELSE
+            BEGIN
+                INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, GhiChu, Loai)
+                VALUES (@MaKQ, @MaMon, @MaHS, GETDATE(), @GhiChu, @Loai)
+            END";
+
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaKQ", "KQ" + Guid.NewGuid().ToString("N").Substring(0, 7));
+                cmd.Parameters.AddWithValue("@MaHS", maHS);
+                cmd.Parameters.AddWithValue("@MaMon", maMon);
+                cmd.Parameters.AddWithValue("@GhiChu", ghiChu);
+                cmd.Parameters.AddWithValue("@Loai", loaiGhiChu);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+    // Dán vào trong class DatabaseHelper
+    public static DataTable GetAllKetQuaHocTap()
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = @"
+            SELECT 
+                hs.MaHS,
+                hs.HoTen,
+                lh.MaLop,
+                lh.TenLop,
+                mh.MaMon,
+                mh.TenMon,
+                kq.Loai,
+                kq.Diem
+            FROM KetQuaHocTap kq
+            JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+            JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+            JOIN MonHoc mh ON kq.MaMon = mh.MaMon
+            WHERE kq.Diem IS NOT NULL";
+
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+    public static void StyleDataGridView(DataGridView dgv)
+    {
+        dgv.BorderStyle = BorderStyle.None;
+        dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(242, 245, 250);
+        dgv.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+        dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(210, 230, 255);
+        dgv.DefaultCellStyle.SelectionForeColor = Color.DimGray;
+        dgv.BackgroundColor = Color.White;
+        dgv.EnableHeadersVisualStyles = false;
+        dgv.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+        dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.White;
+        dgv.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(45, 45, 65);
+        dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+        dgv.ColumnHeadersDefaultCellStyle.Padding = new Padding(0, 5, 0, 5);
+        dgv.RowHeadersVisible = false;
+        dgv.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F);
+        dgv.DefaultCellStyle.ForeColor = Color.DimGray;
+        dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        dgv.RowTemplate.Height = 40;
+    }
+    #endregion
 }

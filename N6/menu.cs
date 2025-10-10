@@ -13,12 +13,12 @@ namespace N6
         private bool isDarkMode = false;
         private const int menuWidth = 200;
         private const int collapsedMenuWidth = 60;
-
-        // Giữ delegate (tránh GC thu gom rác gây lỗi CallbackOnCollectedDelegate)
         private EventHandler logoutHandler;
-
-        // Track nút menu đang active để tô màu khác
         private Button currentActiveBtn;
+
+        // ====> KHAI BÁO BIẾN CHO NÚT TRỢ NĂNG VÀ LỚP HỌC <====
+        
+        
 
         private Dictionary<string, Color> lightModeColors = new Dictionary<string, Color>()
         {
@@ -53,14 +53,43 @@ namespace N6
             this.DoubleBuffered = true;
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.CenterScreen;
-
-            // giữ delegate logoutHandler tránh bị GC
             logoutHandler = LogoutItem_Click;
         }
+
+        private void dashboard_Load(object sender, EventArgs e)
+        {
+            LoadUserInfo();
+            CreateMainMenuItems();
+            var homeBtn = FindMenuButtonContains("Trang chủ");
+            if (homeBtn != null) SetActiveMenuButton(homeBtn);
+            ApplyTheme();
+            InitUserMenu();
+
+            // Gán sự kiện cho nút trợ năng mới
+            this.lblAssistiveToggle.Click += new System.EventHandler(this.lblAssistiveToggle_Click);
+        }
+        private void lblAssistiveToggle_Click(object sender, EventArgs e)
+        {
+            string maGV = DatabaseHelper.GetMaGVByUsername(Properties.Settings.Default.CurrentUser);
+            if (string.IsNullOrEmpty(maGV)) return;
+
+            frmAssistiveMenu menu = new frmAssistiveMenu(maGV);
+
+            Point screenPoint = lblAssistiveToggle.PointToScreen(Point.Empty);
+            int menuX = screenPoint.X - menu.Width + lblAssistiveToggle.Width;
+            int menuY = screenPoint.Y - menu.Height - 5;
+
+            menu.Location = new Point(menuX, menuY);
+            menu.Show();
+        }
+        
+
+      
+
         private void LoadHome()
         {
             panelMain.Controls.Clear();
-            string tenGV = Properties.Settings.Default.CurrentUser?? "Giáo viên";
+            string tenGV = Properties.Settings.Default.CurrentUser ?? "Giáo viên";
             var home = new UC_Home(tenGV);
             home.Dock = DockStyle.Fill;
             home.ChonChucNang += MoChucNang;
@@ -73,15 +102,16 @@ namespace N6
             string maGV = DatabaseHelper.GetMaGVByUsername(user);
             panelMain.Controls.Clear();
             UserControl uc = null;
+
             switch (maCN)
             {
                 case "CN1":
-                    
                     UC_Home homeUc = new UC_Home(user ?? "Giáo viên");
-                    homeUc.ChonChucNang += MoChucNang; 
+                    homeUc.ChonChucNang += MoChucNang;
                     uc = homeUc;
                     break;
                 case "CN2":
+                    
                     uc = new UC_QuanLyLop(user);
                     break;
                 case "CN3":
@@ -100,10 +130,6 @@ namespace N6
                     uc = new UC_PhanTichAI();
                     break;
                 case "CN8":
-                    uc = new UC_HoTroGiangDay();
-                    break;
-                case "CN9":
-                    // Đăng xuất
                     DialogResult r = MessageBox.Show("Bạn có chắc chắn muốn đăng xuất?", "Xác nhận", MessageBoxButtons.YesNo);
                     if (r == DialogResult.Yes)
                     {
@@ -116,18 +142,6 @@ namespace N6
                 uc.Dock = DockStyle.Fill;
                 panelMain.Controls.Add(uc);
             }
-        }
-        private void dashboard_Load(object sender, EventArgs e)
-        {
-            LoadUserInfo();
-            CreateMainMenuItems();
-
-            // Chọn mặc định "Trang chủ" là tab đang mở
-            var homeBtn = FindMenuButtonContains("Trang chủ");
-            if (homeBtn != null) SetActiveMenuButton(homeBtn);
-
-            ApplyTheme();
-            InitUserMenu();
         }
 
         private void LoadUserInfo()
@@ -181,7 +195,6 @@ namespace N6
         }
 
         private ContextMenuStrip userMenu;
-
         private void InitUserMenu()
         {
             userMenu = new ContextMenuStrip();
@@ -194,26 +207,24 @@ namespace N6
             settingsItem.Click += SettingsItem_Click;
 
             ToolStripMenuItem logoutItem = new ToolStripMenuItem("🚪 Đăng xuất");
-            logoutItem.Click += logoutHandler; // dùng field delegate đã lưu
+            logoutItem.Click += logoutHandler;
 
             userMenu.Items.Add(profileItem);
             userMenu.Items.Add(settingsItem);
             userMenu.Items.Add(new ToolStripSeparator());
             userMenu.Items.Add(logoutItem);
 
-            // Gắn context menu cho avatar + tên
             pictureBoxUser.Click += PictureBoxUser_Click;
             labelUserName.Click += LabelUserName_Click;
         }
 
-        // ================== HANDLER ==================
         private void ProfileItem_Click(object sender, EventArgs e)
         {
             string currentUser = Properties.Settings.Default["CurrentUser"]?.ToString();
             using (ProfileForm pf = new ProfileForm(currentUser))
             {
                 pf.AvatarChanged += (s, args) => {
-                 LoadUserInfo();
+                    LoadUserInfo();
                 };
                 pf.ShowDialog(this);
             }
@@ -226,7 +237,6 @@ namespace N6
 
         private void LogoutItem_Click(object sender, EventArgs e)
         {
-            // Gọi logout từ menu chính
             MenuItem_Click(new Button { Text = "🚪 Đăng xuất" }, EventArgs.Empty);
         }
 
@@ -244,41 +254,31 @@ namespace N6
         {
             var menuItems = new string[]
             {
-                "🚪 Đăng xuất",
-                "📊 Phân tích AI",
-                "📑 Báo cáo & Xuất dữ liệu",
-                "🎮 Mini-games",
-                "🧑‍🏫 Hỗ trợ giảng dạy",
-                "📑 quản lí tài liệu",
-                "☁️ Thời khóa biểu",
-                "👨‍🎓 Quản lý lớp học",
-                "🏠 Trang chủ"
+                "🚪 Đăng xuất", "📊 Phân tích AI", "📑 Báo cáo & Xuất dữ liệu", "🎮 Mini-games",
+                "📑 quản lí tài liệu", "☁️ Thời khóa biểu", "👨‍🎓 Quản lý lớp học", "🏠 Trang chủ"
             };
 
             foreach (var item in menuItems)
             {
-                Button btn = new Button();
-                btn.Text = item;
-                btn.Dock = DockStyle.Top;
-                btn.FlatStyle = FlatStyle.Flat;
+                Button btn = new Button
+                {
+                    Text = item,
+                    Dock = DockStyle.Top,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 11, FontStyle.Regular),
+                    Height = 55,
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    Padding = new Padding(15, 0, 0, 0)
+                };
                 btn.FlatAppearance.BorderSize = 0;
-                // Mặc định: Regular; Tab đang chọn sẽ được in đậm
-                btn.Font = new Font("Segoe UI", 11, FontStyle.Regular);
-                btn.Height = 55;
-                btn.TextAlign = ContentAlignment.MiddleLeft;
-                btn.Padding = new Padding(15, 0, 0, 0);
                 btn.Click += MenuItem_Click;
-
                 panelMenu.Controls.Add(btn);
-                panelMenu.Controls.SetChildIndex(btn, panelMenu.Controls.Count - 1);
             }
         }
 
-        // Chuyển trạng thái nhấn cho nút đang chọn: nền đậm + chữ đậm
         private void SetActiveMenuButton(Button btn)
         {
             var colors = isDarkMode ? darkModeColors : lightModeColors;
-
             foreach (Control c in panelMenu.Controls)
             {
                 if (c is Button b)
@@ -295,24 +295,14 @@ namespace N6
 
         private Button FindMenuButtonContains(string keyword)
         {
-            foreach (Control c in panelMenu.Controls)
-            {
-                if (c is Button b && b.Text.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return b;
-                }
-            }
-            return null;
+            return panelMenu.Controls.OfType<Button>().FirstOrDefault(b => b.Text.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         private void MenuItem_Click(object sender, EventArgs e)
         {
             if (!(sender is Button btn)) return;
-
             string text = btn.Text.Trim();
             string maCN = "";
-
-            // Gán mã chức năng tương ứng với text của nút
             if (text.Contains("Trang chủ")) maCN = "CN1";
             else if (text.Contains("Quản lý lớp học")) maCN = "CN2";
             else if (text.Contains("Thời khóa biểu")) maCN = "CN3";
@@ -320,19 +310,13 @@ namespace N6
             else if (text.Contains("Mini-games")) maCN = "CN5";
             else if (text.Contains("Báo cáo")) maCN = "CN6";
             else if (text.Contains("Phân tích AI")) maCN = "CN7";
-            else if (text.Contains("Hỗ trợ giảng dạy")) maCN = "CN8";
-            else if (text.Contains("Đăng xuất")) maCN = "CN9";
+            else if (text.Contains("Đăng xuất")) maCN = "CN8";
             else
             {
                 MessageBox.Show("Chức năng này đang được phát triển!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
-
-            // Đổi màu tab đang mở
             SetActiveMenuButton(btn);
-
-            // Luôn gọi MoChucNang để xử lý việc chuyển đổi UserControl
-            // Điều này đảm bảo rằng UC_Home sẽ được tạo và đăng ký sự kiện đúng cách
             MoChucNang(maCN);
         }
 
@@ -352,16 +336,13 @@ namespace N6
         private void ApplyTheme()
         {
             var colors = isDarkMode ? darkModeColors : lightModeColors;
-
             this.BackColor = colors["mainBg"];
             panelTopBar.BackColor = colors["topBarBg"];
             panelMenu.BackColor = colors["menuBg"];
             panelContent.BackColor = colors["mainBg"];
-
             labelAppTitle.ForeColor = colors["textPrimary"];
             labelUserName.ForeColor = colors["userPanelText"];
             labelSubject.ForeColor = colors["userPanelText"];
-
             foreach (Control c in panelMenu.Controls)
             {
                 if (c is Button btn)
@@ -376,7 +357,6 @@ namespace N6
         }
 
         private void btnCollapseMenu_Click(object sender, EventArgs e) => btnToggleMenu_Click(sender, e);
-
         private void labelClose_Click(object sender, EventArgs e) => Application.Exit();
         private void labelMinimize_Click(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
         private void labelMaximize_Click(object sender, EventArgs e) =>

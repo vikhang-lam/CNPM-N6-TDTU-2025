@@ -1,400 +1,239 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.IO;
 using System.Windows.Forms;
 
-namespace N6
+public class PopupWhiteboard : Form
 {
-    public partial class PopupWhiteboard : Form
+    private PictureBox canvas;
+    private Bitmap drawingBitmap;
+    private Graphics drawingGraphics;
+    private Pen currentPen;
+    private Point? lastPoint = null;
+
+    // ====> BIẾN TRẠNG THÁI MỚI <====
+    private bool isDrawing = false;
+    private bool isErasing = false;
+    private bool isTextMode = false;
+
+    public PopupWhiteboard()
     {
-        private Bitmap _canvas;
-        private bool _isDrawing;
-        private bool _eraserMode;
-        private Point _lastPoint;
-        private Color _penColor = Color.Black;
-        private int _penWidth = 4;
-        
-        // Minimized state
-        private bool _isMinimized = false;
-        private Size _originalSize;
-        private Point _originalLocation;
-        private Button _minimizedButton;
-        
-        // Form dragging
-        private bool _isDraggingForm = false;
-        private Point _formDragStartPoint;
+        this.Text = "Bảng Trắng";
+        this.Size = new Size(800, 600);
+        this.StartPosition = FormStartPosition.CenterScreen;
+        this.BackColor = Color.White;
+        this.TopMost = true;
 
-        public PopupWhiteboard()
+        // Toolbar
+        var toolPanel = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 45, Padding = new Padding(5), BackColor = Color.WhiteSmoke };
+
+        var btnPen = new Button { Text = "Bút 🖌️", Width = 70 };
+        var btnEraser = new Button { Text = "Tẩy 🧼", Width = 70 };
+        // ====> THÊM NÚT GÕ CHỮ MỚI <====
+        var btnText = new Button { Text = "Chữ A", Width = 70, Font = new Font("Segoe UI", 9F, FontStyle.Bold) };
+
+        var btnColor = new Button { Text = "Màu", Width = 60 };
+        var btnClear = new Button { Text = "Xóa hết", Width = 70 };
+        var btnSave = new Button { Text = "Lưu ảnh", Width = 70 };
+        var sizeTrackBar = new TrackBar { Minimum = 1, Maximum = 20, Value = 5, Width = 100, TickStyle = TickStyle.None };
+        var lblSize = new Label { Text = "Cỡ: 5", AutoSize = true, Padding = new Padding(5, 8, 0, 0) };
+
+        toolPanel.Controls.AddRange(new Control[] { btnPen, btnEraser, btnText, btnColor, new Label { Text = "Cỡ:", Padding = new Padding(10, 8, 0, 0) }, sizeTrackBar, lblSize, btnClear, btnSave });
+
+        // Canvas
+        canvas = new PictureBox { Dock = DockStyle.Fill, Cursor = Cursors.Cross };
+
+        this.Controls.Add(canvas);
+        this.Controls.Add(toolPanel);
+
+        // Khởi tạo
+        InitializeDrawing();
+
+        // Gán sự kiện
+        canvas.MouseDown += Canvas_MouseDown;
+        canvas.MouseMove += Canvas_MouseMove;
+        canvas.MouseUp += Canvas_MouseUp;
+        canvas.Paint += (s, e) => e.Graphics.DrawImage(drawingBitmap, Point.Empty);
+
+        // ====> CẬP NHẬT SỰ KIỆN CLICK CỦA CÁC NÚT <====
+        btnPen.Click += (s, e) => {
+            isErasing = false;
+            isTextMode = false;
+            canvas.Cursor = Cursors.Cross;
+        };
+        btnEraser.Click += (s, e) => {
+            isErasing = true;
+            isTextMode = false;
+            canvas.Cursor = Cursors.Cross;
+        };
+        btnText.Click += (s, e) => {
+            isTextMode = true;
+            isErasing = false;
+            canvas.Cursor = Cursors.IBeam; // Đổi con trỏ chuột thành dạng gõ chữ
+        };
+
+        btnColor.Click += BtnColor_Click;
+        sizeTrackBar.ValueChanged += (s, e) => {
+            currentPen.Width = sizeTrackBar.Value;
+            lblSize.Text = $"Cỡ: {sizeTrackBar.Value}";
+        };
+        btnClear.Click += (s, e) => {
+            drawingGraphics.Clear(Color.White);
+            canvas.Invalidate();
+        };
+        btnSave.Click += BtnSave_Click;
+    }
+
+    private void InitializeDrawing()
+    {
+        currentPen = new Pen(Color.Black, 5);
+        drawingBitmap = new Bitmap(canvas.Width > 0 ? canvas.Width : 1, canvas.Height > 0 ? canvas.Height : 1);
+        drawingGraphics = Graphics.FromImage(drawingBitmap);
+        drawingGraphics.SmoothingMode = SmoothingMode.AntiAlias;
+        drawingGraphics.Clear(Color.White);
+        canvas.Image = drawingBitmap;
+    }
+
+    private void Canvas_MouseDown(object sender, MouseEventArgs e)
+    {
+        if (e.Button != MouseButtons.Left) return;
+
+        // ====> XỬ LÝ KHI CLICK CHUỘT Ở CHẾ ĐỘ GÕ CHỮ <====
+        if (isTextMode)
         {
-            InitializeComponent();
-            InitializePopup();
-            EnsureCanvas();
+            CreateTextboxAtPoint(e.Location);
         }
-
-        private void InitializePopup()
+        else // Chế độ vẽ/tẩy
         {
-            // Form settings
-            this.FormBorderStyle = FormBorderStyle.None;
-            this.TopMost = true;
-            this.StartPosition = FormStartPosition.Manual;
-            this.Size = new Size(700, 500);
-            this.BackColor = Color.White;
-            
-            // Position at top-right corner
-            this.Location = new Point(
-                Screen.PrimaryScreen.WorkingArea.Width - this.Width - 20,
-                50
-            );
-            
-            _originalSize = this.Size;
-            _originalLocation = this.Location;
-
-            // Add rounded corners
-            this.Region = CreateRoundedRegion(this.Size, 15);
-            
-            // Set default pen width
-            if (cboWidth.Items.Count > 0) 
-                cboWidth.SelectedIndex = 1; // "4"
-
-            // Create minimized button (initially hidden)
-            CreateMinimizedButton();
-            
-            // Add drag functionality to form
-            EnableFormDragging();
+            isDrawing = true;
+            lastPoint = e.Location;
         }
+    }
 
-        private void EnableFormDragging()
+    private void Canvas_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (isDrawing && lastPoint.HasValue)
         {
-            // Make the toolbar draggable
-            toolStrip.MouseDown += ToolStrip_MouseDown;
-            toolStrip.MouseMove += ToolStrip_MouseMove;
-            toolStrip.MouseUp += ToolStrip_MouseUp;
-            
-            // Make the title label draggable
-            toolStripLabel1.MouseDown += (s, e) => {
-                if (e.Button == MouseButtons.Left) {
-                    _isDraggingForm = true;
-                    _formDragStartPoint = new Point(e.X, e.Y);
-                }
-            };
-        }
-
-        private void ToolStrip_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left && !_isMinimized)
+            using (var pen = new Pen(isErasing ? Color.White : currentPen.Color, currentPen.Width))
             {
-                _isDraggingForm = true;
-                _formDragStartPoint = e.Location;
+                pen.StartCap = LineCap.Round;
+                pen.EndCap = LineCap.Round;
+                drawingGraphics.DrawLine(pen, lastPoint.Value, e.Location);
+            }
+            lastPoint = e.Location;
+            canvas.Invalidate();
+        }
+    }
+
+    private void Canvas_MouseUp(object sender, MouseEventArgs e)
+    {
+        isDrawing = false;
+        lastPoint = null;
+    }
+
+    // ====> CÁC HÀM MỚI CHO CHỨC NĂNG GÕ CHỮ <====
+
+    private void CreateTextboxAtPoint(Point location)
+    {
+        var tempTextbox = new TextBox
+        {
+            Location = location,
+            BorderStyle = BorderStyle.FixedSingle,
+            Font = new Font("Segoe UI", 8 + (currentPen.Width * 1.5f)), // Cỡ chữ theo cỡ nét
+            ForeColor = currentPen.Color,
+            AutoSize = true
+        };
+
+        // Gán sự kiện để xử lý khi gõ xong
+        tempTextbox.LostFocus += TempTextbox_LostFocus;
+        tempTextbox.KeyDown += TempTextbox_KeyDown;
+
+        canvas.Controls.Add(tempTextbox);
+        tempTextbox.Focus();
+    }
+
+    private void TempTextbox_KeyDown(object sender, KeyEventArgs e)
+    {
+        // Khi nhấn Enter, hoàn tất việc gõ chữ
+        if (e.KeyCode == Keys.Enter)
+        {
+            DrawTextAndRemoveTextbox(sender as TextBox);
+            e.SuppressKeyPress = true; // Ngăn tiếng "beep"
+        }
+    }
+
+    private void TempTextbox_LostFocus(object sender, EventArgs e)
+    {
+        // Khi click ra ngoài, cũng hoàn tất việc gõ chữ
+        DrawTextAndRemoveTextbox(sender as TextBox);
+    }
+
+    private void DrawTextAndRemoveTextbox(TextBox textbox)
+    {
+        if (textbox == null) return;
+
+        string text = textbox.Text;
+        Point location = textbox.Location;
+        Font font = textbox.Font;
+        Color color = textbox.ForeColor;
+
+        // Xóa textbox khỏi canvas trước
+        canvas.Controls.Remove(textbox);
+        textbox.Dispose();
+
+        // Vẽ chữ lên bitmap nền
+        if (!string.IsNullOrEmpty(text))
+        {
+            using (var brush = new SolidBrush(color))
+            {
+                drawingGraphics.DrawString(text, font, brush, location);
+            }
+            canvas.Invalidate(); // Yêu cầu vẽ lại canvas với chữ mới
+        }
+    }
+    // =======================================================
+
+    private void BtnColor_Click(object sender, EventArgs e)
+    {
+        using (var colorDialog = new ColorDialog())
+        {
+            if (colorDialog.ShowDialog() == DialogResult.OK)
+            {
+                currentPen.Color = colorDialog.Color;
+                isErasing = false;
+                isTextMode = false;
+                canvas.Cursor = Cursors.Cross;
             }
         }
+    }
 
-        private void ToolStrip_MouseMove(object sender, MouseEventArgs e)
+    private void BtnSave_Click(object sender, EventArgs e)
+    {
+        using (var sfd = new SaveFileDialog())
         {
-            if (_isDraggingForm && !_isMinimized)
+            sfd.Filter = "PNG Image|*.png|JPEG Image|*.jpg";
+            if (sfd.ShowDialog() == DialogResult.OK)
             {
-                Point currentScreen = PointToScreen(e.Location);
-                this.Location = new Point(
-                    currentScreen.X - _formDragStartPoint.X,
-                    currentScreen.Y - _formDragStartPoint.Y
-                );
+                drawingBitmap.Save(sfd.FileName);
             }
         }
+    }
 
-        private void ToolStrip_MouseUp(object sender, MouseEventArgs e)
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        if (canvas != null && canvas.Width > 0 && canvas.Height > 0 && drawingBitmap != null)
         {
-            _isDraggingForm = false;
-        }
-
-        private void CreateMinimizedButton()
-        {
-            _minimizedButton = new Button();
-            _minimizedButton.Size = new Size(60, 60);
-            _minimizedButton.BackColor = Color.FromArgb(0, 122, 255);
-            _minimizedButton.ForeColor = Color.White;
-            _minimizedButton.Font = new Font("Microsoft Sans Serif", 12, FontStyle.Bold);
-            _minimizedButton.Text = "W"; // W for Whiteboard
-            _minimizedButton.FlatStyle = FlatStyle.Flat;
-            _minimizedButton.FlatAppearance.BorderSize = 0;
-            _minimizedButton.Cursor = Cursors.Hand;
-            _minimizedButton.Click += MinimizedButton_Click;
-            _minimizedButton.MouseDown += MinimizedButton_MouseDown;
-            _minimizedButton.MouseMove += MinimizedButton_MouseMove;
-            _minimizedButton.MouseUp += MinimizedButton_MouseUp;
-            _minimizedButton.Visible = false;
-            
-            // Make it circular
-            GraphicsPath path = new GraphicsPath();
-            path.AddEllipse(0, 0, 60, 60);
-            _minimizedButton.Region = new Region(path);
-            
-            this.Controls.Add(_minimizedButton);
-        }
-
-        private Region CreateRoundedRegion(Size size, int radius)
-        {
-            GraphicsPath path = new GraphicsPath();
-            path.AddArc(0, 0, radius, radius, 180, 90);
-            path.AddArc(size.Width - radius, 0, radius, radius, 270, 90);
-            path.AddArc(size.Width - radius, size.Height - radius, radius, radius, 0, 90);
-            path.AddArc(0, size.Height - radius, radius, radius, 90, 90);
-            path.CloseAllFigures();
-            return new Region(path);
-        }
-
-        private void EnsureCanvas()
-        {
-            if (panelCanvas == null || panelCanvas.Width <= 0 || panelCanvas.Height <= 0) return;
-
-            if (_canvas == null)
+            var newBitmap = new Bitmap(canvas.Width, canvas.Height);
+            using (var newGraphics = Graphics.FromImage(newBitmap))
             {
-                _canvas = new Bitmap(panelCanvas.Width, panelCanvas.Height);
-                using (Graphics g = Graphics.FromImage(_canvas)) 
-                    g.Clear(Color.White);
+                newGraphics.DrawImage(drawingBitmap, Point.Empty);
             }
-            else if (_canvas.Width != panelCanvas.Width || _canvas.Height != panelCanvas.Height)
-            {
-                var newBmp = new Bitmap(panelCanvas.Width, panelCanvas.Height);
-                using (Graphics g = Graphics.FromImage(newBmp))
-                {
-                    g.Clear(Color.White);
-                    if (_canvas != null)
-                        g.DrawImage(_canvas, Point.Empty);
-                }
-                _canvas?.Dispose();
-                _canvas = newBmp;
-            }
-            panelCanvas?.Invalidate();
-        }
-
-        public void ToggleMinimize()
-        {
-            if (_isMinimized)
-            {
-                // Restore to full size
-                this.Size = _originalSize;
-                this.Location = _originalLocation;
-                this.Region = CreateRoundedRegion(this.Size, 15);
-                
-                // Show main panel, hide minimized button
-                if (mainPanel != null) mainPanel.Visible = true;
-                if (_minimizedButton != null) _minimizedButton.Visible = false;
-                _isMinimized = false;
-                
-                // Re-ensure canvas after restore
-                this.Invoke(new Action(() => {
-                    EnsureCanvas();
-                }));
-            }
-            else
-            {
-                // Store current state before minimizing
-                if (!_isMinimized) // Only store if not already minimized
-                {
-                    _originalSize = this.Size;
-                    _originalLocation = this.Location;
-                }
-                
-                // Minimize to small button
-                this.Size = new Size(60, 60);
-                this.Location = new Point(
-                    Screen.PrimaryScreen.WorkingArea.Width - 80,
-                    Screen.PrimaryScreen.WorkingArea.Height - 150
-                );
-                
-                // Create circular region
-                GraphicsPath path = new GraphicsPath();
-                path.AddEllipse(0, 0, 60, 60);
-                this.Region = new Region(path);
-                
-                // Hide main panel, show minimized button
-                if (mainPanel != null) mainPanel.Visible = false;
-                if (_minimizedButton != null) 
-                {
-                    _minimizedButton.Dock = DockStyle.Fill;
-                    _minimizedButton.Visible = true;
-                    _minimizedButton.BringToFront();
-                }
-                _isMinimized = true;
-            }
-        }
-
-        #region Drawing Events
-        private void panelCanvas_Paint(object sender, PaintEventArgs e)
-        {
-            if (_canvas != null) 
-                e.Graphics.DrawImageUnscaled(_canvas, 0, 0);
-        }
-
-        private void panelCanvas_Resize(object sender, EventArgs e)
-        {
-            EnsureCanvas();
-        }
-
-        private void panelCanvas_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Left || _isMinimized) return;
-            _isDrawing = true;
-            _lastPoint = e.Location;
-        }
-
-        private void panelCanvas_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (!_isDrawing || _canvas == null || _isMinimized) return;
-
-            using (Graphics g = Graphics.FromImage(_canvas))
-            using (Pen pen = new Pen(_eraserMode ? Color.White : _penColor, _penWidth)
-            {
-                StartCap = LineCap.Round,
-                EndCap = LineCap.Round,
-                LineJoin = LineJoin.Round
-            })
-            {
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.DrawLine(pen, _lastPoint, e.Location);
-            }
-
-            _lastPoint = e.Location;
-            panelCanvas.Invalidate(new Rectangle(e.X - _penWidth, e.Y - _penWidth, _penWidth * 2, _penWidth * 2));
-        }
-
-        private void panelCanvas_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Left) return;
-            _isDrawing = false;
-        }
-        #endregion
-
-        #region Tool Events
-        private void btnColor_Click(object sender, EventArgs e)
-        {
-            using (var dlg = new ColorDialog { Color = _penColor })
-            {
-                if (dlg.ShowDialog(this) == DialogResult.OK)
-                {
-                    _penColor = dlg.Color;
-                    _eraserMode = false;
-                    if (btnEraser != null) btnEraser.Checked = false;
-                }
-            }
-        }
-
-        private void btnEraser_CheckedChanged(object sender, EventArgs e)
-        {
-            _eraserMode = btnEraser?.Checked ?? false;
-        }
-
-        private void btnClear_Click(object sender, EventArgs e)
-        {
-            if (_canvas == null) return;
-            using (Graphics g = Graphics.FromImage(_canvas)) 
-                g.Clear(Color.White);
-            panelCanvas?.Invalidate();
-        }
-
-        private void btnSave_Click(object sender, EventArgs e)
-        {
-            if (_canvas == null) return;
-
-            using (var sfd = new SaveFileDialog
-            {
-                Filter = "PNG Image|*.png",
-                FileName = $"PopupWhiteboard_{DateTime.Now:yyyyMMdd_HHmmss}.png"
-            })
-            {
-                if (sfd.ShowDialog(this) == DialogResult.OK)
-                {
-                    _canvas.Save(sfd.FileName, ImageFormat.Png);
-                    MessageBox.Show("Da luu anh bang trang.", "Thong bao", 
-                                  MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            }
-        }
-
-        private void btnMinimize_Click(object sender, EventArgs e)
-        {
-            ToggleMinimize();
-        }
-
-        private void btnClose_Click(object sender, EventArgs e)
-        {
-            this.Hide();
-        }
-
-        private void cboWidth_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (int.TryParse(cboWidth?.SelectedItem?.ToString(), out int w)) 
-                _penWidth = w;
-        }
-        #endregion
-
-        #region Minimized Button Events
-        private bool _isDraggingButton = false;
-        private Point _buttonDragStartPoint;
-
-        private void MinimizedButton_Click(object sender, EventArgs e)
-        {
-            if (!_isDraggingButton)
-                ToggleMinimize();
-        }
-
-        private void MinimizedButton_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                _isDraggingButton = true;
-                _buttonDragStartPoint = e.Location;
-            }
-        }
-
-        private void MinimizedButton_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (_isDraggingButton)
-            {
-                Point currentScreen = PointToScreen(e.Location);
-                this.Location = new Point(
-                    currentScreen.X - _buttonDragStartPoint.X, 
-                    currentScreen.Y - _buttonDragStartPoint.Y
-                );
-            }
-        }
-
-        private void MinimizedButton_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (_isDraggingButton)
-            {
-                _isDraggingButton = false;
-                // Small delay to prevent click event after drag
-                Timer timer = new Timer();
-                timer.Interval = 150;
-                timer.Tick += (s, args) => { 
-                    _isDraggingButton = false;
-                    timer.Stop(); 
-                    timer.Dispose(); 
-                };
-                timer.Start();
-            }
-        }
-        #endregion
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _canvas?.Dispose();
-                components?.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
-        private void PopupWhiteboard_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (e.CloseReason == CloseReason.UserClosing)
-            {
-                e.Cancel = true;
-                this.Hide();
-            }
+            drawingBitmap.Dispose();
+            drawingGraphics.Dispose();
+            drawingBitmap = newBitmap;
+            drawingGraphics = Graphics.FromImage(drawingBitmap);
+            canvas.Image = drawingBitmap;
         }
     }
 }

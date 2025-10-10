@@ -1,11 +1,10 @@
-﻿Create database quanlilophoc_giangday;
-go
+﻿CREATE DATABASE quanlilophoc_giangday;
+GO
 USE quanlilophoc_giangday;
 GO
 
-
 --------------------------------------------------
--- 1. Bảng Admin
+-- BẢNG KHÔNG CÓ KHÓA NGOẠI
 --------------------------------------------------
 CREATE TABLE Admin (
     MaAdmin VARCHAR(10) PRIMARY KEY,
@@ -14,51 +13,44 @@ CREATE TABLE Admin (
     Email NVARCHAR(50) NOT NULL
 );
 
---------------------------------------------------
--- 2. Bảng Môn học
---------------------------------------------------
 CREATE TABLE MonHoc (
     MaMon VARCHAR(10) PRIMARY KEY,
     TenMon NVARCHAR(50) NOT NULL
 );
 
---------------------------------------------------
--- 3. Bảng Lớp học
---------------------------------------------------
-CREATE TABLE LopHoc (
-    MaLop VARCHAR(10) PRIMARY KEY,
-    TenLop NVARCHAR(50) NOT NULL,
-    Khoi NVARCHAR(20),
-    NamHoc VARCHAR(10),
-    MaGVCN VARCHAR(10)
+CREATE TABLE Minigame (
+    MaMNG VARCHAR(10) PRIMARY KEY,
+    Ten NVARCHAR(100) NOT NULL,
+    DuLieu NVARCHAR(MAX)
 );
 
 --------------------------------------------------
--- 4. Bảng Giáo viên
+-- BẢNG CÓ KHÓA NGOẠI
 --------------------------------------------------
 CREATE TABLE GiaoVien (
     MaGV VARCHAR(10) PRIMARY KEY,
     Ten NVARCHAR(100) NOT NULL,
     Username NVARCHAR(50) NOT NULL,
     Password VARCHAR(30) NOT NULL,
-    MaLop VARCHAR(10),
     MaMon VARCHAR(10),
     Email NVARCHAR(50),
     SDT VARCHAR(15),
     MaAdmin VARCHAR(10),
     AnhDaiDien NVARCHAR(200),
     TrangThai NVARCHAR(20) DEFAULT N'Chưa xác nhận',
-    FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop),
     FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon),
     FOREIGN KEY (MaAdmin) REFERENCES Admin(MaAdmin)
 );
 
-ALTER TABLE LopHoc
-ADD CONSTRAINT FK_LopHoc_GVCN FOREIGN KEY (MaGVCN) REFERENCES GiaoVien(MaGV);
+CREATE TABLE LopHoc (
+    MaLop VARCHAR(10) PRIMARY KEY,
+    TenLop NVARCHAR(50) NOT NULL,
+    Khoi NVARCHAR(20),
+    NamHoc VARCHAR(10),
+    MaGVCN VARCHAR(10),
+    FOREIGN KEY (MaGVCN) REFERENCES GiaoVien(MaGV)
+);
 
---------------------------------------------------
--- 5. Bảng Học sinh
---------------------------------------------------
 CREATE TABLE HocSinh (
     MaHS VARCHAR(10) PRIMARY KEY,
     MaLop VARCHAR(10),
@@ -71,21 +63,24 @@ CREATE TABLE HocSinh (
     FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop)
 );
 
---------------------------------------------------
--- 6. Bảng Điểm danh
---------------------------------------------------
+-- BẢNG TRUNG GIAN MỚI: QUAN HỆ NHIỀU-NHIỀU GIỮA GIÁO VIÊN VÀ LỚP HỌC
+CREATE TABLE PhanCongGiangDay (
+    MaGV VARCHAR(10) NOT NULL,
+    MaLop VARCHAR(10) NOT NULL,
+    PRIMARY KEY (MaGV, MaLop),
+    FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV) ON DELETE CASCADE,
+    FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop) ON DELETE CASCADE
+);
+
 CREATE TABLE DiemDanh (
     MaDD VARCHAR(10) PRIMARY KEY,
     MaHS VARCHAR(10),
     NgayDD DATE,
     Buoi NVARCHAR(10),
     TrangThai NVARCHAR(20),
-    FOREIGN KEY (MaHS) REFERENCES HocSinh(MaHS)
+    FOREIGN KEY (MaHS) REFERENCES HocSinh(MaHS) ON DELETE CASCADE
 );
 
---------------------------------------------------
--- 7. Bảng Kết quả học tập
---------------------------------------------------
 CREATE TABLE KetQuaHocTap (
     MaKQ VARCHAR(10) PRIMARY KEY,
     MaMon VARCHAR(10),
@@ -93,15 +88,12 @@ CREATE TABLE KetQuaHocTap (
     NgayNhap DATE,
     NhanXet NVARCHAR(200),
     GhiChu NVARCHAR(200),
-    Loai NVARCHAR(20),   -- Thang1_Ki1, GiuaKi1, CuoiKi1, ...
+    Loai NVARCHAR(20),
     Diem FLOAT,
     FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon),
-    FOREIGN KEY (MaHS) REFERENCES HocSinh(MaHS)
+    FOREIGN KEY (MaHS) REFERENCES HocSinh(MaHS) ON DELETE CASCADE
 );
 
---------------------------------------------------
--- 8. Bảng Tài liệu
---------------------------------------------------
 CREATE TABLE TaiLieu (
     MaTL VARCHAR(10) PRIMARY KEY,
     TenTL NVARCHAR(100) NOT NULL,
@@ -110,12 +102,9 @@ CREATE TABLE TaiLieu (
     NgayTaiLen DATE,
     TrangThaiChiaSe NVARCHAR(20),
     MaGV VARCHAR(10),
-    FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV)
+    FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV) ON DELETE CASCADE
 );
 
---------------------------------------------------
--- 9. Bảng Thời khóa biểu
---------------------------------------------------
 CREATE TABLE ThoiKhoaBieu (
     MaTKB VARCHAR(10) PRIMARY KEY,
     Ngay DATE,
@@ -124,14 +113,12 @@ CREATE TABLE ThoiKhoaBieu (
     GhiChu NVARCHAR(200),
     MaGV VARCHAR(10),
     MaLop VARCHAR(10),
+    MauSac VARCHAR(20) NULL,
     FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon),
     FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV),
     FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop)
 );
 
---------------------------------------------------
--- 10. Bảng Báo cáo
---------------------------------------------------
 CREATE TABLE BaoCao (
     MaBC VARCHAR(10) PRIMARY KEY,
     TenBC NVARCHAR(100),
@@ -143,9 +130,6 @@ CREATE TABLE BaoCao (
     FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV)
 );
 
---------------------------------------------------
--- 11. Bảng Quỹ lớp
---------------------------------------------------
 CREATE TABLE QuyLop (
     MaQL VARCHAR(10) PRIMARY KEY,
     MaLop VARCHAR(10),
@@ -157,281 +141,163 @@ CREATE TABLE QuyLop (
 );
 
 --------------------------------------------------
--- 12. Bảng Minigame
---------------------------------------------------
-CREATE TABLE Minigame (
-    MaMNG VARCHAR(10) PRIMARY KEY,
-    Ten NVARCHAR(100) NOT NULL,
-    DuLieu NVARCHAR(MAX)
-);
-
---------------------------------------------------
 -- DỮ LIỆU MẪU
 --------------------------------------------------
-INSERT INTO Admin (MaAdmin, Username, Password, Email)
-VALUES ('AD001', 'admin', '123456', 'admin@example.com');
+-- 1. Admin & MonHoc
+INSERT INTO Admin (MaAdmin, Username, Password, Email) VALUES ('AD001', 'admin', '123456', 'admin@example.com');
+INSERT INTO MonHoc (MaMon, TenMon) VALUES ('VAN', N'Ngữ văn'), ('TOAN', N'Toán'), ('ANH', N'Tiếng Anh');
 
-INSERT INTO MonHoc (MaMon, TenMon) VALUES
-('VAN', N'Ngữ văn'),
-('TOAN', N'Toán'),
-('ANH', N'Tiếng Anh');
+-- 2. LopHoc (Thêm lớp mới ở đây)
+INSERT INTO LopHoc (MaLop, TenLop, Khoi, NamHoc) VALUES
+('5A10', N'Lớp 5A10', N'Khối 5', '2025'),
+('5A11', N'Lớp 5A11', N'Khối 5', '2025'),
+('5A12', N'Lớp 5A12', N'Khối 5', '2025');
 
-INSERT INTO LopHoc (MaLop, TenLop, Khoi, NamHoc)
-VALUES ('5A10', N'Lớp 5A10', N'Khối 5', '2025');
+-- 3. GiaoVien (không còn MaLop)
+INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaMon, Email, SDT, MaAdmin, TrangThai) VALUES
+('GV001', N'Cô Minh Anh', 'minhanh', '123456', 'VAN', 'minhanh@example.com', '0905123456', 'AD001', N'Đã xác nhận'),
+('GV002', N'Thầy Quốc Hưng', 'quochung', '123456', 'TOAN', 'quochung@example.com', '0912345002', 'AD001', N'Đã xác nhận'),
+('GV003', N'Cô Thu Hà', 'thuha', '123456', 'ANH', 'thuha@example.com', '0912345003', 'AD001', N'Đã xác nhận'),
+('GV004', N'Thầy Trung', 'quoTrung', '123456', NULL, 'quoctrung@example.com', '09123450012', 'AD001', N'Chưa xác nhận');
 
-INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaLop, MaMon, Email, SDT, MaAdmin, AnhDaiDien, TrangThai)
-VALUES (
-    'GV001',
-    N'Cô Minh Anh',
-    'minhanh',
-    '123456',
-    '5A10',
-    'VAN',
-    'minhanh@example.com',
-    '0905123456',
-    'AD001',
-    NULL,
-    N'Đã xác nhận'
-);
-UPDATE GiaoVien SET Password = '123456' WHERE MaGV = 'GV001';
+-- 4. Set GVCN cho LopHoc
 UPDATE LopHoc SET MaGVCN = 'GV001' WHERE MaLop = '5A10';
+-- Giả sử thầy Hưng làm GVCN lớp 5A11
+UPDATE LopHoc SET MaGVCN = 'GV002' WHERE MaLop = '5A11';
 
-INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh)
-VALUES
+-- 5. PhanCongGiangDay (Thêm phân công cho lớp mới ở đây)
+INSERT INTO PhanCongGiangDay (MaGV, MaLop) VALUES
+-- Lớp 5A10
+('GV001', '5A10'),
+('GV002', '5A10'),
+('GV003', '5A10'),
+-- Lớp 5A11
+('GV001', '5A11'), -- Cô Minh Anh (Văn) dạy cả lớp 5A11
+('GV002', '5A11'), -- Thầy Quốc Hưng (Toán) dạy cả lớp 5A11
+-- Lớp 5A12
+('GV002', '5A12'); -- Thầy Quốc Hưng (Toán) dạy cả lớp 5A12
+
+-- 6. HocSinh
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
 ('HS001', '5A10', N'Nguyễn Văn Nam', N'Kinh', N'Nam', '0912345678', N'Hà Nội', '2015-09-10'),
 ('HS002', '5A10', N'Trần Thị Lan', N'Kinh', N'Nữ', '0987654321', N'Hà Nội', '2015-04-15'),
-('HS003', '5A10', N'Lê Hoàng Anh', N'Kinh', N'Nam', '0977123456', N'Hà Nội', '2015-12-01');
+('HS003', '5A10', N'Lê Hoàng Anh', N'Kinh', N'Nam', '0977123456', N'Hà Nội', '2015-12-01'),
+-- Thêm học sinh cho lớp 5A11
+('HS004', '5A11', N'Phạm Thị Bích', N'Kinh', N'Nữ', '0911223344', N'Hải Phòng', '2015-01-20'),
+('HS005', '5A11', N'Đặng Văn Long', N'Kinh', N'Nam', '0922334455', N'Hà Nội', '2015-03-25');
+
+-- 7. ThoiKhoaBieu
+INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, GhiChu, MaGV, MaLop) VALUES
+('TKB001', '2025-10-06', 1, 'VAN', N'Ôn tập chương 1', 'GV001', '5A10'),
+('TKB002', '2025-10-06', 2, 'TOAN', N'Luyện tập cộng trừ phân số', 'GV002', '5A10'),
+('TKB003', '2025-10-07', 1, 'ANH', N'Học từ vựng chủ đề gia đình', 'GV003', '5A10'),
+('TKB004', '2025-10-07', 2, 'TOAN', N'Bài tập ứng dụng thực tế', 'GV002', '5A10'),
+('TKB005', '2025-10-08', 3, 'VAN', N'Đọc hiểu văn bản', 'GV001', '5A10'),
+('TKB006', '2025-10-08', 4, 'ANH', N'Luyện nghe hội thoại', 'GV003', '5A10'),
+('TKB007', '2025-10-09', 1, 'TOAN', N'Giải toán có lời văn', 'GV002', '5A10'),
+('TKB008', '2025-10-09', 5, 'VAN', N'Tập làm văn miêu tả', 'GV001', '5A10'),
+('TKB009', '2025-10-10', 2, 'ANH', N'Kiểm tra 15 phút', 'GV003', '5A10'),
+('TKB010', '2025-10-10', 3, 'TOAN', N'Ôn tập chương 2', 'GV002', '5A10'),
+-- Thêm TKB cho lớp 5A11
+('TKB011', '2025-10-06', 3, 'VAN', N'Giới thiệu tác phẩm mới', 'GV001', '5A11'),
+('TKB012', '2025-10-07', 4, 'TOAN', N'Hình học', 'GV002', '5A11');
+
+-- 8. Minigame
+INSERT INTO Minigame (MaMNG, Ten, DuLieu) VALUES
+('MNG01', N'Quiz nhanh', NULL), ('MNG02', N'Gọi tên ngẫu nhiên', NULL), ('MNG03', N'Flashcard', NULL),
+('MNG04', N'Ghép chữ', NULL), ('MNG05', N'Nghe - chọn hình', NULL), ('MNG06', N'Sắp xếp câu', NULL),
+('MNG07', N'Điền từ', NULL), ('MNG08', N'Lật thẻ', NULL), ('MNG09', N'Random số', NULL), ('MNG10', N'Pass a ball', NULL);
+
 
 --------------------------------------------------
--- PROCEDURE: TẠO ĐIỂM DANH MẶC ĐỊNH
+-- PROCEDURES & TRIGGERS (Không thay đổi)
 --------------------------------------------------
-IF OBJECT_ID('sp_TaoDiemDanhMacDinh', 'P') IS NOT NULL
-    DROP PROCEDURE sp_TaoDiemDanhMacDinh;
+
+-- PROCEDURE: TẠO ĐIỂM DANH MẶC ĐỊnh
 GO
-
 CREATE PROCEDURE sp_TaoDiemDanhMacDinh
     @MaLop VARCHAR(10),
-    @Ngay DATE = NULL,            -- nếu NULL -> mặc định hôm nay
-    @Buoi NVARCHAR(10) = N'Sáng'  -- mặc định Sáng
+    @Ngay DATE = NULL,
+    @Buoi NVARCHAR(10) = N'Sáng'
 AS
 BEGIN
     SET NOCOUNT ON;
-
-    IF @Ngay IS NULL
-        SET @Ngay = CAST(GETDATE() AS DATE);
+    IF @Ngay IS NULL SET @Ngay = CAST(GETDATE() AS DATE);
 
     INSERT INTO DiemDanh (MaDD, MaHS, NgayDD, Buoi, TrangThai)
-    SELECT LEFT(NEWID(), 8),
-           hs.MaHS,
-           CAST(@Ngay AS DATETIME),    -- lưu ngày (giờ = 00:00:00)
-           @Buoi,
-           N'Có mặt'
+    SELECT LEFT(NEWID(), 8), hs.MaHS, CAST(@Ngay AS DATETIME), @Buoi, N'Có mặt'
     FROM HocSinh hs
     WHERE hs.MaLop = @MaLop
       AND NOT EXISTS (
-          SELECT 1
-          FROM DiemDanh dd
-          WHERE dd.MaHS = hs.MaHS
-            AND CAST(dd.NgayDD AS DATE) = @Ngay
-            AND dd.Buoi = @Buoi
+          SELECT 1 FROM DiemDanh dd
+          WHERE dd.MaHS = hs.MaHS AND CAST(dd.NgayDD AS DATE) = @Ngay AND dd.Buoi = @Buoi
       );
 END;
 GO
 
-
-
---------------------------------------------------
--- TRIGGER: KHI THÊM HỌC SINH MỚI THÌ TỰ TẠO ĐIỂM DANH HÔM NAY
---------------------------------------------------
-IF OBJECT_ID('trg_TaoDiemDanhHocSinhMoi', 'TR') IS NOT NULL DROP TRIGGER trg_TaoDiemDanhHocSinhMoi;
-GO
-CREATE TRIGGER trg_TaoDiemDanhHocSinhMoi
-ON HocSinh
-AFTER INSERT
+-- TRIGGER: TẠO ĐIỂM DANH KHI CÓ HỌC SINH MỚI
+CREATE TRIGGER trg_TaoDiemDanhHocSinhMoi ON HocSinh AFTER INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @today DATE = CAST(GETDATE() AS DATE);
-
     INSERT INTO DiemDanh (MaDD, MaHS, NgayDD, Buoi, TrangThai)
     SELECT LEFT(NEWID(), 8), i.MaHS, @today, N'Sáng', N'Có mặt'
     FROM INSERTED i;
 END;
 GO
 
---------------------------------------------------
--- PROCEDURE: TẠO KẾT QUẢ HỌC TẬP MẶC ĐỊNH (theo loại điểm)
---------------------------------------------------
-IF OBJECT_ID('sp_TaoKetQuaHocTapMacDinh', 'P') IS NOT NULL DROP PROCEDURE sp_TaoKetQuaHocTapMacDinh;
-GO
+-- PROCEDURE: TẠO KẾT QUẢ HỌC TẬP MẶC ĐỊNH
 CREATE PROCEDURE sp_TaoKetQuaHocTapMacDinh
 AS
 BEGIN
     SET NOCOUNT ON;
-
     DECLARE @loai TABLE (Loai NVARCHAR(20));
-    INSERT INTO @loai VALUES 
+    INSERT INTO @loai VALUES
     (N'Thang1_Ki1'),(N'Thang2_Ki1'),(N'GiuaKi1'),(N'CuoiKi1'),
     (N'Thang1_Ki2'),(N'Thang2_Ki2'),(N'GiuaKi2'),(N'CuoiKi2');
 
-    INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, NhanXet, GhiChu, Loai, Diem)
-    SELECT LEFT(NEWID(), 8), m.MaMon, hs.MaHS, GETDATE(), NULL, NULL, l.Loai, NULL
+    INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, Loai)
+    SELECT LEFT(NEWID(), 8), m.MaMon, hs.MaHS, GETDATE(), l.Loai
     FROM HocSinh hs
     CROSS JOIN MonHoc m
     CROSS JOIN @loai l
     WHERE NOT EXISTS (
-        SELECT 1 FROM KetQuaHocTap kq 
+        SELECT 1 FROM KetQuaHocTap kq
         WHERE kq.MaHS = hs.MaHS AND kq.MaMon = m.MaMon AND kq.Loai = l.Loai
     );
 END;
 GO
-INSERT INTO Minigame (MaMNG, Ten, DuLieu) VALUES
-('MNG01', N'Quiz nhanh', NULL),
-('MNG02', N'Gọi tên ngẫu nhiên', NULL),
-('MNG03', N'Flashcard', NULL),
-('MNG04', N'Ghép chữ', NULL),
-('MNG05', N'Nghe - chọn hình', NULL),
-('MNG06', N'Sắp xếp câu', NULL),
-('MNG07', N'Điền từ', NULL),
-('MNG08', N'Lật thẻ', NULL),
-('MNG09', N'Random số', NULL),
-('MNG10', N'Pass a ball', NULL);
---------------------------------------------------
--- TRIGGER: KHI THÊM HỌC SINH MỚI THÌ TỰ TẠO KẾT QUẢ HỌC TẬP MẶC ĐỊNH
---------------------------------------------------
-IF OBJECT_ID('trg_TaoKetQuaHocTapHocSinhMoi', 'TR') IS NOT NULL DROP TRIGGER trg_TaoKetQuaHocTapHocSinhMoi;
-GO
-CREATE TRIGGER trg_TaoKetQuaHocTapHocSinhMoi
-ON HocSinh
-AFTER INSERT
+
+-- TRIGGER: TẠO KẾT QUẢ HỌC TẬP KHI CÓ HỌC SINH MỚI
+CREATE TRIGGER trg_TaoKetQuaHocTapHocSinhMoi ON HocSinh AFTER INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @loai TABLE (Loai NVARCHAR(20));
-    INSERT INTO @loai VALUES 
+    INSERT INTO @loai VALUES
     (N'Thang1_Ki1'),(N'Thang2_Ki1'),(N'GiuaKi1'),(N'CuoiKi1'),
     (N'Thang1_Ki2'),(N'Thang2_Ki2'),(N'GiuaKi2'),(N'CuoiKi2');
 
-    INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, NhanXet, GhiChu, Loai, Diem)
-    SELECT LEFT(NEWID(), 8), m.MaMon, i.MaHS, GETDATE(), NULL, NULL, l.Loai, NULL
+    INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, Loai)
+    SELECT LEFT(NEWID(), 8), m.MaMon, i.MaHS, GETDATE(), l.Loai
     FROM INSERTED i
     CROSS JOIN MonHoc m
     CROSS JOIN @loai l;
 END;
 GO
-IF OBJECT_ID('sp_GetTKBByGV', 'P') IS NOT NULL
-    DROP PROCEDURE sp_GetTKBByGV;
-GO
-
-CREATE PROCEDURE sp_GetTKBByGV
-    @MaGV VARCHAR(10),     -- mã giáo viên
-    @Ngay DATE             -- một ngày bất kỳ trong tuần cần xem
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    -- Xác định thứ 2 đầu tuần
-    DECLARE @Monday DATE;
-    SET @Monday = DATEADD(DAY, -(DATEPART(WEEKDAY, @Ngay) + @@DATEFIRST - 2) % 7, @Ngay);
-
-    -- Chủ nhật cuối tuần
-    DECLARE @Sunday DATE;
-    SET @Sunday = DATEADD(DAY, 6, @Monday);
-
-    -- Lấy dữ liệu thời khóa biểu của GV trong tuần đó
-    SELECT 
-        tkb.MaTKB,
-        tkb.Ngay,
-        tkb.Tiet,
-        mh.TenMon,
-        l.TenLop,
-        tkb.GhiChu
-    FROM ThoiKhoaBieu tkb
-    JOIN MonHoc mh ON tkb.MaMon = mh.MaMon
-    JOIN LopHoc l ON tkb.MaLop = l.MaLop
-    WHERE tkb.MaGV = @MaGV
-      AND tkb.Ngay BETWEEN @Monday AND @Sunday
-    ORDER BY tkb.Ngay, tkb.Tiet;
-END;
-GO
 
 --------------------------------------------------
--- KHỞI TẠO DỮ LIỆU MẶC ĐỊNH
+-- KHỞI TẠO DỮ LIỆU BAN ĐẦU
 --------------------------------------------------
+-- Chạy cho tất cả các lớp đã tạo
 EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A10';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A11';
 EXEC sp_TaoKetQuaHocTapMacDinh;
+GO
 
--- Kiểm tra
-SELECT * FROM DiemDanh;
-SELECT * FROM KetQuaHocTap;
-------------------------------------------------
--- Thêm giáo viên 2 (Toán - dạy lớp 5A10)
-------------------------------------------------
-INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaLop, MaMon, Email, SDT, MaAdmin, AnhDaiDien, TrangThai)
-VALUES (
-    'GV002',
-    N'Thầy Quốc Hưng',
-    'quochung',
-    '123456',
-    '5A10',   -- dạy chung lớp 5A10
-    'TOAN',   -- môn Toán
-    'quochung@example.com',
-    '0912345002',
-    'AD001',
-    NULL,
-    N'Đã xác nhận'
-);
-INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaLop, MaMon, Email, SDT, MaAdmin, AnhDaiDien, TrangThai)
-VALUES (
-    'GV004',
-    N'Thầy Trung',
-    'quoTrung',
-    '123456',
-    '5A10',   -- dạy chung lớp 5A10
-    'LichSu',   -- môn Toán
-    'quochung@example.com',
-    '09123450012',
-    'AD001',
-    NULL,
-    N'Chưa xác nhận'
-);
-------------------------------------------------
--- Thêm giáo viên 3 (Tiếng Anh - dạy lớp 5A10)
-------------------------------------------------
-INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaLop, MaMon, Email, SDT, MaAdmin, AnhDaiDien, TrangThai)
-VALUES (
-    'GV003',
-    N'Cô Thu Hà',
-    'thuha',
-    '123456',
-    '5A10',   -- dạy chung lớp 5A10
-    'ANH',    -- môn Tiếng Anh
-    'thuha@example.com',
-    '0912345003',
-    'AD001',
-    NULL,
-    N'Đã xác nhận'
-);
-INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, GhiChu, MaGV, MaLop) VALUES
--- Thứ 2 (06/10/2025)
-('TKB001', '2025-10-06', 1, 'VAN', N'Ôn tập chương 1', 'GV001', '5A10'),
-('TKB002', '2025-10-06', 2, 'TOAN', N'Luyện tập cộng trừ phân số', 'GV002', '5A10'),
-
--- Thứ 3 (07/10/2025)
-('TKB003', '2025-10-07', 1, 'ANH', N'Học từ vựng chủ đề gia đình', 'GV003', '5A10'),
-('TKB004', '2025-10-07', 2, 'TOAN', N'Bài tập ứng dụng thực tế', 'GV002', '5A10'),
-
--- Thứ 4 (08/10/2025)
-('TKB005', '2025-10-08', 3, 'VAN', N'Đọc hiểu văn bản', 'GV001', '5A10'),
-('TKB006', '2025-10-08', 4, 'ANH', N'Luyện nghe hội thoại', 'GV003', '5A10'),
-
--- Thứ 5 (09/10/2025)
-('TKB007', '2025-10-09', 1, 'TOAN', N'Giải toán có lời văn', 'GV002', '5A10'),
-('TKB008', '2025-10-09', 5, 'VAN', N'Tập làm văn miêu tả', 'GV001', '5A10'),
-
--- Thứ 6 (10/10/2025)
-('TKB009', '2025-10-10', 2, 'ANH', N'Kiểm tra 15 phút', 'GV003', '5A10'),
-('TKB010', '2025-10-10', 3, 'TOAN', N'Ôn tập chương 2', 'GV002', '5A10');
-
-ALTER TABLE ThoiKhoaBieu
-ADD MauSac VARCHAR(20) NULL;
+-- KIỂM TRA (Tùy chọn)
+-- SELECT * FROM LopHoc;
+-- SELECT * FROM GiaoVien;
+-- SELECT * FROM PhanCongGiangDay;
+-- GO

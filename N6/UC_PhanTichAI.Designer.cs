@@ -1,56 +1,86 @@
-﻿using System;
-using System.Drawing;
-using System.Windows.Forms;
-
-namespace N6
+﻿namespace N6
 {
     partial class UC_PhanTichAI
     {
-        private Label lblTitle;
-        private Button btnPhanTich;
-        private RichTextBox txtKetQua;
-        private Panel pnlAI;
+        private System.ComponentModel.IContainer components = null;
+        private System.Windows.Forms.Panel panelFilters;
+        private System.Windows.Forms.Button btnPhanTich;
+        private System.Windows.Forms.ComboBox cbScope;
+        private System.Windows.Forms.Label lblScope;
+        private System.Windows.Forms.ComboBox cbDetail;
+        private System.Windows.Forms.FlowLayoutPanel flowLayoutPanelCards;
+        // ====> THAY THẾ CartesianChart BẰNG FormsPlot <====
+        private ScottPlot.WinForms.FormsPlot formsPlot1;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
 
         private void InitializeComponent()
         {
-            this.lblTitle = new Label();
-            this.btnPhanTich = new Button();
-            this.txtKetQua = new RichTextBox();
-            this.pnlAI = new Panel();
-
-            // lblTitle
-            this.lblTitle.Text = "📊 PHÂN TÍCH DỮ LIỆU BẰNG AI";
-            this.lblTitle.Font = new Font("Segoe UI", 20F, FontStyle.Bold);
-            this.lblTitle.ForeColor = Color.White;
-            this.lblTitle.Location = new Point(30, 20);
-            this.lblTitle.AutoSize = true;
-
-            // btnPhanTich
-            this.btnPhanTich.Text = "🚀 Chạy phân tích";
-            this.btnPhanTich.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            this.btnPhanTich.BackColor = Color.FromArgb(0, 200, 140);
-            this.btnPhanTich.ForeColor = Color.White;
-            this.btnPhanTich.FlatStyle = FlatStyle.Flat;
-            this.btnPhanTich.FlatAppearance.BorderSize = 0;
-            this.btnPhanTich.Size = new Size(180, 45);
-            this.btnPhanTich.Location = new Point(40, 80);
-            this.btnPhanTich.Click += new EventHandler(this.btnPhanTich_Click);
-
-            // txtKetQua
-            this.txtKetQua.Location = new Point(40, 140);
-            this.txtKetQua.Size = new Size(860, 420);
-            this.txtKetQua.Font = new Font("Consolas", 10F);
-            this.txtKetQua.BackColor = Color.FromArgb(35, 40, 55);
-            this.txtKetQua.ForeColor = Color.LightGreen;
-            this.txtKetQua.ReadOnly = true;
-            this.txtKetQua.Text = "Kết quả phân tích sẽ hiển thị ở đây...";
-
+            this.panelFilters = new System.Windows.Forms.Panel();
+            this.cbDetail = new System.Windows.Forms.ComboBox();
+            this.btnPhanTich = new System.Windows.Forms.Button();
+            this.cbScope = new System.Windows.Forms.ComboBox();
+            this.lblScope = new System.Windows.Forms.Label();
+            this.flowLayoutPanelCards = new System.Windows.Forms.FlowLayoutPanel();
+            // ====> KHỞI TẠO FormsPlot <====
+            this.formsPlot1 = new ScottPlot.WinForms.FormsPlot();
+            this.panelFilters.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // panelFilters
+            // 
+            this.panelFilters.BackColor = System.Drawing.Color.White;
+            this.panelFilters.Controls.Add(this.cbDetail);
+            this.panelFilters.Controls.Add(this.btnPhanTich);
+            this.panelFilters.Controls.Add(this.cbScope);
+            this.panelFilters.Controls.Add(this.lblScope);
+            this.panelFilters.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panelFilters.Location = new System.Drawing.Point(10, 10);
+            this.panelFilters.Name = "panelFilters";
+            this.panelFilters.Size = new System.Drawing.Size(980, 60);
+            this.panelFilters.TabIndex = 0;
+            // 
+            // cbDetail, btnPhanTich, cbScope, lblScope (giữ nguyên)
+            // ...
+            // 
+            // flowLayoutPanelCards
+            // 
+            this.flowLayoutPanelCards.AutoScroll = true;
+            this.flowLayoutPanelCards.Dock = System.Windows.Forms.DockStyle.Right;
+            this.flowLayoutPanelCards.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.flowLayoutPanelCards.Location = new System.Drawing.Point(690, 70);
+            this.flowLayoutPanelCards.Name = "flowLayoutPanelCards";
+            this.flowLayoutPanelCards.Size = new System.Drawing.Size(300, 520);
+            this.flowLayoutPanelCards.TabIndex = 2;
+            this.flowLayoutPanelCards.WrapContents = false;
+            // 
+            // formsPlot1
+            // 
+            this.formsPlot1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.formsPlot1.Location = new System.Drawing.Point(10, 70);
+            this.formsPlot1.Name = "formsPlot1";
+            this.formsPlot1.Size = new System.Drawing.Size(680, 520);
+            this.formsPlot1.TabIndex = 3;
+            // 
             // UC_PhanTichAI
-            this.BackColor = Color.FromArgb(25, 30, 45);
-            this.Controls.Add(this.lblTitle);
-            this.Controls.Add(this.btnPhanTich);
-            this.Controls.Add(this.txtKetQua);
-            this.Size = new Size(940, 600);
+            // 
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(242)))), ((int)(((byte)(245)))), ((int)(((byte)(250)))));
+            this.Controls.Add(this.formsPlot1);
+            this.Controls.Add(this.flowLayoutPanelCards);
+            this.Controls.Add(this.panelFilters);
+            this.Name = "UC_PhanTichAI";
+            this.Padding = new System.Windows.Forms.Padding(10);
+            this.Size = new System.Drawing.Size(1000, 600);
+            this.panelFilters.ResumeLayout(false);
+            this.panelFilters.PerformLayout();
+            this.ResumeLayout(false);
         }
     }
 }

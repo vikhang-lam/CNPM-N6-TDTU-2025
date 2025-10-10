@@ -210,7 +210,22 @@
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxUser)).EndInit();
             this.ResumeLayout(false);
-
+            // lblAssistiveToggle
+            // 
+            this.lblAssistiveToggle = new System.Windows.Forms.Label();
+            this.lblAssistiveToggle.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblAssistiveToggle.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(65)))));
+            this.lblAssistiveToggle.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.lblAssistiveToggle.Font = new System.Drawing.Font("Segoe UI Emoji", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblAssistiveToggle.ForeColor = System.Drawing.Color.White;
+            this.lblAssistiveToggle.Location = new System.Drawing.Point(this.Width - 60, this.Height - 60); // Vị trí góc dưới phải
+            this.lblAssistiveToggle.Name = "lblAssistiveToggle";
+            this.lblAssistiveToggle.Size = new System.Drawing.Size(50, 50);
+            this.lblAssistiveToggle.TabIndex = 99;
+            this.lblAssistiveToggle.Text = "✨";
+            this.lblAssistiveToggle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.Controls.Add(this.lblAssistiveToggle);
+            this.lblAssistiveToggle.BringToFront();
         }
 
         #endregion
@@ -230,5 +245,6 @@
         // Mới thêm
         private System.Windows.Forms.PictureBox pictureBoxUser;
         private System.Windows.Forms.Label labelUserName;
+        private System.Windows.Forms.Label lblAssistiveToggle;
     }
 }
