@@ -2,8 +2,7 @@
 GO
 USE quanlilophoc_giangday;
 GO
-
---------------------------------------------------
+----------------
 -- BẢNG KHÔNG CÓ KHÓA NGOẠI
 --------------------------------------------------
 CREATE TABLE Admin (
@@ -75,7 +74,7 @@ CREATE TABLE PhanCongGiangDay (
 CREATE TABLE DiemDanh (
     MaDD VARCHAR(10) PRIMARY KEY,
     MaHS VARCHAR(10),
-    NgayDD DATE,
+    NgayDD DATETIME  DEFAULT GETDATE(),
     Buoi NVARCHAR(10),
     TrangThai NVARCHAR(20),
     FOREIGN KEY (MaHS) REFERENCES HocSinh(MaHS) ON DELETE CASCADE
@@ -286,7 +285,74 @@ BEGIN
     CROSS JOIN @loai l;
 END;
 GO
+CREATE TRIGGER trg_UpdateDiemDanhTimestamp
+ON DiemDanh
+AFTER UPDATE
+AS
+BEGIN
+    -- Chỉ thực thi khi cột 'TrangThai' được cập nhật
+    IF UPDATE(TrangThai)
+    BEGIN
+        UPDATE DiemDanh
+        SET ThoiGianCapNhat = GETDATE() -- Lấy giờ hiện tại của hệ thống
+        FROM DiemDanh
+        INNER JOIN inserted ON DiemDanh.MaDD = inserted.MaDD;
+    END
+END;
+GO
 
+
+GO
+CREATE PROCEDURE sp_GetHomeroomGradebook
+    @MaLop VARCHAR(10),
+    @LoaiDiem NVARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @cols AS NVARCHAR(MAX),
+            @query AS NVARCHAR(MAX);
+
+    -- Lấy danh sách các môn học có điểm để làm tên cột động
+    SELECT @cols = STUFF((SELECT DISTINCT ',' + QUOTENAME(mh.TenMon) 
+                    FROM KetQuaHocTap kq
+                    JOIN MonHoc mh ON kq.MaMon = mh.MaMon
+                    JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+                    WHERE hs.MaLop = @MaLop AND kq.Loai = @LoaiDiem AND kq.Diem IS NOT NULL
+            FOR XML PATH(''), TYPE
+            ).value('.', 'NVARCHAR(MAX)') 
+        ,1,1,'')
+
+    -- Nếu không có môn nào có điểm, trả về bảng rỗng
+    IF @cols IS NULL
+    BEGIN
+        SELECT MaHS, HoTen FROM HocSinh WHERE MaLop = @MaLop ORDER BY HoTen;
+        RETURN;
+    END
+
+    -- Xây dựng câu lệnh PIVOT động
+    SET @query = 'SELECT MaHS, HoTen, ' + @cols + ' from 
+            (
+                SELECT 
+                    hs.MaHS,
+                    hs.HoTen,
+                    mh.TenMon,
+                    kq.Diem
+                FROM KetQuaHocTap kq
+                JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+                JOIN MonHoc mh ON kq.MaMon = mh.MaMon
+                WHERE hs.MaLop = ''' + @MaLop + ''' AND kq.Loai = ''' + @LoaiDiem + '''
+            ) x
+            pivot 
+            (
+                MAX(Diem)
+                for TenMon in (' + @cols + ')
+            ) p 
+            ORDER BY HoTen'
+
+    EXECUTE(@query);
+END
+GO
 --------------------------------------------------
 -- KHỞI TẠO DỮ LIỆU BAN ĐẦU
 --------------------------------------------------
@@ -325,4 +391,110 @@ UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS004' AND MaMon = 'VAN' AND Lo
 
 UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS005' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
 UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS005' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
+GO
+USE quanlilophoc_giangday;
+GO
+
+
+-- Báo cáo chuyên cần theo lớp
+CREATE PROCEDURE sp_BaoCaoChuyenCan_Lop
+    @maLop VARCHAR(10),
+    @hocKy NVARCHAR(20)
+AS
+BEGIN
+    DECLARE @NamHoc INT = YEAR(GETDATE());
+    DECLARE @StartDate DATETime, @EndDate DATETime;
+
+    IF @hocKy = N'Học kỳ 1'
+    BEGIN
+        SET @StartDate = DATEFROMPARTS(@NamHoc - 1, 9, 1);
+        SET @EndDate = DATEFROMPARTS(@NamHoc, 1, 15);
+    END
+    ELSE IF @hocKy = N'Học kỳ 2'
+    BEGIN
+        SET @StartDate = DATEFROMPARTS(@NamHoc, 1, 16);
+        SET @EndDate = DATEFROMPARTS(@NamHoc, 5, 31);
+    END
+    ELSE -- Cả năm
+    BEGIN
+        SET @StartDate = DATEFROMPARTS(@NamHoc - 1, 9, 1);
+        SET @EndDate = DATEFROMPARTS(@NamHoc, 5, 31);
+    END;
+
+    SELECT
+        hs.MaHS,
+        hs.HoTen,
+        COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) as SoBuoiCoMat,
+        COUNT(CASE WHEN dd.TrangThai = N'Vắng' THEN 1 END) as SoBuoiVang,
+        COUNT(CASE WHEN dd.TrangThai LIKE N'%Có phép%' THEN 1 END) as SoBuoiVangCoPhep,
+        COUNT(dd.MaDD) as TongSoBuoi,
+        CAST(
+            (COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) * 100.0) / NULLIF(COUNT(dd.MaDD), 0)
+            AS DECIMAL(5,0)
+        ) as TyLeChuyenCan
+    FROM HocSinh hs
+    LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS
+    WHERE hs.MaLop = @maLop AND dd.NgayDD BETWEEN @StartDate AND @EndDate
+    GROUP BY hs.MaHS, hs.HoTen;
+END
+GO
+
+-- Báo cáo điểm số theo lớp
+CREATE PROCEDURE sp_BaoCaoDiemSo_Lop
+    @maLop VARCHAR(10),
+    @hocKy NVARCHAR(20)
+AS
+BEGIN
+    SELECT
+        hs.MaHS,
+        hs.HoTen,
+        mh.TenMon,
+        kqht.Diem
+    FROM HocSinh hs
+    JOIN KetQuaHocTap kqht ON hs.MaHS = kqht.MaHS
+    JOIN MonHoc mh ON kqht.MaMon = mh.MaMon
+    WHERE hs.MaLop = @maLop AND kqht.Loai = @hocKy;
+END
+GO
+
+-- Thống kê điểm trung bình theo khối
+CREATE PROCEDURE sp_ThongKeDiemTB_Khoi
+    @khoi NVARCHAR(20),
+    @hocKy NVARCHAR(20)
+AS
+BEGIN
+    SELECT
+        hs.MaLop,
+        AVG(kqht.Diem) as DiemTrungBinh
+    FROM HocSinh hs
+    JOIN KetQuaHocTap kqht ON hs.MaHS = kqht.MaHS
+    WHERE hs.MaLop LIKE @khoi + '%' AND kqht.Loai = @hocKy
+    GROUP BY hs.MaLop;
+END
+GO
+
+-- Thống kê học lực theo khối
+CREATE PROCEDURE sp_ThongKeHocLuc_Khoi
+    @khoi NVARCHAR(20),
+    @hocKy NVARCHAR(20)
+AS
+BEGIN
+    SELECT
+        HocLuc,
+        COUNT(*) as SoLuong
+    FROM (
+        SELECT
+            CASE
+                WHEN AVG(kqht.Diem) >= 8.5 THEN N'Giỏi'
+                WHEN AVG(kqht.Diem) >= 6.5 THEN N'Khá'
+                WHEN AVG(kqht.Diem) >= 5.0 THEN N'Trung bình'
+                ELSE N'Yếu'
+            END as HocLuc
+        FROM HocSinh hs
+        JOIN KetQuaHocTap kqht ON hs.MaHS = kqht.MaHS
+        WHERE hs.MaLop LIKE @khoi + '%' AND kqht.Loai = @hocKy
+        GROUP BY hs.MaHS
+    ) as BangHocLuc
+    GROUP BY HocLuc;
+END
 GO

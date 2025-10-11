@@ -15,7 +15,6 @@ namespace N6
         private Dictionary<Point, Color> cellColors = new Dictionary<Point, Color>();
         private Point selectedCellForColorChange;
 
-        // ====> THAY ĐỔI 1: Khai báo một Timer <====
         private Timer refreshTimer;
 
         public UC_ThoiKhoaBieu(string maGVien)
@@ -35,31 +34,31 @@ namespace N6
 
             LoadThoiKhoaBieu();
 
-            // ====> THAY ĐỔI 2: Khởi tạo và cấu hình Timer <====
             InitializeTimer();
+
+            // ### UPDATED HERE: Đăng ký lắng nghe "tín hiệu" ###
+            DatabaseHelper.ThoiKhoaBieuChanged += OnThoiKhoaBieuChanged;
         }
 
-        // ====> THAY ĐỔI 3: Thêm hàm khởi tạo Timer <====
+        // ### NEW METHOD HERE: Hàm sẽ được gọi khi nhận được "tín hiệu" ###
+        private void OnThoiKhoaBieuChanged(object sender, EventArgs e)
+        {
+            // Chỉ cần gọi lại hàm load dữ liệu là xong
+            LoadThoiKhoaBieu();
+        }
+
         private void InitializeTimer()
         {
             refreshTimer = new Timer();
-            // Đặt thời gian tự động cập nhật là 60000ms (1 phút)
-            // Bạn có thể đổi thành 30000 (30 giây) nếu muốn nhanh hơn
             refreshTimer.Interval = 60000;
             refreshTimer.Tick += RefreshTimer_Tick;
-            refreshTimer.Start(); // Bắt đầu đếm giờ
+            refreshTimer.Start();
         }
 
-        // ====> THAY ĐỔI 4: Hàm sẽ được gọi mỗi khi Timer kêu "tick" <====
         private void RefreshTimer_Tick(object sender, EventArgs e)
         {
-            // Tạm dừng timer để tránh việc load chồng chéo
             refreshTimer.Stop();
-
-            // Gọi hàm load lại thời khóa biểu
             LoadThoiKhoaBieu();
-
-            // Khởi động lại timer
             refreshTimer.Start();
         }
 
@@ -75,11 +74,13 @@ namespace N6
                 dgvTKB.Columns[i].DefaultCellStyle.WrapMode = DataGridViewTriState.True;
             }
 
+            dgvTKB.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
+            dgvTKB.RowTemplate.MinimumHeight = 60;
+
             dgvTKB.RowCount = 10;
             for (int i = 0; i < 10; i++)
             {
                 dgvTKB.Rows[i].HeaderCell.Value = "Tiết " + (i + 1);
-                dgvTKB.Rows[i].Height = 60;
             }
             dgvTKB.RowHeadersWidth = 100;
 
@@ -102,16 +103,20 @@ namespace N6
             UpdateColumnHeaders();
 
             foreach (DataGridViewRow row in dgvTKB.Rows)
+            {
                 foreach (DataGridViewCell cell in row.Cells)
+                {
                     cell.Value = "";
+                    cell.ToolTipText = "";
+                }
+            }
 
-            cellColors.Clear(); // Xóa màu cũ
+            cellColors.Clear();
 
             DateTime weekEnd = currentMonday.AddDays(6);
             lblWeek.Text = $"Thời khóa biểu: {currentMonday:dd/MM} - {weekEnd:dd/MM/yyyy}";
 
             DataTable dt = DatabaseHelper.GetTKBByGV(maGV, currentMonday);
-            Random rand = new Random();
 
             foreach (DataRow r in dt.Rows)
             {
@@ -123,6 +128,7 @@ namespace N6
                 string mauSac = r["MauSac"].ToString();
 
                 int col = (int)ngay.DayOfWeek - (int)DayOfWeek.Monday;
+                if (ngay.DayOfWeek == DayOfWeek.Sunday) col = 6;
 
                 if (tiet >= 0 && tiet < dgvTKB.RowCount && col >= 0 && col < dgvTKB.ColumnCount)
                 {
@@ -140,18 +146,11 @@ namespace N6
                     }
 
                     dgvTKB[col, tiet].Value = displayValue;
+                    dgvTKB[col, tiet].ToolTipText = displayValue;
 
                     if (!string.IsNullOrEmpty(mauSac))
                     {
-                        try
-                        {
-                            cellColors[cellPosition] = ColorTranslator.FromHtml(mauSac);
-                        }
-                        catch { }
-                    }
-                    else if (!string.IsNullOrEmpty(mon) && subjectColors.ContainsKey(mon))
-                    {
-                        cellColors[cellPosition] = Color.White;
+                        try { cellColors[cellPosition] = ColorTranslator.FromHtml(mauSac); } catch { }
                     }
                     else if (!string.IsNullOrEmpty(ghichu))
                     {
@@ -212,13 +211,16 @@ namespace N6
         private void DgvTKB_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
             if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
             e.PaintBackground(e.ClipBounds, true);
+
             Point cellPosition = new Point(e.ColumnIndex, e.RowIndex);
             Color cellColor = Color.White;
             if (cellColors.ContainsKey(cellPosition))
             {
                 cellColor = cellColors[cellPosition];
             }
+
             if (cellColor != Color.White)
             {
                 using (Brush backBrush = new SolidBrush(cellColor))
@@ -226,12 +228,19 @@ namespace N6
                     e.Graphics.FillRectangle(backBrush, e.CellBounds);
                 }
             }
+
             e.Graphics.DrawRectangle(Pens.LightGray, e.CellBounds.X, e.CellBounds.Y, e.CellBounds.Width - 1, e.CellBounds.Height - 1);
+
             string cellValue = e.Value as string ?? string.Empty;
             if (!string.IsNullOrEmpty(cellValue))
             {
                 Color fontColor = (cellColor.GetBrightness() < 0.6 && cellColor != Color.White) ? Color.White : Color.Black;
-                TextRenderer.DrawText(e.Graphics, cellValue, e.CellStyle.Font, e.CellBounds, fontColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
+
+                Rectangle textBounds = e.CellBounds;
+                textBounds.Inflate(-10, -10);
+                TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak;
+
+                TextRenderer.DrawText(e.Graphics, cellValue, e.CellStyle.Font, textBounds, fontColor, flags);
             }
             e.Handled = true;
         }
@@ -239,6 +248,7 @@ namespace N6
         private void DgvTKB_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
             DateTime cellDate = currentMonday.AddDays(e.ColumnIndex);
             int tiet = e.RowIndex + 1;
             string currentValue = dgvTKB[e.ColumnIndex, e.RowIndex].Value?.ToString() ?? "";
@@ -248,6 +258,7 @@ namespace N6
             {
                 currentNote = currentValue.Substring(noteStartIndex + 1).TrimEnd(')');
             }
+
             using (Form inputForm = new Form() { Width = 400, Height = 180, Text = "Ghi chú", StartPosition = FormStartPosition.CenterParent })
             {
                 Label lbl = new Label() { Text = "Nhập ghi chú:", Left = 10, Top = 20, Width = 360 };
@@ -257,6 +268,7 @@ namespace N6
                 inputForm.Controls.AddRange(new Control[] { lbl, txt, ok, cancel });
                 inputForm.AcceptButton = ok;
                 inputForm.CancelButton = cancel;
+
                 if (inputForm.ShowDialog() == DialogResult.OK)
                 {
                     string note = txt.Text.Trim();
@@ -276,6 +288,23 @@ namespace N6
         {
             currentMonday = currentMonday.AddDays(7);
             LoadThoiKhoaBieu();
+        }
+
+        // ### UPDATED HERE: Ghi đè phương thức Dispose để hủy đăng ký sự kiện ###
+        // Việc này rất quan trọng để tránh rò rỉ bộ nhớ (memory leak)
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Hủy đăng ký lắng nghe "tín hiệu" khi control bị hủy
+                DatabaseHelper.ThoiKhoaBieuChanged -= OnThoiKhoaBieuChanged;
+
+                if (components != null)
+                {
+                    components.Dispose();
+                }
+            }
+            base.Dispose(disposing);
         }
     }
 }

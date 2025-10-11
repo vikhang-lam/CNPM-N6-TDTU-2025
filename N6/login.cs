@@ -24,15 +24,25 @@ namespace N6
             this.Resize += login_Resize;
         }
 
+        // Tìm và thay thế hàm OnPaintBackground cũ bằng hàm đã sửa lỗi này
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            using (LinearGradientBrush brush = new LinearGradientBrush(
-                this.ClientRectangle,
-                Color.FromArgb(185, 235, 250),
-                Color.FromArgb(120, 200, 235),
-                90f))
+            // THÊM KIỂM TRA: Chỉ thực hiện vẽ khi form có kích thước hợp lệ (lớn hơn 0)
+            if (this.ClientRectangle.Width > 0 && this.ClientRectangle.Height > 0)
             {
-                e.Graphics.FillRectangle(brush, this.ClientRectangle);
+                using (System.Drawing.Drawing2D.LinearGradientBrush brush = new System.Drawing.Drawing2D.LinearGradientBrush(
+                    this.ClientRectangle,
+                    Color.FromArgb(185, 235, 250),
+                    Color.FromArgb(120, 200, 235),
+                    90f))
+                {
+                    e.Graphics.FillRectangle(brush, this.ClientRectangle);
+                }
+            }
+            else
+            {
+                // Nếu không, gọi hàm vẽ nền mặc định để tránh bị lỗi
+                base.OnPaintBackground(e);
             }
         }
 
@@ -190,13 +200,27 @@ namespace N6
 
         private void login_Resize(object sender, EventArgs e)
         {
+            // THÊM ĐIỀU KIỆN KIỂM TRA: Chỉ chạy code resize khi cửa sổ không bị thu nhỏ
+            if (this.WindowState == FormWindowState.Minimized)
+            {
+                return; // Bỏ qua việc vẽ lại nếu cửa sổ đang được thu nhỏ
+            }
+
             if (this.IsDisposed || this.Width <= 0 || this.Height <= 0 || baseFonts.Count == 0) return;
+
             this.SuspendLayout();
             float scaleX = this.Width / baseWidth;
             float scaleY = this.Height / baseHeight;
             float scaleFactor = Math.Min(scaleX, scaleY);
 
             ScaleControls(this, scaleFactor);
+
+            // Vẽ lại các panel sau khi thay đổi kích thước
+            MakePanelRound(paneluser1);
+            MakePanelRound(paneluser2);
+            MakePanelRound(paneluser3);
+            MakePanelRound(paneluser4);
+
             this.ResumeLayout();
         }
 
@@ -268,105 +292,92 @@ namespace N6
         {
             try
             {
-                string savedUser = Properties.Settings.Default[$"User{panelIndex}"]?.ToString();
+                string savedUser = (panelIndex >= 1 && panelIndex <= 3) ? Properties.Settings.Default[$"User{panelIndex}"]?.ToString() : null;
 
+                // Mở dialog đăng nhập cho người dùng mới hoặc khi click vào panel trống
                 if (panelIndex == 4 || string.IsNullOrEmpty(savedUser))
                 {
                     using (var dlg = new LoginDialog(requireUsername: true))
                     {
                         if (dlg.ShowDialog() == DialogResult.OK)
                         {
-                            string username = dlg.Username?.Trim();
-                            string password = dlg.Password?.Trim();
-
-                            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
-                            {
-                                if (DatabaseHelper.CheckAdminLogin(username, password))
-                                {
-                                    this.DialogResult = DialogResult.OK;
-                                    Properties.Settings.Default.isAdmin = true;
-                                    Properties.Settings.Default.Save();
-                                    this.Close();
-                                }
-                                else
-                                {
-                                    MessageBox.Show("Sai tài khoản hoặc mật khẩu admin.");
-                                }
-                            }
-                            else
-                            {
-                                if (DatabaseHelper.CheckTeacherLogin(username, password))
-                                {
-                                    UpdateSavedUsers(username);
-
-                                    this.DialogResult = DialogResult.OK;
-                                    Properties.Settings.Default.isAdmin = false;
-                                    Properties.Settings.Default.Save();
-                                    this.Close();
-                                }
-                                else
-                                {
-                                    MessageBox.Show("Sai tài khoản hoặc mật khẩu giáo viên.");
-                                }
-                            }
+                            ProcessLogin(dlg.Username, dlg.Password);
                         }
                     }
                 }
+                // Mở dialog đăng nhập cho người dùng đã lưu
                 else
                 {
-                    using (var dlg = new LoginDialog(requireUsername: true, presetUsername: savedUser))
+                    using (var dlg = new LoginDialog(requireUsername: false, presetUsername: savedUser))
                     {
                         if (dlg.ShowDialog() == DialogResult.OK)
                         {
-                            string enteredUser = dlg.Username?.Trim();
-                            string enteredPass = dlg.Password?.Trim();
-
-                            if (string.IsNullOrEmpty(enteredUser)) return;
-
-                            try
-                            {
-                                if (enteredUser.Equals("admin", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    if (DatabaseHelper.CheckAdminLogin(enteredUser, enteredPass))
-                                    {
-                                        this.DialogResult = DialogResult.OK;
-                                        Properties.Settings.Default.isAdmin = true;
-                                        Properties.Settings.Default.Save();
-                                        this.Close();
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("Sai tài khoản hoặc mật khẩu admin.");
-                                    }
-                                }
-                                else
-                                {
-                                    if (DatabaseHelper.CheckTeacherLogin(enteredUser, enteredPass))
-                                    {
-                                        UpdateSavedUsers(enteredUser);
-
-                                        this.DialogResult = DialogResult.OK;
-                                        Properties.Settings.Default.isAdmin = false;
-                                        Properties.Settings.Default.Save();
-                                        this.Close();
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("Sai tài khoản hoặc mật khẩu giáo viên.");
-                                    }
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show("Lỗi khi đăng nhập: " + ex.Message);
-                            }
+                            ProcessLogin(savedUser, dlg.Password);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi hệ thống: " + ex.Message);
+                MessageBox.Show("Lỗi hệ thống: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        private void ProcessLogin(string username, string password)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                MessageBox.Show("Tên đăng nhập và mật khẩu không được để trống.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string cleanUsername = username.Trim();
+            string cleanPassword = password.Trim();
+
+            try
+            {
+                // Xử lý đăng nhập cho Admin
+                if (cleanUsername.Equals("admin", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (DatabaseHelper.CheckAdminLogin(cleanUsername, cleanPassword))
+                    {
+                        this.DialogResult = DialogResult.OK;
+                        Properties.Settings.Default["LastUser"] = cleanUsername;
+                        Properties.Settings.Default["isAdmin"] = true;
+                        Properties.Settings.Default.Save();
+                        this.Close();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Sai tài khoản hoặc mật khẩu của Admin.", "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    return;
+                }
+
+                // Xử lý đăng nhập cho Giáo viên
+                LoginStatus status = DatabaseHelper.CheckTeacherLogin(cleanUsername, cleanPassword);
+                switch (status)
+                {
+                    case LoginStatus.Success:
+                        UpdateSavedUsers(cleanUsername);
+                        this.DialogResult = DialogResult.OK;
+                        Properties.Settings.Default["LastUser"] = cleanUsername;
+                        Properties.Settings.Default["isAdmin"] = false;
+                        Properties.Settings.Default.Save();
+                        this.Close();
+                        break;
+
+                    case LoginStatus.AccountNotActivated:
+                        MessageBox.Show("Tài khoản của bạn đang chờ quản trị viên xác nhận. Vui lòng thử lại sau.", "Tài khoản chưa được kích hoạt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        break;
+
+                    case LoginStatus.InvalidCredentials:
+                        MessageBox.Show("Sai tài khoản hoặc mật khẩu của giáo viên.", "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi trong quá trình đăng nhập: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

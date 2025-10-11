@@ -2,9 +2,15 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Windows.Forms;
 using System.Drawing;
-
+using System.Linq;
+using System.Windows.Forms;
+public enum LoginStatus
+{
+    Success,
+    InvalidCredentials,
+    AccountNotActivated
+}
 public class TeacherProfile
 {
     public string Ten { get; set; }
@@ -18,20 +24,77 @@ public static class DatabaseHelper
 {
     private static string connectionString =
         @"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
-    //@"Data Source=DESKTOP-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+    //@"Data Source=DES-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
 
+    public static DataTable ExecuteQuery(string query)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                DataTable dataTable = new DataTable();
+                adapter.Fill(dataTable);
+                return dataTable;
+            }
+        }
+    }
+    public static DataTable ExecuteStoredProcedure(string procedureName, params SqlParameter[] parameters)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            using (SqlCommand cmd = new SqlCommand(procedureName, conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                if (parameters != null)
+                {
+                    cmd.Parameters.AddRange(parameters);
+                }
+
+                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                DataTable dataTable = new DataTable();
+                adapter.Fill(dataTable);
+                return dataTable;
+            }
+        }
+    }
     #region Đăng nhập
-    public static bool CheckTeacherLogin(string username, string password)
+    public static LoginStatus CheckTeacherLogin(string username, string password)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-            string query = "SELECT COUNT(*) FROM GiaoVien WHERE Username=@user AND Password=@pass";
+            // Lấy ra trạng thái của tài khoản nếu user/pass đúng
+            string query = "SELECT TrangThai FROM GiaoVien WHERE Username=@user AND Password=@pass";
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
                 cmd.Parameters.AddWithValue("@user", username);
                 cmd.Parameters.AddWithValue("@pass", password);
-                return (int)cmd.ExecuteScalar() > 0;
+
+                object result = cmd.ExecuteScalar();
+
+                // Trường hợp 1: Sai username hoặc password
+                if (result == null)
+                {
+                    return LoginStatus.InvalidCredentials;
+                }
+
+                string trangThai = result.ToString();
+
+                // Trường hợp 2: Đúng user/pass nhưng tài khoản chưa được xác nhận
+                if (trangThai.Equals("Chưa xác nhận", StringComparison.OrdinalIgnoreCase))
+                {
+                    return LoginStatus.AccountNotActivated;
+                }
+
+                // Trường hợp 3: Đăng nhập thành công
+                if (trangThai.Equals("Đã xác nhận", StringComparison.OrdinalIgnoreCase))
+                {
+                    return LoginStatus.Success;
+                }
+
+                // Các trường hợp khác cũng coi như không hợp lệ
+                return LoginStatus.InvalidCredentials;
             }
         }
     }
@@ -99,27 +162,6 @@ public static class DatabaseHelper
         }
     }
 
-    // =======================================================================================
-    // ====> HÀM BỊ XÓA: Hàm này không còn đúng với logic mới (GV dạy nhiều lớp)
-    // =======================================================================================
-    /*
-    public static string GetLopByTeacher(string identifier)
-    {
-        using (SqlConnection conn = new SqlConnection(connectionString))
-        {
-            conn.Open();
-            // Câu truy vấn này sai vì GiaoVien không còn cột MaLop
-            string sql = @"SELECT MaLop FROM GiaoVien WHERE Username=@id OR Ten=@id";
-            using (SqlCommand cmd = new SqlCommand(sql, conn))
-            {
-                cmd.Parameters.AddWithValue("@id", identifier);
-                object result = cmd.ExecuteScalar();
-                return result?.ToString() ?? "";
-            }
-        }
-    }
-    */
-
     public static string GetMonByTeacher(string identifier)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -141,7 +183,10 @@ public static class DatabaseHelper
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            string query = "SELECT MaHS, HoTen, GioiTinh, NgaySinh, DiaChi FROM HocSinh WHERE MaLop=@malop";
+            string query = @"SELECT MaHS, HoTen, GioiTinh, NgaySinh, DiaChi, DanToc, SDTPhuHuynh 
+                             FROM HocSinh 
+                             WHERE MaLop=@malop 
+                             ORDER BY HoTen";
             SqlDataAdapter da = new SqlDataAdapter(query, conn);
             da.SelectCommand.Parameters.AddWithValue("@malop", maLop);
             DataTable dt = new DataTable();
@@ -195,17 +240,18 @@ public static class DatabaseHelper
         {
             conn.Open();
             string sql = @"
-        SELECT 
-            dd.MaDD,
-            hs.MaHS,
-            hs.HoTen,
-            dd.NgayDD,
-            dd.Buoi,
-            dd.TrangThai
-        FROM HocSinh hs
-        LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS
-        WHERE hs.MaLop = @maLop
-        ORDER BY hs.HoTen, dd.NgayDD";
+            SELECT 
+                dd.MaDD,
+                hs.MaHS,
+                hs.HoTen,
+                dd.NgayDD,
+                dd.Buoi,
+                dd.TrangThai,
+                dd.ThoiGianCapNhat
+            FROM HocSinh hs
+            LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS
+            WHERE hs.MaLop = @maLop
+            ORDER BY hs.HoTen, dd.NgayDD";
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
             da.SelectCommand.Parameters.AddWithValue("@maLop", maLop ?? string.Empty);
             DataTable dt = new DataTable();
@@ -238,23 +284,26 @@ public static class DatabaseHelper
 
             if (existingId != null)
             {
-                string update = "UPDATE DiemDanh SET TrangThai=@TrangThai WHERE MaDD=@MaDD";
+                // Trigger trong CSDL sẽ tự động cập nhật ThoiGianCapNhat
+                string update = "UPDATE DiemDanh SET TrangThai=@TrangThai, NgayDD=@NgayDD WHERE MaDD=@MaDD";
                 using (SqlCommand up = new SqlCommand(update, conn))
                 {
                     up.Parameters.AddWithValue("@TrangThai", trangThai);
+                    up.Parameters.Add("@NgayDD", SqlDbType.DateTime).Value = ngay;
                     up.Parameters.AddWithValue("@MaDD", existingId.ToString());
                     up.ExecuteNonQuery();
                 }
             }
             else
             {
+                // CSDL sẽ tự động gán ThoiGianCapNhat bằng hàm DEFAULT GETDATE()
                 string insert = @"INSERT INTO DiemDanh(MaDD, MaHS, NgayDD, Buoi, TrangThai)
                               VALUES(@MaDD, @MaHS, @NgayDD, @Buoi, @TrangThai)";
                 using (SqlCommand ins = new SqlCommand(insert, conn))
                 {
                     ins.Parameters.AddWithValue("@MaDD", Guid.NewGuid().ToString().Substring(0, 8));
                     ins.Parameters.AddWithValue("@MaHS", maHS);
-                    ins.Parameters.Add("@NgayDD", SqlDbType.DateTime).Value = ngay.Date;
+                    ins.Parameters.Add("@NgayDD", SqlDbType.DateTime).Value = ngay;
                     ins.Parameters.AddWithValue("@Buoi", buoi);
                     ins.Parameters.AddWithValue("@TrangThai", trangThai);
                     ins.ExecuteNonQuery();
@@ -274,10 +323,11 @@ public static class DatabaseHelper
                     dd.MaDD,
                     dd.NgayDD,
                     dd.Buoi,
-                    dd.TrangThai
+                    dd.TrangThai,
+                    dd.ThoiGianCapNhat
                 FROM HocSinh hs
                 LEFT JOIN (
-                    SELECT MaDD, MaHS, NgayDD, Buoi, TrangThai
+                    SELECT MaDD, MaHS, NgayDD, Buoi, TrangThai, ThoiGianCapNhat
                     FROM DiemDanh
                     WHERE CAST(NgayDD AS date) = @ngay
                     AND (@buoi IS NULL OR Buoi = @buoi)
@@ -504,51 +554,38 @@ public static class DatabaseHelper
         }
     }
 
+    // Dán và thay thế hàm GetBangDiemPivot cũ trong file Class1.cs của bạn
     public static DataTable GetBangDiemPivot(string maLop, int ki, string maMon)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
             string sql = "";
-            if (ki == 1)
-            {
-                sql = @"
-                    SELECT 
-                        hs.MaHS, hs.HoTen,
-                        MAX(CASE WHEN kq.Loai = 'Thang1_Ki1' THEN kq.Diem END) AS Thang1,
-                        MAX(CASE WHEN kq.Loai = 'Thang2_Ki1' THEN kq.Diem END) AS Thang2,
-                        MAX(CASE WHEN kq.Loai = 'Thang3_Ki1' THEN kq.Diem END) AS Thang3,
-                        MAX(CASE WHEN kq.Loai = 'GiuaKi1' THEN kq.Diem END) AS GiuaKi,
-                        MAX(CASE WHEN kq.Loai = 'CuoiKi1' THEN kq.Diem END) AS CuoiKi,
-                        MAX(CASE WHEN kq.Loai LIKE '%Ki1%' THEN kq.NhanXet END) AS NhanXet,
-                        MAX(CASE WHEN kq.Loai LIKE '%Ki1%' THEN kq.GhiChu END) AS GhiChu
-                    FROM HocSinh hs
-                    LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND kq.MaMon = @maMon
-                    WHERE hs.MaLop = @malop
-                    GROUP BY hs.MaHS, hs.HoTen
-                    ORDER BY hs.HoTen";
-            }
-            else
-            {
-                sql = @"
-                    SELECT 
-                        hs.MaHS, hs.HoTen,
-                        MAX(CASE WHEN kq.Loai = 'Thang1_Ki2' THEN kq.Diem END) AS Thang1,
-                        MAX(CASE WHEN kq.Loai = 'Thang2_Ki2' THEN kq.Diem END) AS Thang2,
-                        MAX(CASE WHEN kq.Loai = 'Thang3_Ki2' THEN kq.Diem END) AS Thang3,
-                        MAX(CASE WHEN kq.Loai = 'GiuaKi2' THEN kq.Diem END) AS GiuaKi,
-                        MAX(CASE WHEN kq.Loai = 'CuoiKi2' THEN kq.Diem END) AS CuoiKi,
-                        MAX(CASE WHEN kq.Loai LIKE '%Ki2%' THEN kq.NhanXet END) AS NhanXet,
-                        MAX(CASE WHEN kq.Loai LIKE '%Ki2%' THEN kq.GhiChu END) AS GhiChu
-                    FROM HocSinh hs
-                    LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND kq.MaMon = @maMon
-                    WHERE hs.MaLop = @malop
-                    GROUP BY hs.MaHS, hs.HoTen
-                    ORDER BY hs.HoTen";
-            }
+            string loaiFilter = $"%Ki{ki}%";
+
+            sql = @"
+            SELECT 
+                hs.MaHS, 
+                hs.HoTen,
+                lh.TenLop,
+                MAX(CASE WHEN kq.Loai = 'Thang1_Ki" + ki + @"' THEN kq.Diem END) AS Thang1,
+                MAX(CASE WHEN kq.Loai = 'Thang2_Ki" + ki + @"' THEN kq.Diem END) AS Thang2,
+                MAX(CASE WHEN kq.Loai = 'Thang3_Ki" + ki + @"' THEN kq.Diem END) AS Thang3,
+                MAX(CASE WHEN kq.Loai = 'GiuaKi" + ki + @"' THEN kq.Diem END) AS GiuaKi,
+                MAX(CASE WHEN kq.Loai = 'CuoiKi" + ki + @"' THEN kq.Diem END) AS CuoiKi,
+                MAX(CASE WHEN kq.Loai LIKE @loaiFilter THEN kq.NhanXet END) AS NhanXet,
+                MAX(CASE WHEN kq.Loai LIKE @loaiFilter THEN kq.GhiChu END) AS GhiChu
+            FROM HocSinh hs
+            JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+            LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND kq.MaMon = @maMon
+            WHERE hs.MaLop = @malop
+            GROUP BY hs.MaHS, hs.HoTen, lh.TenLop
+            ORDER BY hs.HoTen";
+
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
             da.SelectCommand.Parameters.AddWithValue("@malop", maLop);
             da.SelectCommand.Parameters.AddWithValue("@maMon", maMon);
+            da.SelectCommand.Parameters.AddWithValue("@loaiFilter", loaiFilter);
             DataTable dt = new DataTable();
             da.Fill(dt);
             return dt;
@@ -1224,16 +1261,10 @@ public static class DatabaseHelper
     }
 
     #region Báo cáo
-    // =======================================================================================
-    // ====> HÀM BỊ SỬA: Cập nhật câu SQL để lấy danh sách lớp một giáo viên dạy
-    // =======================================================================================
     public static DataTable GetLopByGiaoVien(string maGV)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            // Sửa câu SQL:
-            // - Join LopHoc với PhanCongGiangDay (thay vì GiaoVien)
-            // - Lọc theo MaGV từ bảng PhanCongGiangDay
             string sql = @"SELECT l.MaLop, l.TenLop 
                            FROM LopHoc l
                            INNER JOIN PhanCongGiangDay pc ON l.MaLop = pc.MaLop
@@ -1246,60 +1277,73 @@ public static class DatabaseHelper
         }
     }
 
-    public static DataTable GetBaoCaoChuyenCan(string maLop)
-    {
-        using (SqlConnection conn = new SqlConnection(connectionString))
-        {
-            string sql = @"SELECT 
-            hs.MaHS,
-            hs.HoTen,
-            COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) as SoNgayCoMat,
-            COUNT(CASE WHEN dd.TrangThai = N'Vắng' THEN 1 END) as SoNgayVang,
-            COUNT(CASE WHEN dd.TrangThai = N'Có phép' THEN 1 END) as SoNgayCoPhep,
-            COUNT(dd.MaDD) as TongSoBuoi,
-            CAST(COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) * 100.0 / NULLIF(COUNT(dd.MaDD), 0) as DECIMAL(5,2)) as TyLeChuyenCan
-        FROM HocSinh hs
-        LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS
-        WHERE hs.MaLop = @maLop
-        GROUP BY hs.MaHS, hs.HoTen
-        ORDER BY hs.HoTen";
-
-            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
-            da.SelectCommand.Parameters.AddWithValue("@maLop", maLop);
-            DataTable dt = new DataTable();
-            da.Fill(dt);
-            return dt;
-        }
-    }
-
+    // ĐÃ SỬA LẠI HÀM NÀY ĐỂ HỖ TRỢ "CẢ NĂM"
     public static DataTable GetBangDiemHocKy(string maLop, int hocKy)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            string loaiFilter = hocKy == 1 ? "Ki1" : "Ki2";
+            conn.Open();
 
-            string sql = $@"SELECT 
-            hs.MaHS,
-            hs.HoTen,
-            mh.TenMon,
-            AVG(CASE 
-                WHEN kq.Loai LIKE '%{loaiFilter}%' THEN kq.Diem 
-                ELSE NULL 
-            END) as DiemTrungBinh,
-            MAX(CASE 
-                WHEN kq.Loai = 'CuoiKi{hocKy}' THEN kq.Diem 
-                ELSE NULL 
-            END) as DiemCuoiKy
-        FROM HocSinh hs
-        CROSS JOIN MonHoc mh
-        LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND mh.MaMon = kq.MaMon 
-            AND kq.Loai LIKE '%{loaiFilter}%'
-        WHERE hs.MaLop = @maLop
-        GROUP BY hs.MaHS, hs.HoTen, mh.TenMon, mh.MaMon
-        ORDER BY hs.HoTen, mh.MaMon";
+            List<string> monHocs = new List<string>();
+            using (SqlCommand cmdMon = new SqlCommand("SELECT DISTINCT TenMon FROM MonHoc ORDER BY TenMon", conn))
+            {
+                using (SqlDataReader reader = cmdMon.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        monHocs.Add(reader.GetString(0));
+                    }
+                }
+            }
+
+            if (monHocs.Count == 0)
+                return new DataTable();
+
+            string loaiFilter = (hocKy == 3) ? "Ki" : $"Ki{hocKy}";
+
+            string monHocCols = string.Join(", ", monHocs.Select(m => $"[{m}]"));
+
+            // Thêm ROUND(..., 2) vào từng cột điểm môn học
+            string monHocColsSelect = string.Join(", ", monHocs.Select(m => $"ROUND(ISNULL([{m}], 0), 2) AS [{m}]"));
+
+            string tongMon = string.Join(" + ", monHocs.Select(m => $"ISNULL([{m}], 0)"));
+
+            string sql = $@"
+            WITH DiemTB AS (
+                SELECT 
+                    hs.MaHS,
+                    hs.HoTen,
+                    lh.TenLop,
+                    mh.TenMon,
+                    AVG(kq.Diem) AS DiemTB
+                FROM HocSinh hs
+                INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+                CROSS JOIN MonHoc mh
+                LEFT JOIN KetQuaHocTap kq 
+                    ON hs.MaHS = kq.MaHS 
+                    AND mh.MaMon = kq.MaMon 
+                    AND kq.Loai LIKE @loaiFilter
+                WHERE hs.MaLop = @maLop
+                GROUP BY hs.MaHS, hs.HoTen, lh.TenLop, mh.TenMon
+            ),
+            PivotData AS (
+                SELECT MaHS, HoTen, TenLop, {monHocCols}
+                FROM DiemTB
+                PIVOT
+                (
+                    AVG(DiemTB)
+                    FOR TenMon IN ({monHocCols})
+                ) AS PivotTable
+            )
+            SELECT MaHS, HoTen, {monHocColsSelect},
+                   ROUND(({tongMon}) / NULLIF({monHocs.Count}, 0), 2) AS [Trung bình chung]
+            FROM PivotData
+            ORDER BY HoTen;";
 
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
             da.SelectCommand.Parameters.AddWithValue("@maLop", maLop);
+            da.SelectCommand.Parameters.AddWithValue("@loaiFilter", "%" + loaiFilter + "%");
+
             DataTable dt = new DataTable();
             da.Fill(dt);
             return dt;
@@ -1334,10 +1378,11 @@ public static class DatabaseHelper
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
+            // Thêm ROUND(..., 2) để làm tròn điểm trung bình
             string sql = @"SELECT 
             l.TenLop,
             COUNT(hs.MaHS) as SoHocSinh,
-            AVG(kq.Diem) as DiemTrungBinh,
+            ROUND(AVG(kq.Diem), 2) as DiemTrungBinh, 
             COUNT(CASE WHEN hs.GioiTinh = N'Nam' THEN 1 END) as SoNam,
             COUNT(CASE WHEN hs.GioiTinh = N'Nữ' THEN 1 END) as SoNu
         FROM LopHoc l
@@ -1355,13 +1400,8 @@ public static class DatabaseHelper
         }
     }
     #endregion
-    // Thêm 2 phương thức này vào trong class DatabaseHelper trong file Class1.cs
 
     #region Hỗ trợ Giảng dạy
-
-
-
-    // Dán vào class DatabaseHelper, thay thế hàm AddGhiChuTKB cũ
 
     public static void AddGhiChuTKB(string maGV, string maLop, DateTime ngay, int tiet, string ghiChu)
     {
@@ -1380,12 +1420,10 @@ public static class DatabaseHelper
 
             if (maTKB != null)
             {
-                // ====> THAY ĐỔI LOGIC Ở ĐÂY <====
-                // Nếu đã tồn tại, nối thêm ghi chú mới vào ghi chú cũ
                 string sqlUpdate = "UPDATE ThoiKhoaBieu SET GhiChu = ISNULL(GhiChu, '') + NCHAR(13) + NCHAR(10) + @AppendedGhiChu, MaGV = @MaGV WHERE MaTKB = @MaTKB";
                 using (SqlCommand cmd = new SqlCommand(sqlUpdate, conn))
                 {
-                    
+
                     cmd.Parameters.AddWithValue("@AppendedGhiChu", " ," + ghiChu);
                     cmd.Parameters.AddWithValue("@MaGV", maGV);
                     cmd.Parameters.AddWithValue("@MaTKB", maTKB.ToString());
@@ -1394,7 +1432,6 @@ public static class DatabaseHelper
             }
             else
             {
-                // Nếu chưa tồn tại, tạo một mục ghi chú mới (giữ nguyên như cũ)
                 string sqlInsert = @"INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, GhiChu, MaGV, MaLop)
                            VALUES (@MaTKB, @Ngay, @Tiet, @GhiChu, @MaGV, @MaLop)";
                 using (SqlCommand cmd = new SqlCommand(sqlInsert, conn))
@@ -1402,7 +1439,7 @@ public static class DatabaseHelper
                     cmd.Parameters.AddWithValue("@MaTKB", "GC" + Guid.NewGuid().ToString("N").Substring(0, 7));
                     cmd.Parameters.AddWithValue("@Ngay", ngay.Date);
                     cmd.Parameters.AddWithValue("@Tiet", tiet);
-                    cmd.Parameters.AddWithValue("@GhiChu", ghiChu); // Ghi chú đầu tiên không cần dấu +
+                    cmd.Parameters.AddWithValue("@GhiChu", ghiChu);
                     cmd.Parameters.AddWithValue("@MaGV", maGV);
                     cmd.Parameters.AddWithValue("@MaLop", maLop);
                     cmd.ExecuteNonQuery();
@@ -1415,8 +1452,6 @@ public static class DatabaseHelper
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
             conn.Open();
-            // Cập nhật ghi chú vào mục điểm cuối kì 2 (hoặc một mục chung khác)
-            // Nếu chưa có, tạo một mục mới.
             string loaiGhiChu = "CuoiKi2";
             string sql = $@"
             IF EXISTS (SELECT 1 FROM KetQuaHocTap WHERE MaHS = @MaHS AND MaMon = @MaMon AND Loai = @Loai)
@@ -1440,7 +1475,6 @@ public static class DatabaseHelper
             }
         }
     }
-    // Dán vào trong class DatabaseHelper
     public static DataTable GetAllKetQuaHocTap()
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -1488,7 +1522,7 @@ public static class DatabaseHelper
         dgv.RowTemplate.Height = 40;
     }
     #endregion
-    // Lấy danh sách tất cả môn học để đổ vào ComboBox
+
     public static DataTable GetAllMonHoc()
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -1501,12 +1535,10 @@ public static class DatabaseHelper
         }
     }
 
-    // Hàm mới, hiệu suất cao để lấy dữ liệu cho việc phân tích
     public static DataTable GetScoresForAnalysis(string maGV, string phamVi, string chiTiet, string maMon, int hocKy)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            // Xây dựng câu lệnh SQL linh hoạt
             var sqlBuilder = new System.Text.StringBuilder(@"
             SELECT 
                 hs.MaHS, hs.HoTen, lh.MaLop, lh.TenLop,
@@ -1520,12 +1552,10 @@ public static class DatabaseHelper
 
             var sqlParams = new List<SqlParameter>();
 
-            // 1. Lọc theo học kỳ
             string kyFilter = $"%Ki{hocKy}";
             sqlBuilder.Append(" AND kq.Loai LIKE @kyFilter");
             sqlParams.Add(new SqlParameter("@kyFilter", kyFilter));
 
-            // 2. Lọc theo phạm vi (Lớp của GV hay Toàn Khối)
             if (phamVi == "LopGV")
             {
                 sqlBuilder.Append(" AND lh.MaLop = @chiTiet");
@@ -1537,7 +1567,6 @@ public static class DatabaseHelper
                 sqlParams.Add(new SqlParameter("@chiTiet", chiTiet));
             }
 
-            // 3. Lọc theo môn học (nếu có chọn)
             if (!string.IsNullOrEmpty(maMon) && maMon != "ALL")
             {
                 sqlBuilder.Append(" AND mh.MaMon = @maMon");
@@ -1557,7 +1586,6 @@ public static class DatabaseHelper
         {
             conn.Open();
 
-            // Kiểm tra tên đăng nhập đã tồn tại chưa
             string checkUser = "SELECT COUNT(*) FROM GiaoVien WHERE Username=@user";
             using (SqlCommand cmdCheck = new SqlCommand(checkUser, conn))
             {
@@ -1568,14 +1596,13 @@ public static class DatabaseHelper
                 }
             }
 
-            // Tạo MaGV mới một cách tự động
             string getNewIdSql = "SELECT ISNULL(MAX(CAST(SUBSTRING(MaGV, 3, LEN(MaGV)) AS INT)), 0) + 1 FROM GiaoVien";
             int newId;
             using (SqlCommand cmdNewId = new SqlCommand(getNewIdSql, conn))
             {
                 newId = (int)cmdNewId.ExecuteScalar();
             }
-            string newMaGV = "GV" + newId.ToString("D3"); // Định dạng GV001, GV012, v.v.
+            string newMaGV = "GV" + newId.ToString("D3");
 
             string sql = @"INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaMon, Email, SDT, MaAdmin, TrangThai) 
                            VALUES (@MaGV, @Ten, @Username, @Password, @MaMon, @Email, @SDT, @MaAdmin, @TrangThai)";
@@ -1589,10 +1616,172 @@ public static class DatabaseHelper
                 cmd.Parameters.AddWithValue("@MaMon", maMon);
                 cmd.Parameters.AddWithValue("@Email", email);
                 cmd.Parameters.AddWithValue("@SDT", sdt);
-                cmd.Parameters.AddWithValue("@MaAdmin", "AD001"); // Gán cho Admin mặc định
-                cmd.Parameters.AddWithValue("@TrangThai", "Chưa xác nhận"); // Trạng thái mặc định
+                cmd.Parameters.AddWithValue("@MaAdmin", "AD001");
+                cmd.Parameters.AddWithValue("@TrangThai", "Chưa xác nhận");
                 cmd.ExecuteNonQuery();
             }
+        }
+    }
+
+    public static DataTable GetTaiLieuSharedWithUploader()
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = @"SELECT 
+                        tl.MaTL, tl.TenTL, tl.MoTa, tl.Kieu, tl.NgayTaiLen, 
+                        gv.Ten AS TenGV 
+                       FROM TaiLieu tl
+                       INNER JOIN GiaoVien gv ON tl.MaGV = gv.MaGV
+                       WHERE tl.TrangThaiChiaSe = N'Chia sẻ'";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+    public static void UnshareTaiLieu(string maTL)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "UPDATE TaiLieu SET TrangThaiChiaSe = N'Riêng tư' WHERE MaTL = @MaTL";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaTL", maTL);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static DataTable GetHomeroomClassesByTeacher(string maGV)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = "SELECT MaLop, TenLop FROM LopHoc WHERE MaGVCN = @maGV";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@maGV", maGV);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+    public static DataTable GetHomeroomGradebook(string maLop, string loaiDiem)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            using (SqlCommand cmd = new SqlCommand("sp_GetHomeroomGradebook", conn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@MaLop", maLop);
+                cmd.Parameters.AddWithValue("@LoaiDiem", loaiDiem);
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                return dt;
+            }
+        }
+    }
+
+    #region Global Events
+    public static event EventHandler ThoiKhoaBieuChanged;
+
+    public static void RaiseThoiKhoaBieuChanged()
+    {
+        ThoiKhoaBieuChanged?.Invoke(null, EventArgs.Empty);
+    }
+    #endregion
+
+    // Thay thế hàm GetBaoCaoChuyenCan cũ trong file Class1.cs của bạn
+    // Thay thế hàm GetBaoCaoChuyenCan cũ trong file Class1.cs của bạn
+    public static DataTable GetBaoCaoChuyenCan(string maLop, int hocKy)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            /* * CẬP NHẬT LOGIC:
+             * 1. Lấy ngày/tháng/năm hiện tại của hệ thống.
+             * 2. Tự động xác định năm học đang diễn ra. 
+             * - Nếu tháng hiện tại >= 8 (bắt đầu năm học mới), thì năm học sẽ kết thúc vào năm sau.
+             * - Nếu tháng hiện tại < 8, thì năm học sẽ kết thúc vào năm nay.
+             * 3. Dùng năm học vừa xác định để tính khoảng thời gian cho các học kỳ.
+            */
+            string sql = @"
+        DECLARE @CurrentDate DATE = GETDATE();
+        DECLARE @CurrentMonth INT = MONTH(@CurrentDate);
+        DECLARE @CurrentYear INT = YEAR(@CurrentDate);
+        DECLARE @NamHoc INT;
+
+        IF @CurrentMonth >= 8 -- Nếu là tháng 8 trở đi, năm học sẽ kết thúc vào năm sau
+        BEGIN
+            SET @NamHoc = @CurrentYear + 1;
+        END
+        ELSE -- Nếu là tháng 1-7, năm học kết thúc trong năm nay
+        BEGIN
+            SET @NamHoc = @CurrentYear;
+        END;
+        
+        DECLARE @StartDate DATE, @EndDate DATE;
+
+        -- Học kỳ 1: từ tháng 8 đến tháng 12 của năm trước
+        IF @hocKy = 1 
+        BEGIN
+            SET @StartDate = DATEFROMPARTS(@NamHoc - 1, 8, 1);
+            SET @EndDate = DATEFROMPARTS(@NamHoc - 1, 12, 31);
+        END
+        -- Học kỳ 2: từ tháng 1 đến tháng 5 của năm học
+        ELSE IF @hocKy = 2 
+        BEGIN
+            SET @StartDate = DATEFROMPARTS(@NamHoc, 1, 1);
+            SET @EndDate = DATEFROMPARTS(@NamHoc, 5, 31);
+        END
+        -- Cả năm: từ tháng 8 năm trước đến tháng 5 năm học
+        ELSE 
+        BEGIN
+            SET @StartDate = DATEFROMPARTS(@NamHoc - 1, 8, 1);
+            SET @EndDate = DATEFROMPARTS(@NamHoc, 5, 31);
+        END;
+
+        SELECT 
+            hs.MaHS,
+            hs.HoTen,
+            COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) as SoBuoiCoMat,
+            COUNT(CASE WHEN dd.TrangThai = N'Vắng' THEN 1 END) as SoBuoiVang,
+            COUNT(CASE WHEN dd.TrangThai LIKE N'%Có phép%' THEN 1 END) as SoBuoiVangCoPhep,
+            COUNT(dd.MaDD) as TongSoBuoi,
+            CAST(
+                (COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) * 100.0) / NULLIF(COUNT(dd.MaDD), 0) 
+                AS DECIMAL(5,0)
+            ) as TyLeChuyenCan
+        FROM HocSinh hs
+        LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS AND CAST(dd.NgayDD AS DATE) BETWEEN @StartDate AND @EndDate
+        WHERE hs.MaLop = @maLop
+        GROUP BY hs.MaHS, hs.HoTen
+        ORDER BY hs.HoTen";
+
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@maLop", maLop);
+            da.SelectCommand.Parameters.AddWithValue("@hocKy", hocKy);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+    public static DataTable GetMonHocByGiaoVienAndLop(string maGV, string maLop)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            string sql = @"
+                SELECT DISTINCT t.MaMon, m.TenMon 
+                FROM ThoiKhoaBieu t
+                JOIN MonHoc m ON t.MaMon = m.MaMon
+                WHERE t.MaGV = @maGV AND t.MaLop = @maLop AND t.MaMon IS NOT NULL
+                ORDER BY m.TenMon";
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@maGV", maGV);
+            da.SelectCommand.Parameters.AddWithValue("@maLop", maLop);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
         }
     }
 }

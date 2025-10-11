@@ -10,13 +10,13 @@ public partial class frmGhiChuTKB : frmDraggableRoundedPopup
     private ComboBox cbLop;
     private DateTimePicker dtpNgay;
     private TextBox txtGhiChu;
-    private NumericUpDown numTiet; // <<-- KHAI BÁO CONTROL MỚI
+    private NumericUpDown numTiet;
 
     public frmGhiChuTKB(string maGV) : base()
     {
         _maGV = maGV;
         this.Text = "Ghi chú vào Thời khóa biểu";
-        this.Size = new Size(400, 380); // Tăng chiều cao để có chỗ cho control mới
+        this.Size = new Size(400, 380);
         InitializeModernComponent();
         LoadLopHoc();
     }
@@ -26,7 +26,6 @@ public partial class frmGhiChuTKB : frmDraggableRoundedPopup
         cbLop = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0, 0, 0, 10) };
         dtpNgay = new DateTimePicker { Dock = DockStyle.Top, Format = DateTimePickerFormat.Long, Font = new Font("Segoe UI", 10F), Margin = new Padding(0, 0, 0, 10) };
 
-        // ====> THIẾT KẾ CHO Ô CHỌN TIẾT HỌC <====
         var tietPanel = new Panel { Dock = DockStyle.Top, Height = 35, Margin = new Padding(0, 0, 0, 10) };
         var lblTiet = new Label { Text = "Chọn tiết:", Dock = DockStyle.Left, Font = new Font("Segoe UI", 10F), AutoSize = true, Padding = new Padding(0, 5, 0, 0) };
         numTiet = new NumericUpDown { Dock = DockStyle.Left, Font = new Font("Segoe UI", 10F), Minimum = 0, Maximum = 10, Width = 60 };
@@ -34,7 +33,6 @@ public partial class frmGhiChuTKB : frmDraggableRoundedPopup
         tietPanel.Controls.Add(lblGhiChuTiet0);
         tietPanel.Controls.Add(numTiet);
         tietPanel.Controls.Add(lblTiet);
-        // ===========================================
 
         var txtPanel = new RoundedPanel { Dock = DockStyle.Fill, BackColor = Color.White, CornerRadius = 10, Padding = new Padding(5) };
         txtGhiChu = new TextBox { Dock = DockStyle.Fill, Multiline = true, Font = new Font("Segoe UI", 10F), BorderStyle = BorderStyle.None };
@@ -44,7 +42,7 @@ public partial class frmGhiChuTKB : frmDraggableRoundedPopup
         btnLuu.Click += BtnLuu_Click;
 
         this.ContentPanel.Controls.Add(txtPanel);
-        this.ContentPanel.Controls.Add(tietPanel); // Thêm panel chọn tiết
+        this.ContentPanel.Controls.Add(tietPanel);
         this.ContentPanel.Controls.Add(dtpNgay);
         this.ContentPanel.Controls.Add(cbLop);
         this.ContentPanel.Controls.Add(btnLuu);
@@ -65,13 +63,16 @@ public partial class frmGhiChuTKB : frmDraggableRoundedPopup
         if (string.IsNullOrWhiteSpace(txtGhiChu.Text)) { MessageBox.Show("Vui lòng nhập nội dung ghi chú."); return; }
 
         string maLop = cbLop.SelectedValue.ToString();
-        int tiet = (int)numTiet.Value; // <<-- LẤY GIÁ TRỊ TỪ Ô CHỌN TIẾT
+        int tiet = (int)numTiet.Value;
 
         try
         {
-            // Gọi hàm đã được nâng cấp với tham số "tiet"
             DatabaseHelper.AddGhiChuTKB(_maGV, maLop, dtpNgay.Value, tiet, txtGhiChu.Text);
             MessageBox.Show("Đã lưu ghi chú thành công!");
+
+            // ### UPDATED HERE: Phát tín hiệu báo TKB đã thay đổi ###
+            DatabaseHelper.RaiseThoiKhoaBieuChanged();
+
             this.Close();
         }
         catch (Exception ex)

@@ -4,7 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-using OfficeOpenXml; // EPPlus
+using OfficeOpenXml;
 
 namespace N6
 {
@@ -14,6 +14,7 @@ namespace N6
         {
             InitializeComponent();
             LoadHocSinh();
+            SetupPlaceholderText();
         }
 
         private void LoadHocSinh()
@@ -33,36 +34,53 @@ namespace N6
         private void CustomizeGrid()
         {
             dgvHocSinh.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvHocSinh.EnableHeadersVisualStyles = false;
-            dgvHocSinh.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(0, 150, 200);
-            dgvHocSinh.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
-            dgvHocSinh.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 11, FontStyle.Bold);
-            dgvHocSinh.DefaultCellStyle.Font = new Font("Segoe UI", 10);
-            dgvHocSinh.RowTemplate.Height = 36;
-            dgvHocSinh.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 245, 245);
+            dgvHocSinh.AlternatingRowsDefaultCellStyle.BackColor = System.Drawing.Color.FromArgb(245, 245, 245);
+
+            // Rename columns to Vietnamese
+            if (dgvHocSinh.Columns["MaHS"] != null) dgvHocSinh.Columns["MaHS"].HeaderText = "Mã Học Sinh";
+            if (dgvHocSinh.Columns["MaLop"] != null) dgvHocSinh.Columns["MaLop"].HeaderText = "Mã Lớp";
+            if (dgvHocSinh.Columns["HoTen"] != null) dgvHocSinh.Columns["HoTen"].HeaderText = "Họ và Tên";
+            if (dgvHocSinh.Columns["NgaySinh"] != null) dgvHocSinh.Columns["NgaySinh"].HeaderText = "Ngày Sinh";
+            if (dgvHocSinh.Columns["GioiTinh"] != null) dgvHocSinh.Columns["GioiTinh"].HeaderText = "Giới Tính";
+            if (dgvHocSinh.Columns["SDTPhuHuynh"] != null) dgvHocSinh.Columns["SDTPhuHuynh"].HeaderText = "SĐT Phụ Huynh";
+            if (dgvHocSinh.Columns["DiaChi"] != null) dgvHocSinh.Columns["DiaChi"].HeaderText = "Địa Chỉ";
+            if (dgvHocSinh.Columns["DanToc"] != null) dgvHocSinh.Columns["DanToc"].HeaderText = "Dân Tộc";
+        }
+
+        private void SetupPlaceholderText()
+        {
+            txtNgaySinh.GotFocus += (s, e) => {
+                if (txtNgaySinh.Text == "dd/MM/yyyy")
+                {
+                    txtNgaySinh.Text = "";
+                    txtNgaySinh.ForeColor = Color.Black;
+                }
+            };
+            txtNgaySinh.LostFocus += (s, e) => {
+                if (string.IsNullOrWhiteSpace(txtNgaySinh.Text))
+                {
+                    txtNgaySinh.Text = "dd/MM/yyyy";
+                    txtNgaySinh.ForeColor = Color.Gray;
+                }
+            };
+            txtNgaySinh.ForeColor = Color.Gray; // Initial color
         }
 
         private bool ValidateInput()
         {
             if (string.IsNullOrWhiteSpace(txtMaHS.Text) ||
                 string.IsNullOrWhiteSpace(txtHoTen.Text) ||
-                string.IsNullOrWhiteSpace(txtNgaySinh.Text) ||
-                string.IsNullOrWhiteSpace(cboGioiTinh.Text) ||
+                txtNgaySinh.Text == "dd/MM/yyyy" ||
+                cboGioiTinh.SelectedItem == null ||
                 string.IsNullOrWhiteSpace(txtSDTPhuHuynh.Text))
             {
-                MessageBox.Show("Vui lòng nhập đầy đủ thông tin bắt buộc.", "Thiếu dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng nhập đủ các trường thông tin bắt buộc: Mã HS, Họ Tên, Ngày Sinh, Giới Tính, SĐT Phụ Huynh.", "Thiếu dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
             if (!DateTime.TryParseExact(txtNgaySinh.Text.Trim(), "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out _))
             {
                 MessageBox.Show("Ngày sinh phải có định dạng dd/MM/yyyy.", "Lỗi định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (!txtSDTPhuHuynh.Text.All(char.IsDigit) || txtSDTPhuHuynh.Text.Length != 10)
-            {
-                MessageBox.Show("SĐT phụ huynh phải là 10 chữ số.", "Lỗi định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
@@ -74,11 +92,13 @@ namespace N6
             txtMaHS.Clear();
             txtMaLop.Clear();
             txtHoTen.Clear();
-            txtNgaySinh.Clear();
+            txtNgaySinh.Text = "dd/MM/yyyy";
+            txtNgaySinh.ForeColor = Color.Gray;
             cboGioiTinh.SelectedIndex = -1;
             txtSDTPhuHuynh.Clear();
             txtDiaChi.Clear();
             txtDanToc.Clear();
+            txtMaHS.Focus();
         }
 
         private void dgvHocSinh_CellClick(object sender, DataGridViewCellEventArgs e)
@@ -89,7 +109,16 @@ namespace N6
             txtMaLop.Text = row.Cells["MaLop"].Value?.ToString() ?? "";
             txtHoTen.Text = row.Cells["HoTen"].Value?.ToString() ?? "";
             var ns = row.Cells["NgaySinh"].Value;
-            txtNgaySinh.Text = ns == DBNull.Value || ns == null ? "" : Convert.ToDateTime(ns).ToString("dd/MM/yyyy");
+            if (ns != DBNull.Value && ns != null)
+            {
+                txtNgaySinh.Text = Convert.ToDateTime(ns).ToString("dd/MM/yyyy");
+                txtNgaySinh.ForeColor = Color.Black;
+            }
+            else
+            {
+                txtNgaySinh.Text = "dd/MM/yyyy";
+                txtNgaySinh.ForeColor = Color.Gray;
+            }
             cboGioiTinh.Text = row.Cells["GioiTinh"].Value?.ToString() ?? "";
             txtSDTPhuHuynh.Text = row.Cells["SDTPhuHuynh"].Value?.ToString() ?? "";
             txtDiaChi.Text = row.Cells["DiaChi"].Value?.ToString() ?? "";
@@ -104,10 +133,10 @@ namespace N6
 
                 DatabaseHelper.InsertHocSinh(
                     txtMaHS.Text.Trim(),
-                    txtMaLop.Text.Trim(),
+                    string.IsNullOrWhiteSpace(txtMaLop.Text) ? null : txtMaLop.Text.Trim(),
                     txtHoTen.Text.Trim(),
                     DateTime.ParseExact(txtNgaySinh.Text.Trim(), "dd/MM/yyyy", null),
-                    cboGioiTinh.Text.Trim(),
+                    cboGioiTinh.Text,
                     txtSDTPhuHuynh.Text.Trim(),
                     txtDiaChi.Text.Trim(),
                     txtDanToc.Text.Trim()
@@ -127,17 +156,25 @@ namespace N6
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(txtMaHS.Text))
+                {
+                    MessageBox.Show("Vui lòng chọn một học sinh để sửa.", "Chưa chọn học sinh", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
                 if (!ValidateInput()) return;
 
                 DatabaseHelper.UpdateHocSinh(
                     txtMaHS.Text.Trim(),
                     txtHoTen.Text.Trim(),
                     DateTime.ParseExact(txtNgaySinh.Text.Trim(), "dd/MM/yyyy", null),
-                    cboGioiTinh.Text.Trim(),
+                    cboGioiTinh.Text,
                     txtSDTPhuHuynh.Text.Trim(),
                     txtDiaChi.Text.Trim(),
                     txtDanToc.Text.Trim()
                 );
+
+                // Cập nhật thêm MaLop
+                DatabaseHelper.ExecuteQuery($"UPDATE HocSinh SET MaLop = '{txtMaLop.Text.Trim()}' WHERE MaHS = '{txtMaHS.Text.Trim()}'");
 
                 MessageBox.Show("Cập nhật học sinh thành công.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 LoadHocSinh();
@@ -152,11 +189,15 @@ namespace N6
         {
             try
             {
-                if (dgvHocSinh.CurrentRow == null) return;
+                if (dgvHocSinh.CurrentRow == null)
+                {
+                    MessageBox.Show("Vui lòng chọn một học sinh để xóa.", "Chưa chọn học sinh", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
                 string maHS = dgvHocSinh.CurrentRow.Cells["MaHS"].Value?.ToString();
                 if (string.IsNullOrEmpty(maHS)) return;
 
-                if (MessageBox.Show($"Xác nhận xóa học sinh {maHS} ?", "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                if (MessageBox.Show($"Bạn có chắc chắn muốn xóa học sinh '{maHS}' không?", "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     DatabaseHelper.DeleteHocSinh(maHS);
                     MessageBox.Show("Xóa thành công.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -166,7 +207,7 @@ namespace N6
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi xóa: " + ex.Message);
+                MessageBox.Show("Lỗi khi xóa: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -198,57 +239,37 @@ namespace N6
                         return;
                     }
 
-                    // Chuẩn: header (dòng 1) phải có: MaHS, MaLop, HoTen, NgaySinh(dd/MM/yyyy), GioiTinh, SDTPhuHuynh, DiaChi, DanToc
                     DataTable dt = new DataTable();
-                    dt.Columns.Add("MaHS");
-                    dt.Columns.Add("MaLop");
-                    dt.Columns.Add("HoTen");
-                    dt.Columns.Add("NgaySinh");
-                    dt.Columns.Add("GioiTinh");
-                    dt.Columns.Add("SDTPhuHuynh");
-                    dt.Columns.Add("DiaChi");
-                    dt.Columns.Add("DanToc");
-
-                    int startRow = 2;
-                    for (int r = startRow; r <= sheet.Dimension.End.Row; r++)
+                    foreach (var firstRowCell in sheet.Cells[1, 1, 1, sheet.Dimension.End.Column])
                     {
-                        // bỏ qua các dòng trống hoàn toàn
-                        bool empty = true;
-                        for (int c = 1; c <= 8; c++)
-                        {
-                            if (!string.IsNullOrWhiteSpace(sheet.Cells[r, c].Text))
-                            {
-                                empty = false; break;
-                            }
-                        }
-                        if (empty) continue;
-
-                        DataRow dr = dt.NewRow();
-                        dr["MaHS"] = sheet.Cells[r, 1].Text.Trim();
-                        dr["MaLop"] = sheet.Cells[r, 2].Text.Trim();
-                        dr["HoTen"] = sheet.Cells[r, 3].Text.Trim();
-                        dr["NgaySinh"] = sheet.Cells[r, 4].Text.Trim();
-                        dr["GioiTinh"] = sheet.Cells[r, 5].Text.Trim();
-                        dr["SDTPhuHuynh"] = sheet.Cells[r, 6].Text.Trim();
-                        dr["DiaChi"] = sheet.Cells[r, 7].Text.Trim();
-                        dr["DanToc"] = sheet.Cells[r, 8].Text.Trim();
-                        dt.Rows.Add(dr);
+                        dt.Columns.Add(firstRowCell.Text);
                     }
 
-                    // Hiển thị preview
-                    dgvHocSinh.DataSource = dt;
-                    if (MessageBox.Show($"Preview {dt.Rows.Count} dòng. Xác nhận import vào cơ sở dữ liệu?", "Xác nhận import", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    for (int r = 2; r <= sheet.Dimension.End.Row; r++)
                     {
-                        var result = DatabaseHelper.ImportHocSinhFromDataTable(dt); // returns summary
-                        string msg = $"Import xong.\nThành công: {result.Success}\nBị bỏ qua (đã tồn tại): {result.Skipped}\nLỗi: {result.Failed}";
-                        MessageBox.Show(msg, "Kết quả import", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        var row = dt.NewRow();
+                        for (int c = 1; c <= sheet.Dimension.End.Column; c++)
+                        {
+                            row[c - 1] = sheet.Cells[r, c].Text;
+                        }
+                        dt.Rows.Add(row);
+                    }
+
+                    dgvHocSinh.DataSource = dt;
+                    CustomizeGrid();
+
+                    if (MessageBox.Show($"Đã tải {dt.Rows.Count} dòng từ file Excel. Bạn có muốn import vào cơ sở dữ liệu không?\n(Các học sinh có mã trùng lặp sẽ bị bỏ qua)", "Xác nhận import", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    {
+                        var result = DatabaseHelper.ImportHocSinhFromDataTable(dt);
+                        string msg = $"Import hoàn tất.\n- Thành công: {result.Success}\n- Bỏ qua (đã tồn tại): {result.Skipped}\n- Lỗi (dữ liệu không hợp lệ): {result.Failed}";
+                        MessageBox.Show(msg, "Kết quả Import", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         LoadHocSinh();
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi import: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi import file Excel: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

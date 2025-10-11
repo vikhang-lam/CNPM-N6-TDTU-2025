@@ -12,9 +12,18 @@ namespace N6
         private Dictionary<Control, Color> borderColors = new Dictionary<Control, Color>();
         private Point lastPoint;
 
+        // === FIX START: Khai báo trường để giữ tham chiếu đến delegate Paint ===
+        private readonly PaintEventHandler _pnlBorderPaintHandler;
+        // === FIX END ===
+
         public TeacherRegistrationForm()
         {
             InitializeComponent();
+
+            // === FIX START: Khởi tạo delegate một lần ===
+            _pnlBorderPaintHandler = new PaintEventHandler(PnlBorder_Paint);
+            // === FIX END ===
+
             InitializeModernUI();
         }
 
@@ -47,7 +56,10 @@ namespace N6
 
             tb.GotFocus += TextBox_GotFocus;
             tb.LostFocus += TextBox_LostFocus;
-            pnl.Paint += PnlBorder_Paint;
+
+            // === FIX START: Sử dụng delegate đã được lưu trữ ===
+            pnl.Paint += _pnlBorderPaintHandler;
+            // === FIX END ===
         }
 
         private void SetupComboBox(ComboBox cb, Panel pnl)
@@ -55,7 +67,10 @@ namespace N6
             borderColors[pnl] = Color.Lavender;
             cb.GotFocus += ComboBox_GotFocus;
             cb.LostFocus += ComboBox_LostFocus;
-            pnl.Paint += PnlBorder_Paint;
+
+            // === FIX START: Sử dụng delegate đã được lưu trữ ===
+            pnl.Paint += _pnlBorderPaintHandler;
+            // === FIX END ===
         }
 
         #region Events (GotFocus, LostFocus, Paint)
@@ -112,7 +127,10 @@ namespace N6
         private void PnlBorder_Paint(object sender, PaintEventArgs e)
         {
             var pnl = sender as Panel;
-            DrawBorder(e.Graphics, pnl.ClientRectangle, borderColors[pnl]);
+            if (pnl != null && borderColors.ContainsKey(pnl))
+            {
+                DrawBorder(e.Graphics, pnl.ClientRectangle, borderColors[pnl]);
+            }
         }
         #endregion
 
@@ -190,7 +208,7 @@ namespace N6
         }
         #endregion
 
-        #region UI Helpers (Draggable Form, Rounded Corners, Icon)
+        #region UI Helpers
         private void Form_MouseDown(object sender, MouseEventArgs e) => lastPoint = new Point(e.X, e.Y);
         private void Form_MouseMove(object sender, MouseEventArgs e)
         {
@@ -254,9 +272,29 @@ namespace N6
             }
             return bmp;
         }
-
-      
-        
         #endregion
+
+        // === FIX START: Ghi đè Dispose để hủy đăng ký sự kiện ===
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Hủy đăng ký sự kiện Paint cho tất cả các panel
+                pnlNameBorder.Paint -= _pnlBorderPaintHandler;
+                pnlUsernameBorder.Paint -= _pnlBorderPaintHandler;
+                pnlEmailBorder.Paint -= _pnlBorderPaintHandler;
+                pnlPhoneBorder.Paint -= _pnlBorderPaintHandler;
+                pnlPasswordBorder.Paint -= _pnlBorderPaintHandler;
+                pnlConfirmPasswordBorder.Paint -= _pnlBorderPaintHandler;
+                pnlSubjectBorder.Paint -= _pnlBorderPaintHandler;
+
+                if (components != null)
+                {
+                    components.Dispose();
+                }
+            }
+            base.Dispose(disposing);
+        }
+        // === FIX END ===
     }
 }

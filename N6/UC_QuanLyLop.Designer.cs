@@ -4,20 +4,19 @@
     {
         private System.ComponentModel.IContainer components = null;
 
-        //protected override void Dispose(bool disposing)
-        //{
-        //    if (disposing && (components != null))
-        //    {
-        //        components.Dispose();
-        //    }
-        //    base.Dispose(disposing);
-        //}
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
 
         #region Component Designer generated code
 
         private void InitializeComponent()
         {
-            this.panelSidebar = new System.Windows.Forms.Panel();
             this.panelContent = new System.Windows.Forms.Panel();
             this.panelLopChon = new System.Windows.Forms.Panel();
             this.flowLayoutPanelLop = new System.Windows.Forms.FlowLayoutPanel();
@@ -39,22 +38,13 @@
             this.tableLayoutPanel_Tabs.SuspendLayout();
             this.SuspendLayout();
             // 
-            // panelSidebar
-            // 
-            this.panelSidebar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
-            this.panelSidebar.Dock = System.Windows.Forms.DockStyle.Left;
-            this.panelSidebar.Location = new System.Drawing.Point(0, 0);
-            this.panelSidebar.Name = "panelSidebar";
-            this.panelSidebar.Size = new System.Drawing.Size(200, 600);
-            this.panelSidebar.TabIndex = 0;
-            // 
             // panelContent
             // 
             this.panelContent.BackColor = System.Drawing.Color.White;
             this.panelContent.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelContent.Location = new System.Drawing.Point(0, 90);
             this.panelContent.Name = "panelContent";
-            this.panelContent.Size = new System.Drawing.Size(800, 510);
+            this.panelContent.Size = new System.Drawing.Size(1000, 510);
             this.panelContent.TabIndex = 1;
             // 
             // panelLopChon
@@ -99,7 +89,7 @@
             this.panelTopBar.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelTopBar.Location = new System.Drawing.Point(0, 0);
             this.panelTopBar.Name = "panelTopBar";
-            this.panelTopBar.Size = new System.Drawing.Size(800, 40);
+            this.panelTopBar.Size = new System.Drawing.Size(1000, 40);
             this.panelTopBar.TabIndex = 0;
             // 
             // lblTenLopHienTai
@@ -109,7 +99,7 @@
             this.lblTenLopHienTai.Location = new System.Drawing.Point(150, 0);
             this.lblTenLopHienTai.Name = "lblTenLopHienTai";
             this.lblTenLopHienTai.Padding = new System.Windows.Forms.Padding(10, 0, 0, 0);
-            this.lblTenLopHienTai.Size = new System.Drawing.Size(650, 40);
+            this.lblTenLopHienTai.Size = new System.Drawing.Size(850, 40);
             this.lblTenLopHienTai.TabIndex = 1;
             this.lblTenLopHienTai.Text = "Đang quản lý: [Tên lớp]";
             this.lblTenLopHienTai.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -132,9 +122,9 @@
             this.panelMainView.Controls.Add(this.panelTabs);
             this.panelMainView.Controls.Add(this.panelTopBar);
             this.panelMainView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelMainView.Location = new System.Drawing.Point(200, 0);
+            this.panelMainView.Location = new System.Drawing.Point(0, 0);
             this.panelMainView.Name = "panelMainView";
-            this.panelMainView.Size = new System.Drawing.Size(800, 600);
+            this.panelMainView.Size = new System.Drawing.Size(1000, 600);
             this.panelMainView.TabIndex = 4;
             // 
             // panelTabs
@@ -145,7 +135,7 @@
             this.panelTabs.Location = new System.Drawing.Point(0, 40);
             this.panelTabs.Name = "panelTabs";
             this.panelTabs.Padding = new System.Windows.Forms.Padding(5);
-            this.panelTabs.Size = new System.Drawing.Size(800, 50);
+            this.panelTabs.Size = new System.Drawing.Size(1000, 50);
             this.panelTabs.TabIndex = 2;
             // 
             // tableLayoutPanel_Tabs
@@ -164,7 +154,7 @@
             this.tableLayoutPanel_Tabs.Name = "tableLayoutPanel_Tabs";
             this.tableLayoutPanel_Tabs.RowCount = 1;
             this.tableLayoutPanel_Tabs.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel_Tabs.Size = new System.Drawing.Size(790, 40);
+            this.tableLayoutPanel_Tabs.Size = new System.Drawing.Size(990, 40);
             this.tableLayoutPanel_Tabs.TabIndex = 0;
             // 
             // rbHocSinh
@@ -174,9 +164,9 @@
             this.rbHocSinh.FlatAppearance.BorderSize = 0;
             this.rbHocSinh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.rbHocSinh.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
-            this.rbHocSinh.Location = new System.Drawing.Point(594, 3);
+            this.rbHocSinh.Location = new System.Drawing.Point(744, 3);
             this.rbHocSinh.Name = "rbHocSinh";
-            this.rbHocSinh.Size = new System.Drawing.Size(193, 34);
+            this.rbHocSinh.Size = new System.Drawing.Size(243, 34);
             this.rbHocSinh.TabIndex = 3;
             this.rbHocSinh.TabStop = true;
             this.rbHocSinh.Text = "Học Sinh";
@@ -190,9 +180,9 @@
             this.rbKetQua.FlatAppearance.BorderSize = 0;
             this.rbKetQua.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.rbKetQua.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
-            this.rbKetQua.Location = new System.Drawing.Point(397, 3);
+            this.rbKetQua.Location = new System.Drawing.Point(497, 3);
             this.rbKetQua.Name = "rbKetQua";
-            this.rbKetQua.Size = new System.Drawing.Size(191, 34);
+            this.rbKetQua.Size = new System.Drawing.Size(241, 34);
             this.rbKetQua.TabIndex = 2;
             this.rbKetQua.TabStop = true;
             this.rbKetQua.Text = "Kết Quả";
@@ -206,9 +196,9 @@
             this.rbQR.FlatAppearance.BorderSize = 0;
             this.rbQR.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.rbQR.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
-            this.rbQR.Location = new System.Drawing.Point(200, 3);
+            this.rbQR.Location = new System.Drawing.Point(250, 3);
             this.rbQR.Name = "rbQR";
-            this.rbQR.Size = new System.Drawing.Size(191, 34);
+            this.rbQR.Size = new System.Drawing.Size(241, 34);
             this.rbQR.TabIndex = 1;
             this.rbQR.TabStop = true;
             this.rbQR.Text = "Điểm Danh QR";
@@ -224,7 +214,7 @@
             this.rbDiemDanh.Font = new System.Drawing.Font("Segoe UI Semibold", 10F);
             this.rbDiemDanh.Location = new System.Drawing.Point(3, 3);
             this.rbDiemDanh.Name = "rbDiemDanh";
-            this.rbDiemDanh.Size = new System.Drawing.Size(191, 34);
+            this.rbDiemDanh.Size = new System.Drawing.Size(241, 34);
             this.rbDiemDanh.TabIndex = 0;
             this.rbDiemDanh.TabStop = true;
             this.rbDiemDanh.Text = "Điểm Danh Thủ Công";
@@ -233,9 +223,8 @@
             // 
             // UC_QuanLyLop
             // 
-            this.Controls.Add(this.panelMainView);
-            
             this.Controls.Add(this.panelLopChon);
+            this.Controls.Add(this.panelMainView);
             this.Name = "UC_QuanLyLop";
             this.Size = new System.Drawing.Size(1000, 600);
             this.panelLopChon.ResumeLayout(false);
@@ -244,12 +233,10 @@
             this.panelTabs.ResumeLayout(false);
             this.tableLayoutPanel_Tabs.ResumeLayout(false);
             this.ResumeLayout(false);
-
         }
 
         #endregion
 
-        private System.Windows.Forms.Panel panelSidebar;
         private System.Windows.Forms.Panel panelContent;
         private System.Windows.Forms.Panel panelLopChon;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanelLop;
@@ -264,8 +251,5 @@
         private System.Windows.Forms.RadioButton rbKetQua;
         private System.Windows.Forms.RadioButton rbQR;
         private System.Windows.Forms.RadioButton rbDiemDanh;
-
-        // Các khai báo DataGridView và các control phụ khác được quản lý trong file .cs chính
-        // vì chúng được tạo động hoặc chỉ là biến thành viên.
     }
 }

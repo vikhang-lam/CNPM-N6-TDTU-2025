@@ -1,7 +1,6 @@
-﻿// UC_Home.cs
-
-using System;
+﻿using System;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace N6
@@ -9,84 +8,87 @@ namespace N6
     public partial class UC_Home : UserControl
     {
         public event Action<string> ChonChucNang;
+        private readonly PaintEventHandler _cardPaintHandler;
 
         public UC_Home(string tenGV = "Giáo viên")
         {
             InitializeComponent();
+            _cardPaintHandler = new PaintEventHandler(Card_PaintShadow);
             lblLoiChao.Text = $"Xin chào, {tenGV}! 👋";
             CreateFunctionCards();
 
-            // Gán sự kiện Resize cho flowPanel để layout co giãn
-            this.flowPanel.Resize += new System.EventHandler(this.FlowPanel_Resize);
+            // === THAY ĐỔI 1: Gán sự kiện cho UserControl thay vì FlowLayoutPanel ===
+            this.Resize += new System.EventHandler(this.UC_Home_Resize);
         }
 
         private void UC_Home_Load(object sender, EventArgs e)
         {
-            // Gọi phương thức resize một lần khi tải để áp dụng layout ban đầu
-            FlowPanel_Resize(this, EventArgs.Empty);
+            // === THAY ĐỔI 2: Gọi phương thức resize của UserControl khi tải ===
+            UC_Home_Resize(this, EventArgs.Empty);
+        }
+
+        private void Card_PaintShadow(object sender, PaintEventArgs e)
+        {
+            var card = sender as Control;
+            if (card == null) return;
+            var g = e.Graphics;
+            using (var shadow = new SolidBrush(Color.FromArgb(30, 0, 0, 0)))
+                g.FillRectangle(shadow, 3, 3, card.Width - 3, card.Height - 3);
         }
 
         private void CreateFunctionCards()
         {
-            // ======= Danh sách chức năng =======
             string[] cnTen = {
-                "🏠 Trang chủ",
-                "👨‍🎓 Quản lý lớp học",
-                "☁️ Thời khóa biểu",
-                "📑 Quản lý tài liệu",
-                "🎮 Mini-games",
-                "📑 Báo cáo & Xuất dữ liệu",
-                "📊 Phân tích AI",
-                "🚪 Đăng xuất"
+                "🏠 Trang chủ", "👨‍🎓 Quản lý lớp học", "☁️ Thời khóa biểu",
+                "📑 Quản lý tài liệu", "🎮 Mini-games", "📑 Báo cáo & Xuất dữ liệu",
+                "📊 Phân tích AI", "🚪 Đăng xuất"
             };
+
+            const int idealCardWidth = 250; // Định nghĩa chiều rộng lý tưởng của card
 
             for (int i = 0; i < cnTen.Length; i++)
             {
-                Panel card = new Panel();
-                // Kích thước ban đầu, sẽ được cập nhật bởi FlowPanel_Resize
-                card.Width = 250;
-                card.Height = 160;
-                card.Margin = new Padding(20);
-                card.BackColor = Color.White;
-                card.BorderStyle = BorderStyle.None;
-                card.Tag = $"CN{i + 1}";
-                card.Cursor = Cursors.Hand;
-                card.Resize += Card_Resize; // Để cập nhật lại ảnh bên trong
-
-                // Ảnh minh họa
-                PictureBox pic = new PictureBox();
-                pic.Dock = DockStyle.Fill; // Dùng Dock để lấp đầy
-                pic.SizeMode = PictureBoxSizeMode.Zoom;
-                pic.Image = (Image)Properties.Resources.ResourceManager.GetObject($"cn{i + 1}");
-                pic.BackColor = Color.White; // Nền của khung ảnh là màu trắng
-
-                // Tên chức năng
-                Label lbl = new Label();
-                lbl.Text = cnTen[i];
-                lbl.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
-                lbl.ForeColor = Color.FromArgb(30, 40, 60);
-                lbl.AutoSize = false;
-                lbl.TextAlign = ContentAlignment.MiddleCenter;
-                lbl.Dock = DockStyle.Bottom;
-                lbl.Height = 50;
-
-                // Đổ bóng nhẹ (giả lập)
-                card.Paint += (s, e) =>
+                Panel card = new Panel
                 {
-                    var g = e.Graphics;
-                    using (var shadow = new SolidBrush(Color.FromArgb(30, 0, 0, 0)))
-                        g.FillRectangle(shadow, 3, 3, card.Width - 3, card.Height - 3);
+                    Width = idealCardWidth,
+                    Height = 160,
+                    Margin = new Padding(20),
+                    BackColor = Color.White,
+                    BorderStyle = BorderStyle.None,
+                    Tag = $"CN{i + 1}",
+                    Cursor = Cursors.Hand,
                 };
 
-                // Gắn sự kiện (Thêm Label trước, PictureBox sau)
-                card.Controls.Add(lbl);
-                card.Controls.Add(pic);
+                PictureBox pic = new PictureBox
+                {
+                    Dock = DockStyle.Fill,
+                    SizeMode = PictureBoxSizeMode.Zoom,
+                    Image = (Image)Properties.Resources.ResourceManager.GetObject($"cn{i + 1}"),
+                    BackColor = Color.White
+                };
+
+                Label lbl = new Label
+                {
+                    Text = cnTen[i],
+                    Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(30, 40, 60),
+                    AutoSize = false,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Dock = DockStyle.Bottom,
+                    Height = 50
+                };
+
+                // Đăng ký các sự kiện
+                card.Resize += Card_Resize;
+                card.Paint += _cardPaintHandler;
                 card.MouseEnter += Card_MouseEnter;
                 card.MouseLeave += Card_MouseLeave;
                 card.Click += Card_Click;
-                pic.Click += Card_Click; // Đảm bảo các control con cũng kích hoạt sự kiện
+                pic.Click += Card_Click;
                 lbl.Click += Card_Click;
 
+                card.Controls.Add(lbl);
+                card.Controls.Add(pic);
                 flowPanel.Controls.Add(card);
             }
         }
@@ -96,8 +98,6 @@ namespace N6
             Control control = sender as Control;
             Panel card = control is Panel ? control as Panel : control.Parent as Panel;
             if (card == null) return;
-
-            card.BackColor = Color.White; // Giữ nền trắng khi di chuột qua
             card.BorderStyle = BorderStyle.FixedSingle;
             card.Refresh();
         }
@@ -107,8 +107,6 @@ namespace N6
             Control control = sender as Control;
             Panel card = control is Panel ? control as Panel : control.Parent as Panel;
             if (card == null) return;
-
-            card.BackColor = Color.White;
             card.BorderStyle = BorderStyle.None;
         }
 
@@ -116,45 +114,71 @@ namespace N6
         {
             Control control = sender as Control;
             Panel p = control as Panel ?? control.Parent as Panel;
-
             if (p != null && p.Tag != null)
             {
                 ChonChucNang?.Invoke(p.Tag.ToString());
             }
         }
 
-        private void FlowPanel_Resize(object sender, EventArgs e)
+        // === THAY ĐỔI 3: Đổi tên phương thức và giữ nguyên logic ===
+        private void UC_Home_Resize(object sender, EventArgs e)
         {
+            const int idealCardWidth = 250;
+            const int cardMargin = 45; // Tổng margin ngang của một card (20 trái + 20 phải + 5 khoảng cách)
+
+            // Lấy chiều rộng của FlowLayoutPanel để tính toán
             int panelWidth = flowPanel.ClientSize.Width;
-            int columns = Math.Max(1, panelWidth / 250);
-            int newCardWidth = (panelWidth / columns) - 45;
-            int newCardHeight = (int)(newCardWidth * 0.75) + 50;
 
+            // Tính toán số cột có thể hiển thị dựa trên chiều rộng lý tưởng
+            int columns = Math.Max(1, panelWidth / idealCardWidth);
 
-            foreach (Control control in flowPanel.Controls)
+            // Tính toán chiều rộng mới cho mỗi card để lấp đầy không gian
+            int newCardWidth = (panelWidth / columns) - cardMargin;
+            int newCardHeight = (int)(newCardWidth * 0.7) + 50; // Giữ tỉ lệ card hợp lý
+
+            // Áp dụng kích thước mới cho tất cả các card
+            foreach (Panel card in flowPanel.Controls.OfType<Panel>())
             {
-                if (control is Panel card)
-                {
-                    card.Width = newCardWidth;
-                    card.Height = newCardHeight;
-                }
+                card.Width = newCardWidth;
+                card.Height = newCardHeight;
             }
         }
 
         private void Card_Resize(object sender, EventArgs e)
         {
-            Panel card = sender as Panel;
-            if (card == null) return;
+            // Không cần làm gì vì PictureBox đã được Dock = Fill
+        }
 
-            foreach (Control control in card.Controls)
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                if (control is PictureBox pic)
+                // === THAY ĐỔI 4: Hủy đăng ký sự kiện Resize của UserControl ===
+                this.Resize -= this.UC_Home_Resize;
+
+                if (flowPanel != null && flowPanel.Controls != null)
                 {
-                    // Phần này giờ không cần thiết vì PictureBox đã được Dock = Fill
-                    // Nó sẽ tự động thay đổi kích thước theo thẻ cha
-                    break;
+                    var cards = flowPanel.Controls.OfType<Panel>().ToArray();
+                    foreach (var card in cards)
+                    {
+                        card.Resize -= Card_Resize;
+                        card.Paint -= _cardPaintHandler;
+                        card.MouseEnter -= Card_MouseEnter;
+                        card.MouseLeave -= Card_MouseLeave;
+                        card.Click -= Card_Click;
+                        foreach (Control child in card.Controls)
+                        {
+                            child.Click -= Card_Click;
+                        }
+                    }
+                }
+
+                if (components != null)
+                {
+                    components.Dispose();
                 }
             }
+            base.Dispose(disposing);
         }
     }
 }

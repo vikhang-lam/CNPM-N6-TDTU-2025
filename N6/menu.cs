@@ -255,7 +255,7 @@ namespace N6
         {
             var menuItems = new string[]
             {
-                "🚪 Đăng xuất", "📊 Phân tích AI", "📑 Báo cáo & Xuất dữ liệu", "🎮 Mini-games",
+                "🚪 Đăng xuất", "📊 Phân tích AI", "📑 Báo cáo và Xuất dữ liệu", "🎮 Mini-games",
                 "📑 quản lí tài liệu", "☁️ Thời khóa biểu", "👨‍🎓 Quản lý lớp học", "🏠 Trang chủ"
             };
 

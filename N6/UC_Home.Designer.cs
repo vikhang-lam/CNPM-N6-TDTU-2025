@@ -11,12 +11,12 @@ namespace N6
         private Label lblPhuDe;
         private FlowLayoutPanel flowPanel;
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-                components.Dispose();
-            base.Dispose(disposing);
-        }
+        //protected override void Dispose(bool disposing)
+        //{
+        //    if (disposing && (components != null))
+        //        components.Dispose();
+        //    base.Dispose(disposing);
+        //}
 
         private void InitializeComponent()
         {

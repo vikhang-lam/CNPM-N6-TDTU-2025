@@ -128,5 +128,17 @@ namespace N6.Properties {
                 return ((string)(this["ConnectionString"]));
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastUser {
+            get {
+                return ((string)(this["LastUser"]));
+            }
+            set {
+                this["LastUser"] = value;
+            }
+        }
     }
 }
