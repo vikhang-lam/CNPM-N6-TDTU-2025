@@ -3,7 +3,7 @@
     partial class UC_QuanLyLopHocSinh
     {
         private System.ComponentModel.IContainer components = null;
-        
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -12,6 +12,8 @@
             }
             base.Dispose(disposing);
         }
+
+        #region Windows Form Designer generated code
 
         private void InitializeComponent()
         {
@@ -27,10 +29,13 @@
             this.dgvHocSinh = new System.Windows.Forms.DataGridView();
             this.pnlStudentActions = new System.Windows.Forms.FlowLayoutPanel();
             this.btnThemHS = new System.Windows.Forms.Button();
-            this.btnSuaHS = new System.Windows.Forms.Button();
             this.btnXoaHS = new System.Windows.Forms.Button();
+            this.btnLuuHS = new System.Windows.Forms.Button();
+            this.btnImportHS = new System.Windows.Forms.Button();
             this.tabPhanCong = new System.Windows.Forms.TabPage();
             this.dgvPhanCong = new System.Windows.Forms.DataGridView();
+            this.pnlAssignmentActions = new System.Windows.Forms.FlowLayoutPanel();
+            this.btnImportPhanCong = new System.Windows.Forms.Button();
             this.pnlClassInfoCard = new System.Windows.Forms.Panel();
             this.mainInfoFlowPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.lblTenLop = new System.Windows.Forms.Label();
@@ -53,6 +58,7 @@
             this.pnlStudentActions.SuspendLayout();
             this.tabPhanCong.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvPhanCong)).BeginInit();
+            this.pnlAssignmentActions.SuspendLayout();
             this.pnlClassInfoCard.SuspendLayout();
             this.mainInfoFlowPanel.SuspendLayout();
             this.infoLayout.SuspendLayout();
@@ -91,7 +97,7 @@
             this.dgvLopHoc.AllowUserToDeleteRows = false;
             this.dgvLopHoc.AllowUserToResizeColumns = false;
             this.dgvLopHoc.AllowUserToResizeRows = false;
-            this.dgvLopHoc.ColumnHeadersHeight = 29;
+            this.dgvLopHoc.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvLopHoc.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvLopHoc.Location = new System.Drawing.Point(0, 80);
             this.dgvLopHoc.MultiSelect = false;
@@ -115,7 +121,7 @@
             // 
             // cboKhoi
             // 
-            this.cboKhoi.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.cboKhoi.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.cboKhoi.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboKhoi.Font = new System.Drawing.Font("Segoe UI", 10F);
@@ -124,7 +130,6 @@
             this.cboKhoi.Name = "cboKhoi";
             this.cboKhoi.Size = new System.Drawing.Size(230, 31);
             this.cboKhoi.TabIndex = 1;
-            this.cboKhoi.SelectedIndexChanged += new System.EventHandler(this.cboKhoi_SelectedIndexChanged);
             // 
             // lblChonKhoi
             // 
@@ -172,19 +177,21 @@
             // 
             // dgvHocSinh
             // 
-            this.dgvHocSinh.ColumnHeadersHeight = 29;
+            this.dgvHocSinh.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvHocSinh.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvHocSinh.Location = new System.Drawing.Point(0, 0);
             this.dgvHocSinh.Name = "dgvHocSinh";
             this.dgvHocSinh.RowHeadersWidth = 51;
+            this.dgvHocSinh.RowTemplate.Height = 24;
             this.dgvHocSinh.Size = new System.Drawing.Size(646, 329);
             this.dgvHocSinh.TabIndex = 1;
             // 
             // pnlStudentActions
             // 
             this.pnlStudentActions.Controls.Add(this.btnThemHS);
-            this.pnlStudentActions.Controls.Add(this.btnSuaHS);
             this.pnlStudentActions.Controls.Add(this.btnXoaHS);
+            this.pnlStudentActions.Controls.Add(this.btnLuuHS);
+            this.pnlStudentActions.Controls.Add(this.btnImportHS);
             this.pnlStudentActions.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.pnlStudentActions.Location = new System.Drawing.Point(0, 329);
             this.pnlStudentActions.Name = "pnlStudentActions";
@@ -195,45 +202,81 @@
             // 
             this.btnThemHS.Location = new System.Drawing.Point(3, 3);
             this.btnThemHS.Name = "btnThemHS";
-            this.btnThemHS.Size = new System.Drawing.Size(75, 33);
+            this.btnThemHS.Size = new System.Drawing.Size(110, 40);
             this.btnThemHS.TabIndex = 0;
             this.btnThemHS.Text = "➕ Thêm HS";
-            // 
-            // btnSuaHS
-            // 
-            this.btnSuaHS.Location = new System.Drawing.Point(84, 3);
-            this.btnSuaHS.Name = "btnSuaHS";
-            this.btnSuaHS.Size = new System.Drawing.Size(75, 33);
-            this.btnSuaHS.TabIndex = 1;
-            this.btnSuaHS.Text = "✏️ Sửa HS";
+            this.btnThemHS.UseVisualStyleBackColor = true;
             // 
             // btnXoaHS
             // 
-            this.btnXoaHS.Location = new System.Drawing.Point(165, 3);
+            this.btnXoaHS.Location = new System.Drawing.Point(119, 3);
             this.btnXoaHS.Name = "btnXoaHS";
-            this.btnXoaHS.Size = new System.Drawing.Size(75, 33);
+            this.btnXoaHS.Size = new System.Drawing.Size(110, 40);
             this.btnXoaHS.TabIndex = 2;
             this.btnXoaHS.Text = "🗑️ Xóa HS";
+            this.btnXoaHS.UseVisualStyleBackColor = true;
+            this.btnXoaHS.Click += new System.EventHandler(this.btnXoaHS_Click);
+            // 
+            // btnLuuHS
+            // 
+            this.btnLuuHS.Location = new System.Drawing.Point(235, 3);
+            this.btnLuuHS.Name = "btnLuuHS";
+            this.btnLuuHS.Size = new System.Drawing.Size(150, 40);
+            this.btnLuuHS.TabIndex = 3;
+            this.btnLuuHS.Text = "💾 Lưu thay đổi";
+            this.btnLuuHS.UseVisualStyleBackColor = true;
+            this.btnLuuHS.Click += new System.EventHandler(this.btnLuuHS_Click);
+            // 
+            // btnImportHS
+            // 
+            this.btnImportHS.Location = new System.Drawing.Point(391, 3);
+            this.btnImportHS.Name = "btnImportHS";
+            this.btnImportHS.Size = new System.Drawing.Size(120, 40);
+            this.btnImportHS.TabIndex = 4;
+            this.btnImportHS.Text = "📥 Import HS";
+            this.btnImportHS.UseVisualStyleBackColor = true;
+            this.btnImportHS.Click += new System.EventHandler(this.btnImportHS_Click);
             // 
             // tabPhanCong
             // 
             this.tabPhanCong.Controls.Add(this.dgvPhanCong);
+            this.tabPhanCong.Controls.Add(this.pnlAssignmentActions);
             this.tabPhanCong.Location = new System.Drawing.Point(4, 32);
             this.tabPhanCong.Name = "tabPhanCong";
-            this.tabPhanCong.Size = new System.Drawing.Size(646, 373);
+            this.tabPhanCong.Size = new System.Drawing.Size(646, 383);
             this.tabPhanCong.TabIndex = 1;
             this.tabPhanCong.Text = "Phân công Giảng dạy";
             this.tabPhanCong.UseVisualStyleBackColor = true;
             // 
             // dgvPhanCong
             // 
-            this.dgvPhanCong.ColumnHeadersHeight = 29;
+            this.dgvPhanCong.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvPhanCong.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvPhanCong.Location = new System.Drawing.Point(0, 0);
             this.dgvPhanCong.Name = "dgvPhanCong";
             this.dgvPhanCong.RowHeadersWidth = 51;
-            this.dgvPhanCong.Size = new System.Drawing.Size(646, 373);
+            this.dgvPhanCong.RowTemplate.Height = 24;
+            this.dgvPhanCong.Size = new System.Drawing.Size(646, 329);
             this.dgvPhanCong.TabIndex = 0;
+            // 
+            // pnlAssignmentActions
+            // 
+            this.pnlAssignmentActions.Controls.Add(this.btnImportPhanCong);
+            this.pnlAssignmentActions.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlAssignmentActions.Location = new System.Drawing.Point(0, 329);
+            this.pnlAssignmentActions.Name = "pnlAssignmentActions";
+            this.pnlAssignmentActions.Size = new System.Drawing.Size(646, 54);
+            this.pnlAssignmentActions.TabIndex = 1;
+            // 
+            // btnImportPhanCong
+            // 
+            this.btnImportPhanCong.Location = new System.Drawing.Point(3, 3);
+            this.btnImportPhanCong.Name = "btnImportPhanCong";
+            this.btnImportPhanCong.Size = new System.Drawing.Size(180, 40);
+            this.btnImportPhanCong.TabIndex = 0;
+            this.btnImportPhanCong.Text = "📥 Import";
+            this.btnImportPhanCong.UseVisualStyleBackColor = true;
+            this.btnImportPhanCong.Click += new System.EventHandler(this.btnImportPhanCong_Click);
             // 
             // pnlClassInfoCard
             // 
@@ -274,7 +317,7 @@
             // 
             // infoLayout
             // 
-            this.infoLayout.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.infoLayout.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.infoLayout.AutoSize = true;
             this.infoLayout.ColumnCount = 3;
@@ -327,7 +370,7 @@
             // 
             // pnlAssignGvcn
             // 
-            this.pnlAssignGvcn.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.pnlAssignGvcn.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.pnlAssignGvcn.Controls.Add(this.btnAssignGvcn);
             this.pnlAssignGvcn.Controls.Add(this.cboGvcn);
@@ -345,7 +388,7 @@
             this.btnAssignGvcn.Size = new System.Drawing.Size(120, 31);
             this.btnAssignGvcn.TabIndex = 2;
             this.btnAssignGvcn.Text = "Phân công";
-            this.btnAssignGvcn.Click += new System.EventHandler(this.btnAssignGvcn_Click);
+            this.btnAssignGvcn.UseVisualStyleBackColor = true;
             // 
             // cboGvcn
             // 
@@ -369,6 +412,8 @@
             // 
             // UC_QuanLyLopHocSinh
             // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(242)))), ((int)(((byte)(245)))));
             this.Controls.Add(this.layoutRoot);
             this.Name = "UC_QuanLyLopHocSinh";
@@ -385,6 +430,7 @@
             this.pnlStudentActions.ResumeLayout(false);
             this.tabPhanCong.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgvPhanCong)).EndInit();
+            this.pnlAssignmentActions.ResumeLayout(false);
             this.pnlClassInfoCard.ResumeLayout(false);
             this.mainInfoFlowPanel.ResumeLayout(false);
             this.mainInfoFlowPanel.PerformLayout();
@@ -394,6 +440,8 @@
             this.ResumeLayout(false);
 
         }
+
+        #endregion
 
         private System.Windows.Forms.TableLayoutPanel layoutRoot;
         private System.Windows.Forms.Panel pnlLeft;
@@ -412,8 +460,8 @@
         private System.Windows.Forms.TabPage tabPhanCong;
         private System.Windows.Forms.FlowLayoutPanel pnlStudentActions;
         private System.Windows.Forms.Button btnThemHS;
-        private System.Windows.Forms.Button btnSuaHS;
         private System.Windows.Forms.Button btnXoaHS;
+        private System.Windows.Forms.Button btnLuuHS;
         private System.Windows.Forms.DataGridView dgvHocSinh;
         private System.Windows.Forms.DataGridView dgvPhanCong;
         private System.Windows.Forms.Panel pnlAssignGvcn;
@@ -422,5 +470,8 @@
         private System.Windows.Forms.Label lblAssignGvcn;
         private System.Windows.Forms.TableLayoutPanel infoLayout;
         private System.Windows.Forms.FlowLayoutPanel mainInfoFlowPanel;
+        private System.Windows.Forms.Button btnImportHS;
+        private System.Windows.Forms.FlowLayoutPanel pnlAssignmentActions;
+        private System.Windows.Forms.Button btnImportPhanCong;
     }
 }

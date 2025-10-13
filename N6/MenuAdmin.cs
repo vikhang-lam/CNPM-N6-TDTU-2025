@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
-// Đảm bảo bạn có ảnh trong Resources, ví dụ: Properties.Resources.admin_avatar
-// Nếu không có, bạn có thể tạm thời comment dòng gán ảnh lại.
-// using N6.Properties; 
+// Đảm bảo bạn có các UserControl này trong dự án:
+// using N6.UCs; // Ví dụ
 
 namespace N6
 {
@@ -13,28 +12,21 @@ namespace N6
     {
         #region Fields
 
-        private bool isMenuCollapsed = false;
         private bool isDarkMode = false;
-        private const int menuWidth = 200;
-        private const int collapsedMenuWidth = 60;
-
         private Button currentActiveBtn;
         private ContextMenuStrip userMenu;
         private readonly Dictionary<Button, EventHandler> _buttonHandlers = new Dictionary<Button, EventHandler>();
 
-        // Label cho vai trò sẽ được tạo động
-        private Label lblRole;
-
         private readonly Dictionary<string, Color> lightModeColors = new Dictionary<string, Color>()
         {
-            {"mainBg", Color.FromArgb(185, 235, 250)},
+            {"mainBg", Color.FromArgb(240, 245, 255)},
             {"menuBg", Color.White},
             {"topBarBg", Color.FromArgb(0, 150, 200)},
             {"textPrimary", Color.Black},
             {"menuBtnText", Color.FromArgb(55, 71, 79)},
             {"menuBtnActiveBg", Color.FromArgb(220, 240, 250)},
             {"btnHover", Color.FromArgb(240, 240, 240)},
-            {"userPanelText", Color.Black}
+            {"userPanelText", Color.White}
         };
 
         private readonly Dictionary<string, Color> darkModeColors = new Dictionary<string, Color>()
@@ -57,18 +49,17 @@ namespace N6
         {
             InitializeComponent();
             this.DoubleBuffered = true;
-            // Di chuyển FormBorderStyle và StartPosition vào đây để đảm bảo chúng được thiết lập trước khi form load
-            this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.CenterScreen;
         }
 
         private void MenuAdmin_Load(object sender, EventArgs e)
         {
-            CreateAndSetupRoleLabel();
             LoadAdminInfo();
             CreateMenuItems();
             InitUserMenu();
             ApplyTheme();
+            // Tải trang chủ Admin làm giao diện mặc định
+            LoadAdminHomePage();
         }
 
         #endregion
@@ -84,22 +75,19 @@ namespace N6
             panelMenu.BackColor = colors["menuBg"];
             panelContent.BackColor = colors["mainBg"];
 
-            // Sử dụng đúng tên control từ file Designer của bạn
             lblAdminName.ForeColor = colors["userPanelText"];
-            if (lblRole != null) lblRole.ForeColor = colors["userPanelText"];
+            labelAppTitle.ForeColor = colors["userPanelText"];
+            labelClose.ForeColor = colors["userPanelText"];
+            labelMaximize.ForeColor = colors["userPanelText"];
+            labelMinimize.ForeColor = colors["userPanelText"];
+            btnThemeToggle.ForeColor = colors["userPanelText"];
 
-            foreach (Control c in panelMenu.Controls)
+            foreach (var btn in _buttonHandlers.Keys)
             {
-                if (c is Button btn)
-                {
-                    btn.ForeColor = colors["menuBtnText"];
-                    btn.BackColor = colors["menuBg"];
-                }
-            }
-
-            if (currentActiveBtn != null)
-            {
-                currentActiveBtn.BackColor = colors["menuBtnActiveBg"];
+                bool isActive = (btn == currentActiveBtn);
+                btn.ForeColor = isActive ? colors["textPrimary"] : colors["menuBtnText"];
+                btn.BackColor = isActive ? colors["menuBtnActiveBg"] : colors["menuBg"];
+                btn.FlatAppearance.MouseOverBackColor = isActive ? colors["menuBtnActiveBg"] : colors["btnHover"];
             }
         }
 
@@ -107,24 +95,11 @@ namespace N6
 
         #region Menu & UI Creation
 
-        private void CreateAndSetupRoleLabel()
-        {
-            lblRole = new Label
-            {
-                Name = "lblRole",
-                Text = "Quản trị viên",
-                Font = new Font("Segoe UI", 9F, FontStyle.Regular),
-                AutoSize = true,
-                // Vị trí sẽ được đặt tương đối so với avatarAdmin và lblAdminName
-                Location = new Point(avatarAdmin.Location.X + avatarAdmin.Width + 5, lblAdminName.Location.Y + lblAdminName.Height + 2)
-            };
-            panelMenu.Controls.Add(lblRole); // Thêm vào panel menu
-        }
-
         private void LoadAdminInfo()
         {
             lblAdminName.Text = "Admin";
-            avatarAdmin.Image = Properties.Resources.user_avatar; // dùng avatar mặc định
+            // Giả sử có ảnh user_avatar trong Resources
+            avatarAdmin.Image = Properties.Resources.user_avatar;
             avatarAdmin.SizeMode = PictureBoxSizeMode.Zoom;
         }
 
@@ -143,31 +118,29 @@ namespace N6
             userMenu.Items.Add(new ToolStripSeparator());
             userMenu.Items.Add(logoutItem);
 
-            // Gán sự kiện click cho các control hiện có
             avatarAdmin.Click += UserControl_Click;
             lblAdminName.Click += UserControl_Click;
-            if (lblRole != null) lblRole.Click += UserControl_Click;
         }
 
         private void CreateMenuItems()
         {
+            // Thêm một nút trang chủ vào menu
             var menuItems = new (string, EventHandler)[]
             {
+                ("🏠 Trang chủ", btnTrangChu_Click),
                 ("👨‍🏫 Quản lý Giáo viên", btnQuanLyGV_Click),
                 ("🏫 Quản lý Lớp học", btnQuanLyLop_Click),
                 ("🚪 Đăng xuất", btnDangXuat_Click)
             };
-
-            int topPosition = 120; // Vị trí bắt đầu cho nút đầu tiên, bên dưới khu vực admin
 
             foreach (var (text, handler) in menuItems)
             {
                 Button btn = new Button
                 {
                     Text = text,
-                    Dock = DockStyle.Top, // Sử dụng DockStyle.Top sẽ dễ hơn
+                    Dock = DockStyle.Top,
                     FlatStyle = FlatStyle.Flat,
-                    Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                    Font = new Font("Segoe UI", 11, FontStyle.Bold),
                     Height = 50,
                     TextAlign = ContentAlignment.MiddleLeft,
                     Padding = new Padding(15, 0, 0, 0)
@@ -176,9 +149,8 @@ namespace N6
                 btn.Click += GenericMenuButton_Click;
 
                 _buttonHandlers[btn] = handler;
-
                 panelMenu.Controls.Add(btn);
-                btn.BringToFront(); // Đảm bảo các nút được xếp chồng đúng thứ tự
+                btn.BringToFront();
             }
         }
 
@@ -186,18 +158,37 @@ namespace N6
 
         #region Event Handlers
 
-        private void UserControl_Click(object sender, EventArgs e)
+        // --- Home Page and Navigation ---
+        private void LoadAdminHomePage()
         {
-            Control control = sender as Control;
-            userMenu.Show(control, new Point(0, control.Height));
+            panelContent.Controls.Clear();
+            var homeAdmin = new UC_Home_Admin();
+            homeAdmin.Dock = DockStyle.Fill;
+            homeAdmin.ChonChucNang += MoChucNangAdmin;
+            panelContent.Controls.Add(homeAdmin);
+
+            // Đặt nút trang chủ là nút active
+            var homeButton = FindButtonByText("Trang chủ");
+            if (homeButton != null) ActivateButton(homeButton);
         }
 
-        private void SettingsItem_Click(object sender, EventArgs e)
+        private void MoChucNangAdmin(string maCN)
         {
-            AdminProfileForm profileForm = new AdminProfileForm();
-            profileForm.ShowDialog(this);
+            switch (maCN)
+            {
+                case "Admin_QuanLyGV":
+                    btnQuanLyGV_Click(this, EventArgs.Empty);
+                    break;
+                case "Admin_QuanLyLop":
+                    btnQuanLyLop_Click(this, EventArgs.Empty);
+                    break;
+                case "Admin_DangXuat":
+                    btnDangXuat_Click(this, EventArgs.Empty);
+                    break;
+            }
         }
 
+        // --- Generic and Specific Button Clicks ---
         private void GenericMenuButton_Click(object sender, EventArgs e)
         {
             if (sender is Button btnSender)
@@ -209,31 +200,30 @@ namespace N6
                 }
             }
         }
+
+        private void btnTrangChu_Click(object sender, EventArgs e)
+        {
+            LoadAdminHomePage();
+        }
+
         private void btnQuanLyGV_Click(object sender, EventArgs e)
         {
             panelContent.Controls.Clear();
+            // Thay UC_QuanLyGiaoVien bằng tên UserControl thực tế của bạn
             UC_QuanLyGiaoVien uc = new UC_QuanLyGiaoVien();
-            panelContent.Controls.Add(uc);
             uc.Dock = DockStyle.Fill;
+            panelContent.Controls.Add(uc);
+            ActivateButton(FindButtonByText("Quản lý Giáo viên"));
         }
-        private void ActivateButton(Button btn)
-        {
-            if (currentActiveBtn != null)
-            {
-                currentActiveBtn.BackColor = isDarkMode ? darkModeColors["menuBg"] : lightModeColors["menuBg"];
-            }
-            currentActiveBtn = btn;
-            btn.BackColor = isDarkMode ? darkModeColors["menuBtnActiveBg"] : lightModeColors["menuBtnActiveBg"];
-        }
-
-        
 
         private void btnQuanLyLop_Click(object sender, EventArgs e)
         {
             panelContent.Controls.Clear();
+            // Thay UC_QuanLyLopHocSinh bằng tên UserControl thực tế của bạn
             UC_QuanLyLopHocSinh uc = new UC_QuanLyLopHocSinh();
-            panelContent.Controls.Add(uc);
             uc.Dock = DockStyle.Fill;
+            panelContent.Controls.Add(uc);
+            ActivateButton(FindButtonByText("Quản lý Lớp học"));
         }
 
         private void btnDangXuat_Click(object sender, EventArgs e)
@@ -244,26 +234,28 @@ namespace N6
                                                   MessageBoxIcon.Question);
             if (result == DialogResult.Yes)
             {
-                // Bước 1: Xóa thông tin người dùng hiện tại trong Settings
-                // Điều này rất quan trọng để Program.cs biết cần quay lại màn hình đăng nhập
                 Properties.Settings.Default.CurrentUser = "";
-                Properties.Settings.Default.isAdmin = false; // Reset luôn trạng thái admin
+                Properties.Settings.Default.isAdmin = false;
                 Properties.Settings.Default.Save();
-
-                // Bước 2: Đóng form hiện tại.
-                // Program.cs sẽ tự động xử lý việc mở lại form đăng nhập.
-                this.Close();
+                this.Close(); // Program.cs sẽ xử lý việc mở lại form đăng nhập
             }
         }
 
-        private void btnToggleMenu_Click(object sender, EventArgs e)
+        // --- User Menu and Settings ---
+        private void UserControl_Click(object sender, EventArgs e)
         {
-            panelMenu.Width = isMenuCollapsed ? menuWidth : collapsedMenuWidth;
-            isMenuCollapsed = !isMenuCollapsed;
+            if (sender is Control control)
+                userMenu.Show(control, new Point(0, control.Height));
         }
 
-        private void btnCollapseMenu_Click(object sender, EventArgs e) => btnToggleMenu_Click(sender, e);
+        private void SettingsItem_Click(object sender, EventArgs e)
+        {
+            // Mở form cài đặt hoặc profile của Admin nếu có
+            // Ví dụ: new AdminProfileForm().ShowDialog(this);
+            MessageBox.Show("Chức năng cài đặt đang được phát triển.");
+        }
 
+        // --- Theme and Window Controls ---
         private void btnThemeToggle_Click(object sender, EventArgs e)
         {
             isDarkMode = !isDarkMode;
@@ -277,6 +269,41 @@ namespace N6
 
         private void labelMaximize_Click(object sender, EventArgs e) =>
             this.WindowState = this.WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
+
+        #endregion
+
+        #region Helper Methods
+
+        private void ActivateButton(Button btn)
+        {
+            if (btn == null || btn == currentActiveBtn) return;
+
+            var colors = isDarkMode ? darkModeColors : lightModeColors;
+
+            // Deactivate the old button
+            if (currentActiveBtn != null)
+            {
+                currentActiveBtn.BackColor = colors["menuBg"];
+                currentActiveBtn.ForeColor = colors["menuBtnText"];
+            }
+
+            // Activate the new button
+            currentActiveBtn = btn;
+            currentActiveBtn.BackColor = colors["menuBtnActiveBg"];
+            currentActiveBtn.ForeColor = colors["textPrimary"];
+        }
+
+        private Button FindButtonByText(string text)
+        {
+            foreach (Button btn in _buttonHandlers.Keys)
+            {
+                if (btn.Text.Contains(text))
+                {
+                    return btn;
+                }
+            }
+            return null;
+        }
 
         #endregion
     }

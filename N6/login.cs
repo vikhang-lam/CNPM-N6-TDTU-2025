@@ -13,6 +13,24 @@ namespace N6
         private float baseHeight = 782f;
         private Dictionary<Control, float> baseFonts = new Dictionary<Control, float>();
 
+        // THÊM VÀO: Các hàm để kéo thả cửa sổ
+        public const int WM_NCLBUTTONDOWN = 0xA1;
+        public const int HT_CAPTION = 0x2;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        private void Form_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                ReleaseCapture();
+                SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+            }
+        }
+
         public login()
         {
             InitializeComponent();
@@ -72,6 +90,13 @@ namespace N6
             this.paneluser4.Click += new System.EventHandler(this.paneluser4_Click);
 
             this.pictureBoxAppIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pictureBoxAppIcon_MouseClick);
+
+            // THÊM VÀO: Gán sự kiện kéo thả cho các control ở header
+            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
+            this.labelGreeting.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
+            this.labelInstruction.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
+            this.pictureBoxAppIcon.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
+            this.panelTopBar.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
         }
 
         private void pictureBoxAppIcon_MouseClick(object sender, MouseEventArgs e)
@@ -371,6 +396,35 @@ namespace N6
             {
                 MessageBox.Show("Lỗi trong quá trình đăng nhập: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                // Unhook all events to prevent memory leaks and crashes
+                this.Resize -= login_Resize;
+
+                this.paneluser1.Resize -= paneluser_Resize;
+                this.paneluser2.Resize -= paneluser_Resize;
+                this.paneluser3.Resize -= paneluser_Resize;
+                this.paneluser4.Resize -= paneluser_Resize;
+
+                this.paneluser1.Click -= paneluser1_Click;
+                this.paneluser2.Click -= paneluser2_Click;
+                this.paneluser3.Click -= paneluser3_Click;
+                this.paneluser4.Click -= paneluser4_Click;
+
+                this.pictureBoxAppIcon.MouseClick -= pictureBoxAppIcon_MouseClick;
+
+                // Unhook drag events
+                this.MouseDown -= Form_MouseDown;
+                this.labelGreeting.MouseDown -= Form_MouseDown;
+                this.labelInstruction.MouseDown -= Form_MouseDown;
+                this.pictureBoxAppIcon.MouseDown -= Form_MouseDown;
+
+                components.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

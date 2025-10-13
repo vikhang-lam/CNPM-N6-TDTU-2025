@@ -12,8 +12,7 @@
         private System.Windows.Forms.ToolStripMenuItem doiMauMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem xoaGhiChuMenuItem;
-
-        
+        private System.Windows.Forms.Button btnImportTKB; // Thêm khai báo nút mới
 
         private void InitializeComponent()
         {
@@ -28,6 +27,7 @@
             this.btnPrevWeek = new System.Windows.Forms.Button();
             this.btnNextWeek = new System.Windows.Forms.Button();
             this.panelTop = new System.Windows.Forms.Panel();
+            this.btnImportTKB = new System.Windows.Forms.Button(); // Thêm khởi tạo
             ((System.ComponentModel.ISupportInitialize)(this.dgvTKB)).BeginInit();
             this.contextMenuTKB.SuspendLayout();
             this.panelTop.SuspendLayout();
@@ -131,6 +131,7 @@
             // 
             // panelTop
             // 
+            this.panelTop.Controls.Add(this.btnImportTKB); // Thêm nút vào panel
             this.panelTop.Controls.Add(this.btnPrevWeek);
             this.panelTop.Controls.Add(this.btnNextWeek);
             this.panelTop.Controls.Add(this.lblWeek);
@@ -140,6 +141,22 @@
             this.panelTop.Size = new System.Drawing.Size(900, 55);
             this.panelTop.TabIndex = 4;
             // 
+            // btnImportTKB
+            // 
+            this.btnImportTKB.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.btnImportTKB.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
+            this.btnImportTKB.FlatAppearance.BorderSize = 0;
+            this.btnImportTKB.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnImportTKB.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.btnImportTKB.ForeColor = System.Drawing.Color.White;
+            this.btnImportTKB.Location = new System.Drawing.Point(110, 10);
+            this.btnImportTKB.Name = "btnImportTKB";
+            this.btnImportTKB.Size = new System.Drawing.Size(120, 35);
+            this.btnImportTKB.TabIndex = 4;
+            this.btnImportTKB.Text = "📥 Import";
+            this.btnImportTKB.UseVisualStyleBackColor = false;
+            this.btnImportTKB.Click += new System.EventHandler(this.btnImportTKB_Click);
+            //
             // UC_ThoiKhoaBieu
             // 
             this.Controls.Add(this.dgvTKB);
@@ -150,7 +167,6 @@
             this.contextMenuTKB.ResumeLayout(false);
             this.panelTop.ResumeLayout(false);
             this.ResumeLayout(false);
-
         }
     }
 }

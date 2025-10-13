@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace N6
@@ -11,7 +12,6 @@ namespace N6
         private string maGV;
         private DateTime currentMonday;
 
-        private Dictionary<string, Color> subjectColors = new Dictionary<string, Color>();
         private Dictionary<Point, Color> cellColors = new Dictionary<Point, Color>();
         private Point selectedCellForColorChange;
 
@@ -23,43 +23,38 @@ namespace N6
             maGV = maGVien;
             InitGrid();
 
-            DateTime today = DateTime.Today;
-            currentMonday = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
-            if (today.DayOfWeek == DayOfWeek.Sunday)
-            {
-                currentMonday = today.AddDays(-6);
-            }
+            SetCurrentWeek(DateTime.Today);
 
             dgvTKB.CellPainting += DgvTKB_CellPainting;
 
             LoadThoiKhoaBieu();
 
             InitializeTimer();
-
-            // ### UPDATED HERE: Đăng ký lắng nghe "tín hiệu" ###
             DatabaseHelper.ThoiKhoaBieuChanged += OnThoiKhoaBieuChanged;
         }
 
-        // ### NEW METHOD HERE: Hàm sẽ được gọi khi nhận được "tín hiệu" ###
+        private void SetCurrentWeek(DateTime dateInWeek)
+        {
+            int diff = (int)DayOfWeek.Monday - (int)dateInWeek.DayOfWeek;
+            if (diff > 0) diff -= 7;
+            currentMonday = dateInWeek.AddDays(diff).Date;
+        }
+
         private void OnThoiKhoaBieuChanged(object sender, EventArgs e)
         {
-            // Chỉ cần gọi lại hàm load dữ liệu là xong
             LoadThoiKhoaBieu();
         }
 
         private void InitializeTimer()
         {
-            refreshTimer = new Timer();
-            refreshTimer.Interval = 60000;
+            refreshTimer = new Timer { Interval = 60000 };
             refreshTimer.Tick += RefreshTimer_Tick;
             refreshTimer.Start();
         }
 
         private void RefreshTimer_Tick(object sender, EventArgs e)
         {
-            refreshTimer.Stop();
             LoadThoiKhoaBieu();
-            refreshTimer.Start();
         }
 
         private void InitGrid()
@@ -93,8 +88,7 @@ namespace N6
             string[] thu = { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật" };
             for (int i = 0; i < 7; i++)
             {
-                DateTime currentDate = currentMonday.AddDays(i);
-                dgvTKB.Columns[i].HeaderText = $"{thu[i]}\n{currentDate:dd/MM}";
+                dgvTKB.Columns[i].HeaderText = $"{thu[i]}\n{currentMonday.AddDays(i):dd/MM}";
             }
         }
 
@@ -128,37 +122,42 @@ namespace N6
                 string mauSac = r["MauSac"].ToString();
 
                 int col = (int)ngay.DayOfWeek - (int)DayOfWeek.Monday;
-                if (ngay.DayOfWeek == DayOfWeek.Sunday) col = 6;
+                if (col < 0) col = 6;
 
                 if (tiet >= 0 && tiet < dgvTKB.RowCount && col >= 0 && col < dgvTKB.ColumnCount)
                 {
                     Point cellPosition = new Point(col, tiet);
-                    string displayValue = "";
-
-                    if (!string.IsNullOrEmpty(mon))
-                    {
-                        displayValue = mon + " - " + lop;
-                    }
-
+                    string displayValue = !string.IsNullOrEmpty(mon) ? $"{mon} - {lop}" : "";
                     if (!string.IsNullOrEmpty(ghichu))
                     {
-                        displayValue += (string.IsNullOrEmpty(displayValue) ? "" : "\n") + "(" + ghichu + ")";
+                        displayValue += (string.IsNullOrEmpty(displayValue) ? "" : "\n") + $"({ghichu})";
                     }
 
                     dgvTKB[col, tiet].Value = displayValue;
                     dgvTKB[col, tiet].ToolTipText = displayValue;
 
-                    if (!string.IsNullOrEmpty(mauSac))
-                    {
-                        try { cellColors[cellPosition] = ColorTranslator.FromHtml(mauSac); } catch { }
-                    }
-                    else if (!string.IsNullOrEmpty(ghichu))
-                    {
-                        cellColors[cellPosition] = Color.FromArgb(230, 230, 230);
-                    }
+                    if (!string.IsNullOrEmpty(mauSac)) { try { cellColors[cellPosition] = ColorTranslator.FromHtml(mauSac); } catch { } }
+                    else if (!string.IsNullOrEmpty(ghichu)) { cellColors[cellPosition] = Color.FromArgb(230, 230, 230); }
                 }
             }
             dgvTKB.Invalidate();
+        }
+
+        private void btnImportTKB_Click(object sender, EventArgs e)
+        {
+            string tenGV = DatabaseHelper.GetTeacherNameById(this.maGV);
+
+            using (var importForm = new frmImportExcel(frmImportExcel.ImportType.ThoiKhoaBieu, this.maGV, tenGV))
+            {
+                if (importForm.ShowDialog() == DialogResult.OK)
+                {
+                    if (importForm.FirstImportedDate.HasValue)
+                    {
+                        SetCurrentWeek(importForm.FirstImportedDate.Value);
+                    }
+                    LoadThoiKhoaBieu();
+                }
+            }
         }
 
         private void dgvTKB_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
@@ -177,14 +176,7 @@ namespace N6
         {
             using (ColorDialog colorDialog = new ColorDialog())
             {
-                if (cellColors.ContainsKey(selectedCellForColorChange))
-                {
-                    colorDialog.Color = cellColors[selectedCellForColorChange];
-                }
-                else
-                {
-                    colorDialog.Color = Color.White;
-                }
+                colorDialog.Color = cellColors.ContainsKey(selectedCellForColorChange) ? cellColors[selectedCellForColorChange] : Color.White;
 
                 if (colorDialog.ShowDialog() == DialogResult.OK)
                 {
@@ -215,13 +207,7 @@ namespace N6
             e.PaintBackground(e.ClipBounds, true);
 
             Point cellPosition = new Point(e.ColumnIndex, e.RowIndex);
-            Color cellColor = Color.White;
-            if (cellColors.ContainsKey(cellPosition))
-            {
-                cellColor = cellColors[cellPosition];
-            }
-
-            if (cellColor != Color.White)
+            if (cellColors.TryGetValue(cellPosition, out Color cellColor) && cellColor != Color.White)
             {
                 using (Brush backBrush = new SolidBrush(cellColor))
                 {
@@ -231,16 +217,12 @@ namespace N6
 
             e.Graphics.DrawRectangle(Pens.LightGray, e.CellBounds.X, e.CellBounds.Y, e.CellBounds.Width - 1, e.CellBounds.Height - 1);
 
-            string cellValue = e.Value as string ?? string.Empty;
-            if (!string.IsNullOrEmpty(cellValue))
+            if (e.Value is string cellValue && !string.IsNullOrEmpty(cellValue))
             {
                 Color fontColor = (cellColor.GetBrightness() < 0.6 && cellColor != Color.White) ? Color.White : Color.Black;
-
                 Rectangle textBounds = e.CellBounds;
                 textBounds.Inflate(-10, -10);
-                TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak;
-
-                TextRenderer.DrawText(e.Graphics, cellValue, e.CellStyle.Font, textBounds, fontColor, flags);
+                TextRenderer.DrawText(e.Graphics, cellValue, e.CellStyle.Font, textBounds, fontColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak);
             }
             e.Handled = true;
         }
@@ -290,19 +272,12 @@ namespace N6
             LoadThoiKhoaBieu();
         }
 
-        // ### UPDATED HERE: Ghi đè phương thức Dispose để hủy đăng ký sự kiện ###
-        // Việc này rất quan trọng để tránh rò rỉ bộ nhớ (memory leak)
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                // Hủy đăng ký lắng nghe "tín hiệu" khi control bị hủy
                 DatabaseHelper.ThoiKhoaBieuChanged -= OnThoiKhoaBieuChanged;
-
-                if (components != null)
-                {
-                    components.Dispose();
-                }
+                components?.Dispose();
             }
             base.Dispose(disposing);
         }

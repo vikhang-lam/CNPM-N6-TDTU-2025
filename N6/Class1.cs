@@ -1953,4 +1953,182 @@ public static class DatabaseHelper
             }
         }
     }
+    public static ImportResult ImportHocSinhToLop(DataTable dt, string maLopTarget)
+    {
+        var result = new ImportResult();
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            using (SqlTransaction tran = conn.BeginTransaction())
+            {
+                try
+                {
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        string maHS = row["MaHS"]?.ToString().Trim();
+                        if (string.IsNullOrWhiteSpace(maHS))
+                        {
+                            result.Failed++;
+                            continue;
+                        }
+
+                        DateTime ngaySinh;
+                        if (!DateTime.TryParse(row["NgaySinh"]?.ToString().Trim(), out ngaySinh))
+                        {
+                            result.Failed++;
+                            continue;
+                        }
+
+                        string check = "SELECT COUNT(1) FROM HocSinh WHERE MaHS=@MaHS";
+                        using (SqlCommand chk = new SqlCommand(check, conn, tran))
+                        {
+                            chk.Parameters.AddWithValue("@MaHS", maHS);
+                            if (Convert.ToInt32(chk.ExecuteScalar()) > 0)
+                            {
+                                result.Skipped++;
+                                continue;
+                            }
+                        }
+
+                        string insert = @"INSERT INTO HocSinh (MaHS, MaLop, HoTen, NgaySinh, GioiTinh, SDTPhuHuynh, DiaChi, DanToc)
+                                          VALUES(@MaHS, @MaLop, @HoTen, @NgaySinh, @GioiTinh, @SDT, @DiaChi, @DanToc)";
+                        using (SqlCommand cmd = new SqlCommand(insert, conn, tran))
+                        {
+                            cmd.Parameters.AddWithValue("@MaHS", maHS);
+                            cmd.Parameters.AddWithValue("@MaLop", maLopTarget);
+                            cmd.Parameters.AddWithValue("@HoTen", row["HoTen"]?.ToString().Trim() ?? "");
+                            cmd.Parameters.AddWithValue("@NgaySinh", ngaySinh);
+                            cmd.Parameters.AddWithValue("@GioiTinh", row["GioiTinh"]?.ToString().Trim() ?? "");
+                            cmd.Parameters.AddWithValue("@SDT", row["SDTPhuHuynh"]?.ToString().Trim() ?? "");
+                            cmd.Parameters.AddWithValue("@DiaChi", row["DiaChi"]?.ToString().Trim() ?? "");
+                            cmd.Parameters.AddWithValue("@DanToc", row["DanToc"]?.ToString().Trim() ?? "");
+                            cmd.ExecuteNonQuery();
+                        }
+                        result.Success++;
+                    }
+                    tran.Commit();
+                }
+                catch
+                {
+                    tran.Rollback();
+                    throw;
+                }
+            }
+        }
+        return result;
+    }
+    public static ImportResult ImportThoiKhoaBieuForGV(string maGV, DataTable dt)
+    {
+        var result = new ImportResult();
+        var allMonHoc = GetAllMonHoc().AsEnumerable();
+        var allLopHoc = GetAllLopHoc().AsEnumerable();
+
+        var datesInExcel = dt.AsEnumerable()
+                             .Select(row => {
+                                 DateTime date;
+                                 if (DateTime.TryParse(row["Ngay"]?.ToString(), out date))
+                                     return (DateTime?)date.Date;
+                                 return null;
+                             })
+                             .Where(d => d.HasValue)
+                             .Select(d => d.Value)
+                             .Distinct().ToList();
+
+        if (!datesInExcel.Any())
+        {
+            result.Failed = dt.Rows.Count;
+            return result;
+        }
+
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            using (SqlTransaction tran = conn.BeginTransaction())
+            {
+                try
+                {
+                    string deleteSql = "DELETE FROM ThoiKhoaBieu WHERE MaGV = @MaGV AND CAST(Ngay AS DATE) IN ({0})";
+                    string dateParams = string.Join(",", datesInExcel.Select((d, i) => $"@date{i}"));
+
+                    using (SqlCommand deleteCmd = new SqlCommand(string.Format(deleteSql, dateParams), conn, tran))
+                    {
+                        deleteCmd.Parameters.AddWithValue("@MaGV", maGV);
+                        for (int i = 0; i < datesInExcel.Count; i++)
+                        {
+                            deleteCmd.Parameters.AddWithValue($"@date{i}", datesInExcel[i]);
+                        }
+                        deleteCmd.ExecuteNonQuery();
+                    }
+
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        try
+                        {
+                            DateTime ngay = Convert.ToDateTime(row["Ngay"]);
+                            int tiet = Convert.ToInt32(row["Tiet"]);
+                            string tenMon = row["TenMon"]?.ToString().Trim();
+                            string tenLop = row["TenLop"]?.ToString().Trim();
+                            string ghiChu = row["GhiChu"]?.ToString().Trim();
+                            string mauSac = row["MauSac"]?.ToString().Trim();
+
+                            var monRow = allMonHoc.FirstOrDefault(m => m.Field<string>("TenMon").Equals(tenMon, StringComparison.OrdinalIgnoreCase));
+                            var lopRow = allLopHoc.FirstOrDefault(l => l.Field<string>("TenLop").Equals(tenLop, StringComparison.OrdinalIgnoreCase));
+
+                            if (monRow == null || lopRow == null)
+                            {
+                                result.Failed++;
+                                continue;
+                            }
+
+                            string maMon = monRow["MaMon"].ToString();
+                            string maLop = lopRow["MaLop"].ToString();
+
+                            string insertSql = @"INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, MaLop, GhiChu, MauSac, MaGV) 
+                                                 VALUES (@MaTKB, @Ngay, @Tiet, @MaMon, @MaLop, @GhiChu, @MauSac, @MaGV)";
+
+                            using (SqlCommand insertCmd = new SqlCommand(insertSql, conn, tran))
+                            {
+                                insertCmd.Parameters.AddWithValue("@MaTKB", "TKB" + Guid.NewGuid().ToString("N").Substring(0, 7));
+                                insertCmd.Parameters.AddWithValue("@Ngay", ngay.Date);
+                                insertCmd.Parameters.AddWithValue("@Tiet", tiet);
+                                insertCmd.Parameters.AddWithValue("@MaMon", maMon);
+                                insertCmd.Parameters.AddWithValue("@MaLop", maLop);
+                                insertCmd.Parameters.AddWithValue("@GhiChu", string.IsNullOrEmpty(ghiChu) ? (object)DBNull.Value : ghiChu);
+                                insertCmd.Parameters.AddWithValue("@MauSac", string.IsNullOrEmpty(mauSac) ? (object)DBNull.Value : mauSac);
+                                insertCmd.Parameters.AddWithValue("@MaGV", maGV);
+                                insertCmd.ExecuteNonQuery();
+                            }
+                            result.Success++;
+                        }
+                        catch
+                        {
+                            result.Failed++;
+                        }
+                    }
+                    tran.Commit();
+                }
+                catch (Exception)
+                {
+                    tran.Rollback();
+                    throw;
+                }
+            }
+        }
+        return result;
+    }
+    // Dán hàm này vào bất kỳ đâu trong class DatabaseHelper
+    public static string GetTeacherNameById(string maGV)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            string sql = "SELECT Ten FROM GiaoVien WHERE MaGV = @MaGV";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaGV", maGV);
+                object result = cmd.ExecuteScalar();
+                return result?.ToString() ?? "Không rõ";
+            }
+        }
+    }
 }

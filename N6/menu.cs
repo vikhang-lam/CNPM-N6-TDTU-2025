@@ -5,6 +5,8 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using System.Runtime.InteropServices; // Thư viện để di chuyển cửa sổ
+
 namespace N6
 {
     public partial class dashboard : Form
@@ -15,10 +17,12 @@ namespace N6
         private const int collapsedMenuWidth = 60;
         private EventHandler logoutHandler;
         private Button currentActiveBtn;
+        private bool isDisposed = false;
 
-        // ====> KHAI BÁO BIẾN CHO NÚT TRỢ NĂNG VÀ LỚP HỌC <====
-        
-        
+        // Khai báo các mục menu làm biến thành viên để Dispose an toàn
+        private ContextMenuStrip userMenu;
+        private ToolStripMenuItem profileItem;
+        private ToolStripMenuItem logoutItem;
 
         private Dictionary<string, Color> lightModeColors = new Dictionary<string, Color>()
         {
@@ -46,6 +50,27 @@ namespace N6
             {"userPanelText", Color.White}
         };
 
+        
+
+        public const int WM_NCLBUTTONDOWN = 0xA1;
+        public const int HT_CAPTION = 0x2;
+
+        [DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        private void TopBar_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                ReleaseCapture();
+                SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+            }
+        }
+
+        
+
         public dashboard()
         {
             InitializeComponent();
@@ -65,10 +90,17 @@ namespace N6
             ApplyTheme();
             InitUserMenu();
 
-            // Gán sự kiện cho nút trợ năng mới
-            this.lblAssistiveToggle.Click += new System.EventHandler(this.lblAssistiveToggle_Click);
+            this.lblAssistiveToggle.Click += lblAssistiveToggle_Click;
+
+            // Gán sự kiện kéo thả cho thanh top bar và các control trên nó
+            this.panelTopBar.MouseDown += TopBar_MouseDown;
+            this.labelAppTitle.MouseDown += TopBar_MouseDown;
+            this.pictureBoxAppIcon.MouseDown += TopBar_MouseDown;
+            this.labelUserName.MouseDown += TopBar_MouseDown;
+            this.labelSubject.MouseDown += TopBar_MouseDown;
             
         }
+
         private void lblAssistiveToggle_Click(object sender, EventArgs e)
         {
             string maGV = DatabaseHelper.GetMaGVByUsername(Properties.Settings.Default.CurrentUser);
@@ -83,9 +115,6 @@ namespace N6
             menu.Location = new Point(menuX, menuY);
             menu.Show();
         }
-        
-
-      
 
         private void LoadHome()
         {
@@ -112,7 +141,6 @@ namespace N6
                     uc = homeUc;
                     break;
                 case "CN2":
-                    
                     uc = new UC_QuanLyLop(user);
                     break;
                 case "CN3":
@@ -192,26 +220,20 @@ namespace N6
             }
 
             pictureBoxUser.SizeMode = PictureBoxSizeMode.Zoom;
-            pictureBoxUser.Region = new Region(new Rectangle(0, 0, pictureBoxUser.Width, pictureBoxUser.Height));
         }
 
-        private ContextMenuStrip userMenu;
         private void InitUserMenu()
         {
             userMenu = new ContextMenuStrip();
             userMenu.Font = new Font("Segoe UI", 11, FontStyle.Regular);
 
-            ToolStripMenuItem profileItem = new ToolStripMenuItem("👤 Hồ sơ cá nhân");
+            profileItem = new ToolStripMenuItem("👤 Hồ sơ cá nhân");
             profileItem.Click += ProfileItem_Click;
 
-            ToolStripMenuItem settingsItem = new ToolStripMenuItem("⚙️ Cài đặt");
-            settingsItem.Click += SettingsItem_Click;
-
-            ToolStripMenuItem logoutItem = new ToolStripMenuItem("🚪 Đăng xuất");
+            logoutItem = new ToolStripMenuItem("🚪 Đăng xuất");
             logoutItem.Click += logoutHandler;
 
             userMenu.Items.Add(profileItem);
-            userMenu.Items.Add(settingsItem);
             userMenu.Items.Add(new ToolStripSeparator());
             userMenu.Items.Add(logoutItem);
 
@@ -231,10 +253,6 @@ namespace N6
             }
         }
 
-        private void SettingsItem_Click(object sender, EventArgs e)
-        {
-            MessageBox.Show("Mở trang cài đặt");
-        }
 
         private void LogoutItem_Click(object sender, EventArgs e)
         {
@@ -355,5 +373,27 @@ namespace N6
         private void labelMinimize_Click(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
         private void labelMaximize_Click(object sender, EventArgs e) =>
             this.WindowState = this.WindowState == FormWindowState.Maximized ? FormWindowState.Normal : FormWindowState.Maximized;
+
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Hủy đăng ký sự kiện kéo thả cửa sổ bằng panelTopBar
+                if (this.panelTopBar != null) this.panelTopBar.MouseDown -= TopBar_MouseDown;
+                if (this.labelAppTitle != null) this.labelAppTitle.MouseDown -= TopBar_MouseDown;
+                if (this.pictureBoxAppIcon != null) this.pictureBoxAppIcon.MouseDown -= TopBar_MouseDown;
+                if (this.labelUserName != null) this.labelUserName.MouseDown -= TopBar_MouseDown;
+                if (this.labelSubject != null) this.labelSubject.MouseDown -= TopBar_MouseDown;
+                if (this.pictureBoxUser != null) this.pictureBoxUser.MouseDown -= TopBar_MouseDown;
+
+                // Dọn dẹp các component mặc định của form
+                if (components != null)
+                {
+                    components.Dispose();
+                }
+            }
+            base.Dispose(disposing);
+        }
     }
 }
