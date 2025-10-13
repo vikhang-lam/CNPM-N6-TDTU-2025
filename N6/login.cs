@@ -24,10 +24,8 @@ namespace N6
             this.Resize += login_Resize;
         }
 
-        // Tìm và thay thế hàm OnPaintBackground cũ bằng hàm đã sửa lỗi này
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            // THÊM KIỂM TRA: Chỉ thực hiện vẽ khi form có kích thước hợp lệ (lớn hơn 0)
             if (this.ClientRectangle.Width > 0 && this.ClientRectangle.Height > 0)
             {
                 using (System.Drawing.Drawing2D.LinearGradientBrush brush = new System.Drawing.Drawing2D.LinearGradientBrush(
@@ -41,7 +39,6 @@ namespace N6
             }
             else
             {
-                // Nếu không, gọi hàm vẽ nền mặc định để tránh bị lỗi
                 base.OnPaintBackground(e);
             }
         }
@@ -61,14 +58,7 @@ namespace N6
             MakePanelRound(paneluser3);
             MakePanelRound(paneluser4);
 
-            string u1 = Properties.Settings.Default["User1"]?.ToString();
-            string u2 = Properties.Settings.Default["User2"]?.ToString();
-            string u3 = Properties.Settings.Default["User3"]?.ToString();
-
-            AddContentToPanel(paneluser1, string.IsNullOrEmpty(u1) ? "GV1" : u1);
-            AddContentToPanel(paneluser2, string.IsNullOrEmpty(u2) ? "GV2" : u2);
-            AddContentToPanel(paneluser3, string.IsNullOrEmpty(u3) ? "GV3" : u3);
-            AddPlusSignToPanel(paneluser4);
+            LoadAndDisplaySavedUsers();
             StoreBaseFonts(this);
 
             this.paneluser1.Resize += paneluser_Resize;
@@ -80,6 +70,40 @@ namespace N6
             this.paneluser2.Click += new System.EventHandler(this.paneluser2_Click);
             this.paneluser3.Click += new System.EventHandler(this.paneluser3_Click);
             this.paneluser4.Click += new System.EventHandler(this.paneluser4_Click);
+
+            this.pictureBoxAppIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pictureBoxAppIcon_MouseClick);
+        }
+
+        private void pictureBoxAppIcon_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                if (MessageBox.Show("Bạn có muốn xóa tất cả các tài khoản đã lưu không?",
+                                    "Xóa Cache Đăng Nhập",
+                                    MessageBoxButtons.YesNo,
+                                    MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        Properties.Settings.Default[$"User{i}"] = "";
+                    }
+                    Properties.Settings.Default.Save();
+                    LoadAndDisplaySavedUsers();
+                    MessageBox.Show("Đã xóa thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void LoadAndDisplaySavedUsers()
+        {
+            string u1 = Properties.Settings.Default["User1"]?.ToString();
+            string u2 = Properties.Settings.Default["User2"]?.ToString();
+            string u3 = Properties.Settings.Default["User3"]?.ToString();
+
+            AddContentToPanel(paneluser1, string.IsNullOrEmpty(u1) ? "GV1" : u1);
+            AddContentToPanel(paneluser2, string.IsNullOrEmpty(u2) ? "GV2" : u2);
+            AddContentToPanel(paneluser3, string.IsNullOrEmpty(u3) ? "GV3" : u3);
+            AddPlusSignToPanel(paneluser4);
         }
 
         private void paneluser_Resize(object sender, EventArgs e)
@@ -111,16 +135,13 @@ namespace N6
         private void MakePanelRound(Panel panel)
         {
             if (panel.Width <= 0 || panel.Height <= 0) return;
-
             GraphicsPath path = new GraphicsPath();
             int cornerRadius = 30;
-
             path.AddArc(0, 0, cornerRadius * 2, cornerRadius * 2, 180, 90);
             path.AddArc(panel.Width - cornerRadius * 2, 0, cornerRadius * 2, cornerRadius * 2, 270, 90);
             path.AddArc(panel.Width - cornerRadius * 2, panel.Height - cornerRadius * 2, cornerRadius * 2, cornerRadius * 2, 0, 90);
             path.AddArc(0, panel.Height - cornerRadius * 2, cornerRadius * 2, cornerRadius * 2, 90, 90);
             path.CloseAllFigures();
-
             panel.Region = new Region(path);
             panel.BackColor = Color.White;
         }
@@ -128,21 +149,23 @@ namespace N6
         private void AddContentToPanel(Panel panel, string name, Image avatar = null)
         {
             panel.Controls.Clear();
-
-            PictureBox avatarBox = new PictureBox();
-            avatarBox.Tag = "avatar";
-            avatarBox.SizeMode = PictureBoxSizeMode.Zoom;
-            avatarBox.BackColor = Color.Transparent;
-            avatarBox.Image = avatar ?? MakeAvatar();
+            PictureBox avatarBox = new PictureBox
+            {
+                Tag = "avatar",
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.Transparent,
+                Image = avatar ?? MakeAvatar()
+            };
             panel.Controls.Add(avatarBox);
 
-            Label nameLabel = new Label();
-            nameLabel.Tag = "username";
-            nameLabel.Text = name;
-            nameLabel.ForeColor = Color.FromArgb(55, 71, 79);
-            nameLabel.BackColor = Color.Transparent;
+            Label nameLabel = new Label
+            {
+                Tag = "username",
+                Text = name,
+                ForeColor = Color.FromArgb(55, 71, 79),
+                BackColor = Color.Transparent
+            };
             panel.Controls.Add(nameLabel);
-
             paneluser_Resize(panel, EventArgs.Empty);
         }
 
@@ -152,7 +175,7 @@ namespace N6
             Bitmap bmp = new Bitmap(size, size);
             using (Graphics g = Graphics.FromImage(bmp))
             {
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.SmoothingMode = SmoothingMode.AntiAlias;
                 using (LinearGradientBrush br = new LinearGradientBrush(
                     new Rectangle(0, 0, size, size),
                     Color.FromArgb(120, 200, 220),
@@ -173,20 +196,22 @@ namespace N6
         private void AddPlusSignToPanel(Panel panel)
         {
             panel.Controls.Clear();
-
-            Label plusLabel = new Label();
-            plusLabel.Text = "+";
-            plusLabel.Font = new Font("Segoe UI", 60, FontStyle.Regular);
-            plusLabel.ForeColor = Color.FromArgb(189, 189, 189);
-            plusLabel.AutoSize = true;
+            Label plusLabel = new Label
+            {
+                Text = "+",
+                Font = new Font("Segoe UI", 60, FontStyle.Regular),
+                ForeColor = Color.FromArgb(189, 189, 189),
+                AutoSize = true
+            };
             plusLabel.Location = new Point((panel.Width - plusLabel.Width) / 2, (panel.Height - plusLabel.Height) / 2 - 20);
 
-            Label otherTeacherLabel = new Label();
-            otherTeacherLabel.Font = new Font("Segoe UI", 12);
-            otherTeacherLabel.ForeColor = Color.FromArgb(97, 97, 97);
-            otherTeacherLabel.AutoSize = true;
+            Label otherTeacherLabel = new Label
+            {
+                Font = new Font("Segoe UI", 12),
+                ForeColor = Color.FromArgb(97, 97, 97),
+                AutoSize = true
+            };
             otherTeacherLabel.Location = new Point((panel.Width - otherTeacherLabel.Width) / 2, plusLabel.Bottom + 10);
-
             panel.Controls.Add(plusLabel);
             panel.Controls.Add(otherTeacherLabel);
         }
@@ -194,33 +219,21 @@ namespace N6
         private void labelClose_Click(object sender, EventArgs e) => this.Close();
         private void labelMinimize_Click(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
         private void labelMaximize_Click(object sender, EventArgs e) =>
-            this.WindowState = this.WindowState == FormWindowState.Normal
-                ? FormWindowState.Maximized
-                : FormWindowState.Normal;
+            this.WindowState = this.WindowState == FormWindowState.Normal ? FormWindowState.Maximized : FormWindowState.Normal;
 
         private void login_Resize(object sender, EventArgs e)
         {
-            // THÊM ĐIỀU KIỆN KIỂM TRA: Chỉ chạy code resize khi cửa sổ không bị thu nhỏ
-            if (this.WindowState == FormWindowState.Minimized)
-            {
-                return; // Bỏ qua việc vẽ lại nếu cửa sổ đang được thu nhỏ
-            }
-
+            if (this.WindowState == FormWindowState.Minimized) return;
             if (this.IsDisposed || this.Width <= 0 || this.Height <= 0 || baseFonts.Count == 0) return;
-
             this.SuspendLayout();
             float scaleX = this.Width / baseWidth;
             float scaleY = this.Height / baseHeight;
             float scaleFactor = Math.Min(scaleX, scaleY);
-
             ScaleControls(this, scaleFactor);
-
-            // Vẽ lại các panel sau khi thay đổi kích thước
             MakePanelRound(paneluser1);
             MakePanelRound(paneluser2);
             MakePanelRound(paneluser3);
             MakePanelRound(paneluser4);
-
             this.ResumeLayout();
         }
 
@@ -230,17 +243,11 @@ namespace N6
             {
                 if (baseFonts.ContainsKey(c))
                 {
-                    float baseSize = baseFonts[c];
-                    float newSize = baseSize * factor;
-
-                    if (newSize < baseSize)
-                        newSize = baseSize;
-
+                    float newSize = baseFonts[c] * factor;
+                    if (newSize < baseFonts[c]) newSize = baseFonts[c];
                     c.Font = new Font(c.Font.FontFamily, newSize, c.Font.Style);
                 }
-
-                if (c.Controls.Count > 0)
-                    ScaleControls(c, factor);
+                if (c.Controls.Count > 0) ScaleControls(c, factor);
             }
         }
 
@@ -248,43 +255,32 @@ namespace N6
         {
             foreach (Control c in parent.Controls)
             {
-                if (!baseFonts.ContainsKey(c))
-                    baseFonts[c] = c.Font.Size;
-
-                if (c.Controls.Count > 0)
-                    StoreBaseFonts(c);
+                if (!baseFonts.ContainsKey(c)) baseFonts[c] = c.Font.Size;
+                if (c.Controls.Count > 0) StoreBaseFonts(c);
             }
         }
 
-        // ================== LOGIN ==================
         private void paneluser1_Click(object sender, EventArgs e) => HandleUserPanelClick(1);
         private void paneluser2_Click(object sender, EventArgs e) => HandleUserPanelClick(2);
         private void paneluser3_Click(object sender, EventArgs e) => HandleUserPanelClick(3);
         private void paneluser4_Click(object sender, EventArgs e) => HandleUserPanelClick(4);
+
         private void UpdateSavedUsers(string username)
         {
-            var users = new List<string>();
+            var users = new List<string>
+            {
+                Properties.Settings.Default["User1"]?.ToString(),
+                Properties.Settings.Default["User2"]?.ToString(),
+                Properties.Settings.Default["User3"]?.ToString()
+            }.Where(u => !string.IsNullOrEmpty(u)).ToList();
 
-            string u1 = Properties.Settings.Default["User1"]?.ToString();
-            string u2 = Properties.Settings.Default["User2"]?.ToString();
-            string u3 = Properties.Settings.Default["User3"]?.ToString();
-
-            if (!string.IsNullOrEmpty(u1)) users.Add(u1);
-            if (!string.IsNullOrEmpty(u2)) users.Add(u2);
-            if (!string.IsNullOrEmpty(u3)) users.Add(u3);
-
-            // loại bỏ user trùng nếu đã có
-            users = users.Where(u => !u.Equals(username, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            // chèn user mới lên đầu
+            users.RemoveAll(u => u.Equals(username, StringComparison.OrdinalIgnoreCase));
             users.Insert(0, username);
-            // giữ lại tối đa 3 user
-            if (users.Count > 3)
-                users = users.Take(3).ToList();
 
-            Properties.Settings.Default["User1"] = users.ElementAtOrDefault(0) ?? "";
-            Properties.Settings.Default["User2"] = users.ElementAtOrDefault(1) ?? "";
-            Properties.Settings.Default["User3"] = users.ElementAtOrDefault(2) ?? "";
+            var finalUsers = users.Take(3).ToList();
+            Properties.Settings.Default["User1"] = finalUsers.ElementAtOrDefault(0) ?? "";
+            Properties.Settings.Default["User2"] = finalUsers.ElementAtOrDefault(1) ?? "";
+            Properties.Settings.Default["User3"] = finalUsers.ElementAtOrDefault(2) ?? "";
             Properties.Settings.Default.Save();
         }
 
@@ -294,8 +290,7 @@ namespace N6
             {
                 string savedUser = (panelIndex >= 1 && panelIndex <= 3) ? Properties.Settings.Default[$"User{panelIndex}"]?.ToString() : null;
 
-                // Mở dialog đăng nhập cho người dùng mới hoặc khi click vào panel trống
-                if (panelIndex == 4 || string.IsNullOrEmpty(savedUser))
+                if (panelIndex == 4 || string.IsNullOrEmpty(savedUser) || savedUser.StartsWith("GV"))
                 {
                     using (var dlg = new LoginDialog(requireUsername: true))
                     {
@@ -305,7 +300,6 @@ namespace N6
                         }
                     }
                 }
-                // Mở dialog đăng nhập cho người dùng đã lưu
                 else
                 {
                     using (var dlg = new LoginDialog(requireUsername: false, presetUsername: savedUser))
@@ -322,6 +316,7 @@ namespace N6
                 MessageBox.Show("Lỗi hệ thống: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void ProcessLogin(string username, string password)
         {
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
@@ -335,13 +330,12 @@ namespace N6
 
             try
             {
-                // Xử lý đăng nhập cho Admin
                 if (cleanUsername.Equals("admin", StringComparison.OrdinalIgnoreCase))
                 {
                     if (DatabaseHelper.CheckAdminLogin(cleanUsername, cleanPassword))
                     {
                         this.DialogResult = DialogResult.OK;
-                        Properties.Settings.Default["LastUser"] = cleanUsername;
+                        Properties.Settings.Default["CurrentUser"] = "Admin";
                         Properties.Settings.Default["isAdmin"] = true;
                         Properties.Settings.Default.Save();
                         this.Close();
@@ -353,23 +347,21 @@ namespace N6
                     return;
                 }
 
-                // Xử lý đăng nhập cho Giáo viên
                 LoginStatus status = DatabaseHelper.CheckTeacherLogin(cleanUsername, cleanPassword);
                 switch (status)
                 {
                     case LoginStatus.Success:
                         UpdateSavedUsers(cleanUsername);
                         this.DialogResult = DialogResult.OK;
-                        Properties.Settings.Default["LastUser"] = cleanUsername;
+                        var profile = DatabaseHelper.GetTeacherProfile(cleanUsername);
+                        Properties.Settings.Default["CurrentUser"] = (profile != null) ? profile.Ten : cleanUsername;
                         Properties.Settings.Default["isAdmin"] = false;
                         Properties.Settings.Default.Save();
                         this.Close();
                         break;
-
                     case LoginStatus.AccountNotActivated:
-                        MessageBox.Show("Tài khoản của bạn đang chờ quản trị viên xác nhận. Vui lòng thử lại sau.", "Tài khoản chưa được kích hoạt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show("Tài khoản của bạn đang chờ quản trị viên xác nhận.", "Tài khoản chưa kích hoạt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         break;
-
                     case LoginStatus.InvalidCredentials:
                         MessageBox.Show("Sai tài khoản hoặc mật khẩu của giáo viên.", "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;

@@ -239,6 +239,7 @@
       <DependentUpon>AdminProfileForm.cs</DependentUpon>
     </Compile>
     <Compile Include="AIAnalyzer.cs" />
+    <Compile Include="AllGameCode.cs" />
     <Compile Include="ChangePasswordForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -277,12 +278,6 @@
     <Compile Include="frmModernPopup.Designer.cs">
       <DependentUpon>frmModernPopup.cs</DependentUpon>
     </Compile>
-    <Compile Include="GameDataInputForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="GameDataInputForm.Designer.cs">
-      <DependentUpon>GameDataInputForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="InsightCard.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -300,12 +295,6 @@
     </Compile>
     <Compile Include="MenuAdmin.Designer.cs">
       <DependentUpon>MenuAdmin.cs</DependentUpon>
-    </Compile>
-    <Compile Include="MiniGameForms.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="MiniGameForms.Designer.cs">
-      <DependentUpon>MiniGameForms.cs</DependentUpon>
     </Compile>
     <Compile Include="PopupWhiteboard.cs">
       <SubType>Form</SubType>
@@ -361,7 +350,7 @@
       <DependentUpon>UC_Home.cs</DependentUpon>
     </Compile>
     <Compile Include="UC_MiniGames.cs">
-      <SubType>Component</SubType>
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="UC_MiniGames.Designer.cs">
       <DependentUpon>UC_MiniGames.cs</DependentUpon>
@@ -433,6 +422,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="UC_QuanLyGiaoVien.resx">
       <DependentUpon>UC_QuanLyGiaoVien.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UC_QuanLyLopHocSinh.resx">
+      <DependentUpon>UC_QuanLyLopHocSinh.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UC_ThoiKhoaBieu.resx">
       <DependentUpon>UC_ThoiKhoaBieu.cs</DependentUpon>
@@ -531,6 +523,24 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\cn1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\tick_sound.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\buzzer_sound.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\cat_sound.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\GameMusic.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\placeholder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\pass_ball.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

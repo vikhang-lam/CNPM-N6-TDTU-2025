@@ -1,276 +1,314 @@
 ﻿using System;
 using System.Data;
 using System.Drawing;
-using System.IO;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
-using OfficeOpenXml;
 
 namespace N6
 {
     public partial class UC_QuanLyLopHocSinh : UserControl
     {
+        private DataTable allLopHoc;
+        private DataTable allGiaoVien;
+        private bool isProgrammaticChange = false;
+
         public UC_QuanLyLopHocSinh()
         {
             InitializeComponent();
-            LoadHocSinh();
-            SetupPlaceholderText();
+            LoadInitialData();
+            StyleControls();
         }
 
-        private void LoadHocSinh()
+        // --- SETUP GIAO DIỆN & DỮ LIỆU ---
+
+        private void LoadInitialData()
         {
             try
             {
-                DataTable dt = DatabaseHelper.GetAllHocSinh();
-                dgvHocSinh.DataSource = dt;
-                CustomizeGrid();
+                allLopHoc = DatabaseHelper.GetAllLopHoc();
+                allGiaoVien = DatabaseHelper.GetAllGiaoVien();
+
+                var khoiList = allLopHoc.AsEnumerable()
+                                        .Select(row => row.Field<string>("Khoi"))
+                                        .Distinct()
+                                        .OrderBy(k => k)
+                                        .ToList();
+                khoiList.Insert(0, "Tất cả các khối");
+                cboKhoi.DataSource = khoiList;
+
+                LoadUnassignedGvcn();
+
+                DatabaseHelper.StyleDataGridView(dgvHocSinh);
+                DatabaseHelper.StyleDataGridView(dgvPhanCong);
+                StyleClassListGrid();
+
+                // Thêm bộ xử lý lỗi dữ liệu cho bảng phân công
+                dgvPhanCong.DataError += new DataGridViewDataErrorEventHandler(dgvPhanCong_DataError);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi tải danh sách học sinh: " + ex.Message);
+                MessageBox.Show("Lỗi tải dữ liệu ban đầu: " + ex.Message);
             }
         }
 
-        private void CustomizeGrid()
+        private void LoadUnassignedGvcn()
         {
-            dgvHocSinh.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvHocSinh.AlternatingRowsDefaultCellStyle.BackColor = System.Drawing.Color.FromArgb(245, 245, 245);
-
-            // Rename columns to Vietnamese
-            if (dgvHocSinh.Columns["MaHS"] != null) dgvHocSinh.Columns["MaHS"].HeaderText = "Mã Học Sinh";
-            if (dgvHocSinh.Columns["MaLop"] != null) dgvHocSinh.Columns["MaLop"].HeaderText = "Mã Lớp";
-            if (dgvHocSinh.Columns["HoTen"] != null) dgvHocSinh.Columns["HoTen"].HeaderText = "Họ và Tên";
-            if (dgvHocSinh.Columns["NgaySinh"] != null) dgvHocSinh.Columns["NgaySinh"].HeaderText = "Ngày Sinh";
-            if (dgvHocSinh.Columns["GioiTinh"] != null) dgvHocSinh.Columns["GioiTinh"].HeaderText = "Giới Tính";
-            if (dgvHocSinh.Columns["SDTPhuHuynh"] != null) dgvHocSinh.Columns["SDTPhuHuynh"].HeaderText = "SĐT Phụ Huynh";
-            if (dgvHocSinh.Columns["DiaChi"] != null) dgvHocSinh.Columns["DiaChi"].HeaderText = "Địa Chỉ";
-            if (dgvHocSinh.Columns["DanToc"] != null) dgvHocSinh.Columns["DanToc"].HeaderText = "Dân Tộc";
+            cboGvcn.DataSource = DatabaseHelper.GetUnassignedHomeroomTeachers();
+            cboGvcn.DisplayMember = "Ten";
+            cboGvcn.ValueMember = "MaGV";
+            cboGvcn.SelectedIndex = -1;
+            cboGvcn.Text = "Chọn giáo viên...";
         }
 
-        private void SetupPlaceholderText()
+        private void StyleControls()
         {
-            txtNgaySinh.GotFocus += (s, e) => {
-                if (txtNgaySinh.Text == "dd/MM/yyyy")
+            pnlFilter.Paint += (s, e) => DrawShadow(s, e, 12, Color.White);
+            pnlClassInfoCard.Paint += (s, e) => DrawShadow(s, e, 12, Color.White);
+            pnlAssignGvcn.Paint += (s, e) => DrawShadow(s, e, 8, Color.FromArgb(248, 249, 250), true);
+
+            Button[] buttons = { btnThemHS, btnSuaHS, btnAssignGvcn };
+            foreach (var btn in buttons)
+            {
+                btn.BackColor = Color.FromArgb(0, 123, 255);
+                btn.ForeColor = Color.White;
+                btn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+                btn.Size = new Size(150, 40);
+                btn.FlatStyle = FlatStyle.Flat;
+                btn.FlatAppearance.BorderSize = 0;
+            }
+            btnXoaHS.BackColor = Color.FromArgb(220, 53, 69);
+            btnAssignGvcn.BackColor = Color.FromArgb(40, 167, 69);
+        }
+
+        private void StyleClassListGrid()
+        {
+            isProgrammaticChange = true;
+            dgvLopHoc.DataSource = allLopHoc.DefaultView;
+            if (dgvLopHoc.Columns["TenLop"] != null) dgvLopHoc.Columns["TenLop"].HeaderText = "DANH SÁCH LỚP HỌC";
+            if (dgvLopHoc.Columns["MaLop"] != null) dgvLopHoc.Columns["MaLop"].Visible = false;
+            if (dgvLopHoc.Columns["Khoi"] != null) dgvLopHoc.Columns["Khoi"].Visible = false;
+            DatabaseHelper.StyleDataGridView(dgvLopHoc);
+            dgvLopHoc.SelectionChanged -= dgvLopHoc_SelectionChanged;
+            dgvLopHoc.SelectionChanged += dgvLopHoc_SelectionChanged;
+            isProgrammaticChange = false;
+        }
+
+        // --- XỬ LÝ SỰ KIỆN ---
+
+        private void cboKhoi_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string selectedKhoi = cboKhoi.SelectedItem.ToString();
+            DataView dv = allLopHoc.DefaultView;
+            dv.RowFilter = (selectedKhoi == "Tất cả các khối") ? string.Empty : $"Khoi = '{selectedKhoi}'";
+            ClearAllDetails();
+        }
+
+        private void dgvLopHoc_SelectionChanged(object sender, EventArgs e)
+        {
+            if (isProgrammaticChange || dgvLopHoc.CurrentRow == null) return;
+            string selectedMaLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
+            LoadClassDetails(selectedMaLop);
+        }
+
+        private void btnAssignGvcn_Click(object sender, EventArgs e)
+        {
+            if (dgvLopHoc.CurrentRow == null || cboGvcn.SelectedValue == null)
+            {
+                MessageBox.Show("Vui lòng chọn lớp và giáo viên để phân công.", "Thông tin thiếu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            try
+            {
+                string maLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
+                string maGV = cboGvcn.SelectedValue.ToString();
+                DatabaseHelper.UpdateGvcnForLop(maLop, maGV);
+                MessageBox.Show("Phân công giáo viên chủ nhiệm thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadUnassignedGvcn();
+                LoadClassDetails(maLop);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi phân công GVCN: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void dgvPhanCong_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
+        {
+            if (dgvPhanCong.CurrentCell.ColumnIndex == dgvPhanCong.Columns["AssignTeacherColumn"].Index && e.Control is ComboBox comboBox)
+            {
+                comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+                string maMon = dgvPhanCong.CurrentRow.Cells["MaMon"].Value.ToString();
+
+                // Lọc danh sách giáo viên theo MaMon của dòng hiện tại
+                DataView dv = new DataView(allGiaoVien)
                 {
-                    txtNgaySinh.Text = "";
-                    txtNgaySinh.ForeColor = Color.Black;
+                    RowFilter = string.IsNullOrEmpty(maMon) ? "MaMon IS NULL" : $"MaMon = '{maMon}'"
+                };
+
+                DataTable filteredTeachers = dv.ToTable();
+                // Thêm lựa chọn "Trống" để gỡ phân công
+                DataRow emptyRow = filteredTeachers.NewRow();
+                emptyRow["Ten"] = "(Trống)";
+                emptyRow["MaGV"] = DBNull.Value;
+                filteredTeachers.Rows.InsertAt(emptyRow, 0);
+
+                comboBox.DataSource = filteredTeachers;
+                comboBox.DisplayMember = "Ten";
+                comboBox.ValueMember = "MaGV";
+            }
+        }
+
+        private void dgvPhanCong_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (isProgrammaticChange || e.RowIndex < 0 || dgvPhanCong.Columns[e.ColumnIndex].Name != "AssignTeacherColumn") return;
+            try
+            {
+                string maLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
+                string maMon = dgvPhanCong.Rows[e.RowIndex].Cells["MaMon"].Value.ToString();
+                object newMaGVObj = dgvPhanCong.Rows[e.RowIndex].Cells["AssignTeacherColumn"].Value;
+                string newMaGV = (newMaGVObj == DBNull.Value || newMaGVObj == null) ? null : newMaGVObj.ToString();
+
+                DatabaseHelper.UpdatePhanCong(maLop, maMon, newMaGV);
+
+                var gv = allGiaoVien.AsEnumerable().FirstOrDefault(r => r.Field<string>("MaGV") == newMaGV);
+                isProgrammaticChange = true;
+                dgvPhanCong.Rows[e.RowIndex].Cells["TenGV"].Value = gv != null ? gv.Field<string>("Ten") : "Chưa phân công";
+                isProgrammaticChange = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi cập nhật phân công: " + ex.Message);
+            }
+        }
+
+        private void dgvPhanCong_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            MessageBox.Show($"Lỗi dữ liệu tại dòng {e.RowIndex + 1}, cột '{dgvPhanCong.Columns[e.ColumnIndex].HeaderText}'.\nChi tiết: {e.Exception.Message}",
+                "Lỗi hiển thị dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            e.ThrowException = false;
+        }
+
+        // --- CÁC HÀM TẢI DỮ LIỆU & TÙY CHỈNH ---
+
+        private void LoadClassDetails(string maLop)
+        {
+            isProgrammaticChange = true;
+            try
+            {
+                DataRow classInfo = DatabaseHelper.GetLopHocDetails(maLop);
+                if (classInfo != null)
+                {
+                    lblTenLop.Text = classInfo["TenLop"].ToString();
+                    lblNamHoc.Text = $"🗓️ Năm học: {classInfo["NamHoc"]}";
+                    lblGVCN.Text = $"👤 GVCN: {classInfo["TenGVCN"]}";
+                    lblSiSo.Text = $"👥 Sĩ số: {classInfo["SiSo"]}";
+                    if (classInfo["TenGVCN"].ToString() == "Chưa có")
+                    {
+                        pnlAssignGvcn.Visible = true;
+                        lblGVCN.ForeColor = Color.FromArgb(220, 53, 69);
+                    }
+                    else
+                    {
+                        pnlAssignGvcn.Visible = false;
+                        lblGVCN.ForeColor = Color.FromArgb(108, 117, 125);
+                    }
                 }
+                dgvHocSinh.DataSource = DatabaseHelper.GetHocSinhByLop(maLop);
+                CustomizeStudentGrid();
+                dgvPhanCong.DataSource = DatabaseHelper.GetPhanCongGiangDayByLop(maLop);
+                CustomizeAssignmentGrid();
+            }
+            catch (Exception ex) { MessageBox.Show("Lỗi khi tải chi tiết lớp: " + ex.Message); }
+            finally { isProgrammaticChange = false; }
+        }
+
+        private void ClearAllDetails()
+        {
+            lblTenLop.Text = "Chọn lớp để xem thông tin";
+            lblNamHoc.Text = "🗓️ Năm học: -";
+            lblGVCN.Text = "👤 GVCN: -";
+            lblGVCN.ForeColor = Color.FromArgb(108, 117, 125);
+            lblSiSo.Text = "👥 Sĩ số: -";
+            dgvHocSinh.DataSource = null;
+            dgvPhanCong.DataSource = null;
+            pnlAssignGvcn.Visible = false;
+        }
+
+        private void CustomizeStudentGrid()
+        {
+            if (dgvHocSinh.DataSource == null || dgvHocSinh.Columns.Count == 0) return;
+            dgvHocSinh.Columns["MaHS"].HeaderText = "Mã Học Sinh";
+            dgvHocSinh.Columns["HoTen"].HeaderText = "Họ và Tên";
+            dgvHocSinh.Columns["GioiTinh"].HeaderText = "Giới Tính";
+            dgvHocSinh.Columns["NgaySinh"].HeaderText = "Ngày Sinh";
+            dgvHocSinh.Columns["DiaChi"].HeaderText = "Địa Chỉ";
+            dgvHocSinh.Columns["DanToc"].HeaderText = "Dân Tộc";
+            dgvHocSinh.Columns["SDTPhuHuynh"].HeaderText = "SĐT Phụ Huynh";
+        }
+
+        private void CustomizeAssignmentGrid()
+        {
+            if (dgvPhanCong.DataSource == null || dgvPhanCong.Columns.Count == 0) return;
+            if (dgvPhanCong.Columns.Contains("AssignTeacherColumn")) dgvPhanCong.Columns.Remove("AssignTeacherColumn");
+
+            dgvPhanCong.Columns["MaMon"].Visible = false;
+            dgvPhanCong.Columns["MaGV"].Visible = false;
+            dgvPhanCong.Columns["TenMon"].HeaderText = "Môn Học";
+            dgvPhanCong.Columns["TenMon"].ReadOnly = true;
+            dgvPhanCong.Columns["TenGV"].HeaderText = "Giáo Viên Hiện Tại";
+            dgvPhanCong.Columns["TenGV"].ReadOnly = true;
+
+            var comboBoxColumn = new DataGridViewComboBoxColumn
+            {
+                Name = "AssignTeacherColumn",
+                HeaderText = "Phân Công Mới",
+                DataSource = allGiaoVien.Copy(), // Gán datasource tổng để xác thực
+                DisplayMember = "Ten",
+                ValueMember = "MaGV",
+                FlatStyle = FlatStyle.Flat
             };
-            txtNgaySinh.LostFocus += (s, e) => {
-                if (string.IsNullOrWhiteSpace(txtNgaySinh.Text))
+            dgvPhanCong.Columns.Add(comboBoxColumn);
+
+            foreach (DataGridViewRow row in dgvPhanCong.Rows)
+            {
+                row.Cells["AssignTeacherColumn"].Value = row.Cells["MaGV"].Value;
+            }
+
+            dgvPhanCong.EditingControlShowing -= dgvPhanCong_EditingControlShowing;
+            dgvPhanCong.EditingControlShowing += dgvPhanCong_EditingControlShowing;
+            dgvPhanCong.CellValueChanged -= dgvPhanCong_CellValueChanged;
+            dgvPhanCong.CellValueChanged += dgvPhanCong_CellValueChanged;
+        }
+
+        // --- HÀM VẼ GIAO DIỆN ---
+        private void DrawShadow(object sender, PaintEventArgs e, int radius, Color color, bool border = false)
+        {
+            Control control = sender as Control;
+            if (control == null) return;
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using (GraphicsPath path = CreateRoundedRect(control.ClientRectangle, radius))
+            {
+                using (SolidBrush brush = new SolidBrush(color)) { e.Graphics.FillPath(brush, path); }
+                if (border)
                 {
-                    txtNgaySinh.Text = "dd/MM/yyyy";
-                    txtNgaySinh.ForeColor = Color.Gray;
-                }
-            };
-            txtNgaySinh.ForeColor = Color.Gray; // Initial color
-        }
-
-        private bool ValidateInput()
-        {
-            if (string.IsNullOrWhiteSpace(txtMaHS.Text) ||
-                string.IsNullOrWhiteSpace(txtHoTen.Text) ||
-                txtNgaySinh.Text == "dd/MM/yyyy" ||
-                cboGioiTinh.SelectedItem == null ||
-                string.IsNullOrWhiteSpace(txtSDTPhuHuynh.Text))
-            {
-                MessageBox.Show("Vui lòng nhập đủ các trường thông tin bắt buộc: Mã HS, Họ Tên, Ngày Sinh, Giới Tính, SĐT Phụ Huynh.", "Thiếu dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (!DateTime.TryParseExact(txtNgaySinh.Text.Trim(), "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out _))
-            {
-                MessageBox.Show("Ngày sinh phải có định dạng dd/MM/yyyy.", "Lỗi định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            return true;
-        }
-
-        private void ClearInputs()
-        {
-            txtMaHS.Clear();
-            txtMaLop.Clear();
-            txtHoTen.Clear();
-            txtNgaySinh.Text = "dd/MM/yyyy";
-            txtNgaySinh.ForeColor = Color.Gray;
-            cboGioiTinh.SelectedIndex = -1;
-            txtSDTPhuHuynh.Clear();
-            txtDiaChi.Clear();
-            txtDanToc.Clear();
-            txtMaHS.Focus();
-        }
-
-        private void dgvHocSinh_CellClick(object sender, DataGridViewCellEventArgs e)
-        {
-            if (e.RowIndex < 0) return;
-            var row = dgvHocSinh.Rows[e.RowIndex];
-            txtMaHS.Text = row.Cells["MaHS"].Value?.ToString() ?? "";
-            txtMaLop.Text = row.Cells["MaLop"].Value?.ToString() ?? "";
-            txtHoTen.Text = row.Cells["HoTen"].Value?.ToString() ?? "";
-            var ns = row.Cells["NgaySinh"].Value;
-            if (ns != DBNull.Value && ns != null)
-            {
-                txtNgaySinh.Text = Convert.ToDateTime(ns).ToString("dd/MM/yyyy");
-                txtNgaySinh.ForeColor = Color.Black;
-            }
-            else
-            {
-                txtNgaySinh.Text = "dd/MM/yyyy";
-                txtNgaySinh.ForeColor = Color.Gray;
-            }
-            cboGioiTinh.Text = row.Cells["GioiTinh"].Value?.ToString() ?? "";
-            txtSDTPhuHuynh.Text = row.Cells["SDTPhuHuynh"].Value?.ToString() ?? "";
-            txtDiaChi.Text = row.Cells["DiaChi"].Value?.ToString() ?? "";
-            txtDanToc.Text = row.Cells["DanToc"].Value?.ToString() ?? "";
-        }
-
-        private void btnThem_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                if (!ValidateInput()) return;
-
-                DatabaseHelper.InsertHocSinh(
-                    txtMaHS.Text.Trim(),
-                    string.IsNullOrWhiteSpace(txtMaLop.Text) ? null : txtMaLop.Text.Trim(),
-                    txtHoTen.Text.Trim(),
-                    DateTime.ParseExact(txtNgaySinh.Text.Trim(), "dd/MM/yyyy", null),
-                    cboGioiTinh.Text,
-                    txtSDTPhuHuynh.Text.Trim(),
-                    txtDiaChi.Text.Trim(),
-                    txtDanToc.Text.Trim()
-                );
-
-                MessageBox.Show("Thêm học sinh thành công.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                LoadHocSinh();
-                ClearInputs();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi khi thêm học sinh: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void btnSua_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(txtMaHS.Text))
-                {
-                    MessageBox.Show("Vui lòng chọn một học sinh để sửa.", "Chưa chọn học sinh", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-                if (!ValidateInput()) return;
-
-                DatabaseHelper.UpdateHocSinh(
-                    txtMaHS.Text.Trim(),
-                    txtHoTen.Text.Trim(),
-                    DateTime.ParseExact(txtNgaySinh.Text.Trim(), "dd/MM/yyyy", null),
-                    cboGioiTinh.Text,
-                    txtSDTPhuHuynh.Text.Trim(),
-                    txtDiaChi.Text.Trim(),
-                    txtDanToc.Text.Trim()
-                );
-
-                // Cập nhật thêm MaLop
-                DatabaseHelper.ExecuteQuery($"UPDATE HocSinh SET MaLop = '{txtMaLop.Text.Trim()}' WHERE MaHS = '{txtMaHS.Text.Trim()}'");
-
-                MessageBox.Show("Cập nhật học sinh thành công.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                LoadHocSinh();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi khi cập nhật: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void btnXoa_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                if (dgvHocSinh.CurrentRow == null)
-                {
-                    MessageBox.Show("Vui lòng chọn một học sinh để xóa.", "Chưa chọn học sinh", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-                string maHS = dgvHocSinh.CurrentRow.Cells["MaHS"].Value?.ToString();
-                if (string.IsNullOrEmpty(maHS)) return;
-
-                if (MessageBox.Show($"Bạn có chắc chắn muốn xóa học sinh '{maHS}' không?", "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                {
-                    DatabaseHelper.DeleteHocSinh(maHS);
-                    MessageBox.Show("Xóa thành công.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    LoadHocSinh();
-                    ClearInputs();
+                    using (Pen pen = new Pen(Color.FromArgb(222, 226, 230))) { e.Graphics.DrawPath(pen, path); }
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi khi xóa: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
 
-        private void btnLamMoi_Click(object sender, EventArgs e)
+        private GraphicsPath CreateRoundedRect(Rectangle r, int radius)
         {
-            ClearInputs();
-            LoadHocSinh();
-        }
-
-        private void btnImport_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog ofd = new OpenFileDialog()
-            {
-                Filter = "Excel files (*.xlsx)|*.xlsx",
-                Title = "Chọn file Excel chứa danh sách học sinh"
-            };
-            if (ofd.ShowDialog() != DialogResult.OK) return;
-
-            try
-            {
-                FileInfo file = new FileInfo(ofd.FileName);
-                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-                using (ExcelPackage package = new ExcelPackage(file))
-                {
-                    var sheet = package.Workbook.Worksheets.FirstOrDefault();
-                    if (sheet == null)
-                    {
-                        MessageBox.Show("File Excel không có sheet hợp lệ.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-
-                    DataTable dt = new DataTable();
-                    foreach (var firstRowCell in sheet.Cells[1, 1, 1, sheet.Dimension.End.Column])
-                    {
-                        dt.Columns.Add(firstRowCell.Text);
-                    }
-
-                    for (int r = 2; r <= sheet.Dimension.End.Row; r++)
-                    {
-                        var row = dt.NewRow();
-                        for (int c = 1; c <= sheet.Dimension.End.Column; c++)
-                        {
-                            row[c - 1] = sheet.Cells[r, c].Text;
-                        }
-                        dt.Rows.Add(row);
-                    }
-
-                    dgvHocSinh.DataSource = dt;
-                    CustomizeGrid();
-
-                    if (MessageBox.Show($"Đã tải {dt.Rows.Count} dòng từ file Excel. Bạn có muốn import vào cơ sở dữ liệu không?\n(Các học sinh có mã trùng lặp sẽ bị bỏ qua)", "Xác nhận import", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                    {
-                        var result = DatabaseHelper.ImportHocSinhFromDataTable(dt);
-                        string msg = $"Import hoàn tất.\n- Thành công: {result.Success}\n- Bỏ qua (đã tồn tại): {result.Skipped}\n- Lỗi (dữ liệu không hợp lệ): {result.Failed}";
-                        MessageBox.Show(msg, "Kết quả Import", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        LoadHocSinh();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi import file Excel: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            r.Width--; r.Height--;
+            int d = radius * 2;
+            GraphicsPath path = new GraphicsPath();
+            if (d <= 0) { path.AddRectangle(r); return path; }
+            path.AddArc(r.X, r.Y, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
         }
     }
 }

@@ -7,30 +7,22 @@ namespace N6
 {
     public partial class LoginDialog : Form
     {
-        public string Username =>
-            (txtUsername.Text == "Nhập tên đăng nhập") ? "" : txtUsername.Text.Trim();
-
-        public string Password =>
-            (txtPassword.Text == "Nhập mật khẩu") ? "" : txtPassword.Text.Trim();
+        public string Username => (txtUsername.Text == "Nhập tên đăng nhập") ? "" : txtUsername.Text.Trim();
+        public string Password => (txtPassword.Text == "Nhập mật khẩu") ? "" : txtPassword.Text.Trim();
 
         private Color usernameBorderColor = Color.RoyalBlue;
         private Color passwordBorderColor = Color.RoyalBlue;
-
         private readonly Color linkHoverColor = ColorTranslator.FromHtml("#2fcaf5");
         private readonly Color linkIdleColor = Color.Gray;
-
         private readonly PaintEventHandler _usernameBorderPaintHandler;
         private readonly PaintEventHandler _passwordBorderPaintHandler;
 
         public LoginDialog(bool requireUsername, string presetUsername = "", Image backgroundImage = null)
         {
             InitializeComponent();
-
             _usernameBorderPaintHandler = new PaintEventHandler(PnlUsernameBorder_Paint);
             _passwordBorderPaintHandler = new PaintEventHandler(PnlPasswordBorder_Paint);
-
             pictureBoxAvatar.Image = MakeAvatar();
-
             SetPlaceholder(txtUsername, "Nhập tên đăng nhập");
             SetPlaceholder(txtPassword, "Nhập mật khẩu");
             txtPassword.UseSystemPasswordChar = false;
@@ -39,7 +31,6 @@ namespace N6
             {
                 txtUsername.Text = presetUsername;
                 txtUsername.ForeColor = Color.Black;
-                // Nếu có username sẵn, không cho sửa và focus thẳng vào password
                 if (!requireUsername)
                 {
                     txtUsername.ReadOnly = true;
@@ -73,15 +64,12 @@ namespace N6
             lblNewTeacherLink.MouseLeave += Link_MouseLeave;
             lblForgotPassword.MouseEnter += Link_MouseEnter;
             lblForgotPassword.MouseLeave += Link_MouseLeave;
-
             pnlUsernameBorder.Paint += _usernameBorderPaintHandler;
             pnlPasswordBorder.Paint += _passwordBorderPaintHandler;
-
             this.Resize += LoginDialog_Resize;
             SetRoundedRegion(12);
         }
 
-        // --- HÀM NÀY ĐÃ ĐƯỢC CẬP NHẬT HOÀN TOÀN ---
         private void BtnOK_Click(object sender, EventArgs e)
         {
             string username = this.Username;
@@ -93,7 +81,6 @@ namespace N6
                 txtUsername.Focus();
                 return;
             }
-
             if (string.IsNullOrWhiteSpace(password))
             {
                 MessageBox.Show("Vui lòng nhập mật khẩu!", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -103,12 +90,11 @@ namespace N6
 
             try
             {
-                // Xử lý đăng nhập cho Admin
                 if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
                 {
                     if (DatabaseHelper.CheckAdminLogin(username, password))
                     {
-                        Properties.Settings.Default["LastUser"] = "admin";
+                        Properties.Settings.Default["CurrentUser"] = "Admin";
                         Properties.Settings.Default["isAdmin"] = true;
                         Properties.Settings.Default.Save();
                         this.DialogResult = DialogResult.OK;
@@ -121,25 +107,20 @@ namespace N6
                     return;
                 }
 
-                // Xử lý đăng nhập cho Giáo viên với logic mới
                 LoginStatus status = DatabaseHelper.CheckTeacherLogin(username, password);
                 switch (status)
                 {
                     case LoginStatus.Success:
-                        // Lưu tên giáo viên thay vì username để hiển thị
                         var profile = DatabaseHelper.GetTeacherProfile(username);
-                        Properties.Settings.Default["LastUser"] = (profile != null) ? profile.Ten : username;
+                        Properties.Settings.Default["CurrentUser"] = (profile != null) ? profile.Ten : username;
                         Properties.Settings.Default["isAdmin"] = false;
                         Properties.Settings.Default.Save();
-
                         this.DialogResult = DialogResult.OK;
                         this.Close();
                         break;
-
                     case LoginStatus.AccountNotActivated:
-                        MessageBox.Show("Tài khoản của bạn đang chờ quản trị viên xác nhận. Vui lòng thử lại sau.", "Tài khoản chưa được kích hoạt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show("Tài khoản của bạn đang chờ quản trị viên xác nhận.", "Tài khoản chưa kích hoạt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         break;
-
                     case LoginStatus.InvalidCredentials:
                         MessageBox.Show("Sai tên đăng nhập hoặc mật khẩu!", "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
@@ -147,19 +128,17 @@ namespace N6
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Đã xảy ra lỗi trong quá trình đăng nhập: " + ex.Message, "Lỗi hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi đăng nhập: " + ex.Message, "Lỗi hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void TogglePassword(object sender, EventArgs e)
         {
             if (txtPassword.Text == "Nhập mật khẩu") return;
-
             txtPassword.UseSystemPasswordChar = !txtPassword.UseSystemPasswordChar;
             picEye.Image = MakeEye(!txtPassword.UseSystemPasswordChar);
         }
 
-        #region Placeholder + Border
         private void SetPlaceholder(TextBox tb, string text)
         {
             tb.Text = text;
@@ -221,9 +200,7 @@ namespace N6
                 this.Region = new Region(path);
             }
         }
-        #endregion
 
-        #region Avatar + Eye
         private Bitmap MakeAvatar()
         {
             int size = 100;
@@ -254,15 +231,12 @@ namespace N6
                 using (Pen p = new Pen(Color.DimGray, 2))
                 {
                     g.DrawEllipse(p, 2, 5, 14, 8);
-                    if (open)
-                        g.FillEllipse(Brushes.DimGray, 7, 8, 4, 4);
-                    else
-                        g.DrawLine(p, 3, 13, 15, 5);
+                    if (open) g.FillEllipse(Brushes.DimGray, 7, 8, 4, 4);
+                    else g.DrawLine(p, 3, 13, 15, 5);
                 }
             }
             return bmp;
         }
-        #endregion
 
         private void TxtUsername_GotFocus(object sender, EventArgs e) => FocusTextBox(txtUsername, pnlUsernameBorder, ref usernameBorderColor, "Nhập tên đăng nhập");
         private void TxtUsername_LostFocus(object sender, EventArgs e) => UnfocusTextBox(txtUsername, pnlUsernameBorder, ref usernameBorderColor, "Nhập tên đăng nhập");
@@ -284,6 +258,7 @@ namespace N6
                 registrationForm.ShowDialog();
             }
         }
+
         private void LblForgotPassword_Click(object sender, EventArgs e) => MessageBox.Show("Chức năng này đang được phát triển.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
         private void Link_MouseEnter(object sender, EventArgs e) { if (sender is Label label) { label.ForeColor = linkHoverColor; } }
         private void Link_MouseLeave(object sender, EventArgs e) { if (sender is Label label) { label.ForeColor = linkIdleColor; } }
@@ -304,19 +279,9 @@ namespace N6
                 lblForgotPassword.MouseEnter -= Link_MouseEnter;
                 lblForgotPassword.MouseLeave -= Link_MouseLeave;
 
-                if (pnlUsernameBorder != null)
-                {
-                    pnlUsernameBorder.Paint -= _usernameBorderPaintHandler;
-                }
-                if (pnlPasswordBorder != null)
-                {
-                    pnlPasswordBorder.Paint -= _passwordBorderPaintHandler;
-                }
-
-                if (components != null)
-                {
-                    components.Dispose();
-                }
+                if (pnlUsernameBorder != null) pnlUsernameBorder.Paint -= _usernameBorderPaintHandler;
+                if (pnlPasswordBorder != null) pnlPasswordBorder.Paint -= _passwordBorderPaintHandler;
+                if (components != null) components.Dispose();
             }
             base.Dispose(disposing);
         }

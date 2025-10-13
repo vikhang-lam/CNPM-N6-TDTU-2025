@@ -1087,7 +1087,8 @@ public static class DatabaseHelper
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            string sql = "SELECT MaGV, Ten, Username, Email, SDT, TrangThai FROM GiaoVien";
+            // Sửa lại câu SQL để lấy thêm cột MaMon, rất quan trọng cho việc lọc
+            string sql = "SELECT MaGV, Ten, Username, Email, SDT, TrangThai, MaMon FROM GiaoVien";
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
             DataTable dt = new DataTable();
             da.Fill(dt);
@@ -1265,10 +1266,17 @@ public static class DatabaseHelper
     {
         using (SqlConnection conn = new SqlConnection(connectionString))
         {
-            string sql = @"SELECT l.MaLop, l.TenLop 
-                           FROM LopHoc l
-                           INNER JOIN PhanCongGiangDay pc ON l.MaLop = pc.MaLop
-                           WHERE pc.MaGV = @maGV";
+            // Logic này đã đúng với yêu cầu của bạn: lấy từ PhanCongGiangDay và lớp chủ nhiệm
+            string sql = @"
+                SELECT DISTINCT l.MaLop, l.TenLop 
+                FROM LopHoc l
+                JOIN PhanCongGiangDay pc ON l.MaLop = pc.MaLop
+                WHERE pc.MaGV = @maGV
+                UNION
+                SELECT MaLop, TenLop 
+                FROM LopHoc
+                WHERE MaGVCN = @maGV";
+
             SqlDataAdapter da = new SqlDataAdapter(sql, conn);
             da.SelectCommand.Parameters.AddWithValue("@maGV", maGV);
             DataTable dt = new DataTable();
@@ -1782,6 +1790,167 @@ public static class DatabaseHelper
             DataTable dt = new DataTable();
             da.Fill(dt);
             return dt;
+        }
+    }
+    // Add these new methods anywhere inside the DatabaseHelper class
+
+    public static DataTable GetAllLopHoc()
+    {
+        string sql = "SELECT MaLop, TenLop, Khoi FROM LopHoc ORDER BY Khoi, TenLop";
+        return ExecuteQuery(sql);
+    }
+
+    // Dán 3 hàm mới này vào bất kỳ đâu bên trong class DatabaseHelper
+
+    /// <summary>
+    /// Lấy danh sách các giáo viên chưa được phân công làm GVCN cho bất kỳ lớp nào.
+    /// </summary>
+    public static DataTable GetUnassignedHomeroomTeachers()
+    {
+        string sql = @"
+            SELECT MaGV, Ten 
+            FROM GiaoVien 
+            WHERE TrangThai = N'Đã xác nhận' AND MaGV NOT IN (SELECT DISTINCT MaGVCN FROM LopHoc WHERE MaGVCN IS NOT NULL)";
+        return ExecuteQuery(sql);
+    }
+
+    /// <summary>
+    /// Cập nhật giáo viên chủ nhiệm cho một lớp học.
+    /// </summary>
+    public static void UpdateGvcnForLop(string maLop, string maGV)
+    {
+        // Nếu maGV là null hoặc rỗng, ta gỡ bỏ GVCN khỏi lớp
+        string sql = "UPDATE LopHoc SET MaGVCN = @MaGV WHERE MaLop = @MaLop";
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaLop", maLop);
+                if (string.IsNullOrEmpty(maGV))
+                {
+                    cmd.Parameters.AddWithValue("@MaGV", DBNull.Value);
+                }
+                else
+                {
+                    cmd.Parameters.AddWithValue("@MaGV", maGV);
+                }
+                conn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ghi đè hàm cũ để xử lý trường hợp GVCN là NULL
+    /// </summary>
+    public static new DataRow GetLopHocDetails(string maLop)
+    {
+        string sql = $@"
+            SELECT 
+                l.MaLop, l.TenLop, l.Khoi, l.NamHoc, 
+                ISNULL(gv.Ten, N'Chưa có') AS TenGVCN,
+                (SELECT COUNT(*) FROM HocSinh WHERE MaLop = l.MaLop) AS SiSo
+            FROM LopHoc l
+            LEFT JOIN GiaoVien gv ON l.MaGVCN = gv.MaGV
+            WHERE l.MaLop = '{maLop}'";
+        DataTable dt = ExecuteQuery(sql);
+        return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+    }
+
+    public static DataTable GetPhanCongGiangDayByLop(string maLop)
+    {
+        string sql = @"
+            -- Lấy tất cả các môn học
+            SELECT 
+                m.MaMon,
+                m.TenMon,
+                Assigned.MaGV,
+                ISNULL(Assigned.TenGV, 'Chưa phân công') AS TenGV
+            FROM MonHoc m
+            -- Ghép với thông tin các giáo viên ĐÃ ĐƯỢC phân công cho lớp này
+            LEFT JOIN (
+                SELECT g.MaMon, g.MaGV, g.Ten as TenGV
+                FROM PhanCongGiangDay pc
+                JOIN GiaoVien g ON pc.MaGV = g.MaGV
+                WHERE pc.MaLop = @MaLop
+            ) AS Assigned ON m.MaMon = Assigned.MaMon
+            ORDER BY m.TenMon";
+
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            SqlDataAdapter da = new SqlDataAdapter(sql, conn);
+            da.SelectCommand.Parameters.AddWithValue("@MaLop", maLop);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            return dt;
+        }
+    }
+
+    // Tìm và thay thế toàn bộ hàm UpdatePhanCong cũ bằng hàm này
+    public static void UpdatePhanCong(string maLop, string maMon, string newMaGV)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            // Bắt đầu một transaction để đảm bảo cả hai lệnh (xóa và thêm) cùng thành công hoặc thất bại
+            using (SqlTransaction tran = conn.BeginTransaction())
+            {
+                try
+                {
+                    // Bước 1: Tìm và xóa phân công cũ cho môn học này trong lớp này.
+                    // Tức là tìm giáo viên hiện tại dạy môn này và xóa họ khỏi bảng PhanCongGiangDay của lớp.
+                    string findOldGvSql = @"
+                        SELECT pc.MaGV 
+                        FROM PhanCongGiangDay pc
+                        JOIN GiaoVien g ON pc.MaGV = g.MaGV
+                        WHERE pc.MaLop = @MaLop AND g.MaMon = @MaMon";
+
+                    string oldMaGV = null;
+                    using (SqlCommand findCmd = new SqlCommand(findOldGvSql, conn, tran))
+                    {
+                        findCmd.Parameters.AddWithValue("@MaLop", maLop);
+                        findCmd.Parameters.AddWithValue("@MaMon", maMon);
+                        var result = findCmd.ExecuteScalar();
+                        if (result != null)
+                        {
+                            oldMaGV = result.ToString();
+                        }
+                    }
+
+                    // Nếu tìm thấy giáo viên cũ, xóa phân công của họ
+                    if (!string.IsNullOrEmpty(oldMaGV))
+                    {
+                        string deleteSql = "DELETE FROM PhanCongGiangDay WHERE MaLop = @MaLop AND MaGV = @OldMaGV";
+                        using (SqlCommand deleteCmd = new SqlCommand(deleteSql, conn, tran))
+                        {
+                            deleteCmd.Parameters.AddWithValue("@MaLop", maLop);
+                            deleteCmd.Parameters.AddWithValue("@OldMaGV", oldMaGV);
+                            deleteCmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    // Bước 2: Nếu có giáo viên mới được chọn (không phải 'Trống'), thêm phân công mới.
+                    if (!string.IsNullOrEmpty(newMaGV))
+                    {
+                        string insertSql = "INSERT INTO PhanCongGiangDay (MaGV, MaLop) VALUES (@NewMaGV, @MaLop)";
+                        using (SqlCommand insertCmd = new SqlCommand(insertSql, conn, tran))
+                        {
+                            insertCmd.Parameters.AddWithValue("@NewMaGV", newMaGV);
+                            insertCmd.Parameters.AddWithValue("@MaLop", maLop);
+                            insertCmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    // Hoàn tất và lưu thay đổi
+                    tran.Commit();
+                }
+                catch (Exception)
+                {
+                    // Nếu có lỗi, hoàn tác tất cả thay đổi
+                    tran.Rollback();
+                    throw; // Ném lỗi ra ngoài để C# có thể bắt và thông báo
+                }
+            }
         }
     }
 }
