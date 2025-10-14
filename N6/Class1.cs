@@ -1673,7 +1673,24 @@ public static class DatabaseHelper
             return dt;
         }
     }
+    // Dán hàm mới này vào bất kỳ đâu bên trong class DatabaseHelper
+    public static string GetHomeroomClassNameByTeacherId(string maGV)
+    {
+        if (string.IsNullOrEmpty(maGV)) return null;
 
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            // Truy vấn bảng LopHoc để tìm lớp mà giáo viên này là GVCN
+            string sql = "SELECT TenLop FROM LopHoc WHERE MaGVCN = @MaGV";
+            using (SqlCommand cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@MaGV", maGV);
+                object result = cmd.ExecuteScalar(); 
+                return result?.ToString(); 
+            }
+        }
+    }
     public static DataTable GetHomeroomGradebook(string maLop, string loaiDiem)
     {
         using (SqlConnection conn = new SqlConnection(connectionString))

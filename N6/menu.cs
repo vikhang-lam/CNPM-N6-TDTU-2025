@@ -189,7 +189,22 @@ namespace N6
             if (profile != null)
             {
                 labelUserName.Text = profile.Ten;
-                labelSubject.Text = profile.TenMon;
+                string subjectText = profile.TenMon;
+                string maGV = DatabaseHelper.GetMaGVByUsername(username);
+                string tenLopChuNhiem = DatabaseHelper.GetHomeroomClassNameByTeacherId(maGV);
+                string gvcnText; 
+
+                if (!string.IsNullOrEmpty(tenLopChuNhiem))
+                {
+                    gvcnText = $"GVCN: {tenLopChuNhiem}";
+                }
+                else
+                {
+                    gvcnText = "GVCN: Không";
+                }
+
+                labelSubject.Text = $"{subjectText} | {gvcnText}";
+
 
                 string avatarPath = Path.Combine(Application.StartupPath, profile.AnhDaiDien ?? "");
 

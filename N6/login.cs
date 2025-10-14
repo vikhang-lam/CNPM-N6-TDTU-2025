@@ -62,7 +62,13 @@ namespace N6
         }
 
         private void login_Load(object sender, EventArgs e)
-        {
+            {
+        //    Properties.Settings.Default["User1"] = "";
+        //    Properties.Settings.Default["User2"] = "";
+        //    Properties.Settings.Default["User3"] = "";
+
+        //    // Lưu lại thay đổi
+        //    Properties.Settings.Default.Save();
             paneluser1.BorderStyle = BorderStyle.None;
             paneluser2.BorderStyle = BorderStyle.None;
             paneluser3.BorderStyle = BorderStyle.None;

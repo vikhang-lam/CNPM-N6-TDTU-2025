@@ -91,7 +91,7 @@ public class frmAssistiveMenu : frmDraggableRoundedPopup
     }
     private void BtnNoteHS_Click(object sender, EventArgs e)
     {
-        var noteForm = new frmGhiChuHocSinh(_maGV, DatabaseHelper.GetMonByTeacher(_maGV));
+        var noteForm = new frmGhiChuHocSinh(_maGV);
         noteForm.Show();
         this.Close();
     }
