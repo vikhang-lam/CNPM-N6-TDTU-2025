@@ -319,26 +319,30 @@ namespace N6
         {
             try
             {
-                string savedUser = (panelIndex >= 1 && panelIndex <= 3) ? Properties.Settings.Default[$"User{panelIndex}"]?.ToString() : null;
-
-                if (panelIndex == 4 || string.IsNullOrEmpty(savedUser) || savedUser.StartsWith("GV"))
+                // For panel 4 ("+"), always open a blank login dialog.
+                if (panelIndex == 4)
                 {
-                    using (var dlg = new LoginDialog(requireUsername: true))
+                    using (var dlg = new LoginDialog(requireUsername: true)) // Username is editable
                     {
                         if (dlg.ShowDialog() == DialogResult.OK)
                         {
                             ProcessLogin(dlg.Username, dlg.Password);
                         }
                     }
+                    return; // Exit the method here
                 }
-                else
+
+                string savedUser = Properties.Settings.Default[$"User{panelIndex}"]?.ToString();
+
+                if (string.IsNullOrEmpty(savedUser) || savedUser.StartsWith("GV"))
                 {
-                    using (var dlg = new LoginDialog(requireUsername: false, presetUsername: savedUser))
+                    savedUser = "";
+                }
+                using (var dlg = new LoginDialog(requireUsername: true, presetUsername: savedUser))
+                {
+                    if (dlg.ShowDialog() == DialogResult.OK)
                     {
-                        if (dlg.ShowDialog() == DialogResult.OK)
-                        {
-                            ProcessLogin(savedUser, dlg.Password);
-                        }
+                        ProcessLogin(dlg.Username, dlg.Password);
                     }
                 }
             }
