@@ -3,27 +3,21 @@ using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace N6
 {
     public partial class TeacherRegistrationForm : Form
     {
-        private Dictionary<Control, Color> borderColors = new Dictionary<Control, Color>();
-        private Point lastPoint;
-
-        // === FIX START: Khai báo trường để giữ tham chiếu đến delegate Paint ===
+        private readonly Dictionary<Control, Color> _borderColors = new Dictionary<Control, Color>();
+        private Point _lastPoint;
         private readonly PaintEventHandler _pnlBorderPaintHandler;
-        // === FIX END ===
 
         public TeacherRegistrationForm()
         {
             InitializeComponent();
-
-            // === FIX START: Khởi tạo delegate một lần ===
             _pnlBorderPaintHandler = new PaintEventHandler(PnlBorder_Paint);
-            // === FIX END ===
-
             InitializeModernUI();
         }
 
@@ -33,13 +27,14 @@ namespace N6
             SetRoundedRegion(12);
             pictureBoxIcon.Image = MakeRegisterIcon();
 
-            SetupTextBox(txtName, "Họ và tên", pnlNameBorder);
-            SetupTextBox(txtUsername, "Tên đăng nhập", pnlUsernameBorder);
-            SetupTextBox(txtEmail, "Email", pnlEmailBorder);
-            SetupTextBox(txtPhone, "Số điện thoại", pnlPhoneBorder);
-            SetupTextBox(txtPassword, "Mật khẩu", pnlPasswordBorder, true);
-            SetupTextBox(txtConfirmPassword, "Xác nhận mật khẩu", pnlConfirmPasswordBorder, true);
-            SetupComboBox(cmbSubject, pnlSubjectBorder);
+            // Sử dụng phương thức thiết lập control chung
+            SetupControl(txtName, pnlNameBorder, "Họ và tên");
+            SetupControl(txtUsername, pnlUsernameBorder, "Tên đăng nhập");
+            SetupControl(txtEmail, pnlEmailBorder, "Email");
+            SetupControl(txtPhone, pnlPhoneBorder, "Số điện thoại");
+            SetupControl(txtPassword, pnlPasswordBorder, "Mật khẩu", true);
+            SetupControl(txtConfirmPassword, pnlConfirmPasswordBorder, "Xác nhận mật khẩu", true);
+            SetupControl(cmbSubject, pnlSubjectBorder);
 
             lblClose.Click += (s, e) => this.Close();
             this.MouseDown += Form_MouseDown;
@@ -47,44 +42,41 @@ namespace N6
             this.MouseUp += Form_MouseUp;
         }
 
-        private void SetupTextBox(TextBox tb, string placeholder, Panel pnl, bool isPassword = false)
+        // Tái cấu trúc thành một hàm SetupControl chung
+        private void SetupControl(Control control, Panel pnl, string placeholder = null, bool isPassword = false)
         {
-            borderColors[pnl] = Color.Lavender;
-            tb.Text = placeholder;
-            tb.ForeColor = Color.Gray;
-            if (isPassword) tb.UseSystemPasswordChar = false;
-
-            tb.GotFocus += TextBox_GotFocus;
-            tb.LostFocus += TextBox_LostFocus;
-
-            // === FIX START: Sử dụng delegate đã được lưu trữ ===
+            _borderColors[pnl] = Color.Lavender;
             pnl.Paint += _pnlBorderPaintHandler;
-            // === FIX END ===
+            control.Enter += Control_Enter; // Sử dụng sự kiện Enter
+            control.Leave += Control_Leave; // Sử dụng sự kiện Leave
+
+            if (control is TextBox tb)
+            {
+                tb.Text = placeholder;
+                tb.Tag = placeholder;
+                tb.ForeColor = Color.Gray;
+                if (isPassword)
+                {
+                    tb.UseSystemPasswordChar = false;
+                }
+            }
         }
 
-        private void SetupComboBox(ComboBox cb, Panel pnl)
+        #region Events (Enter, Leave, Paint) - ĐÃ CẬP NHẬT
+        // Sự kiện Enter thay cho GotFocus
+        private void Control_Enter(object sender, EventArgs e)
         {
-            borderColors[pnl] = Color.Lavender;
-            cb.GotFocus += ComboBox_GotFocus;
-            cb.LostFocus += ComboBox_LostFocus;
-
-            // === FIX START: Sử dụng delegate đã được lưu trữ ===
-            pnl.Paint += _pnlBorderPaintHandler;
-            // === FIX END ===
-        }
-
-        #region Events (GotFocus, LostFocus, Paint)
-        private void TextBox_GotFocus(object sender, EventArgs e)
-        {
-            var tb = sender as TextBox;
-            var pnl = tb.Parent;
-            borderColors[pnl] = Color.RoyalBlue;
+            var control = sender as Control;
+            if (control == null) return;
+            var pnl = control.Parent;
+            _borderColors[pnl] = Color.RoyalBlue;
             pnl.Invalidate();
 
-            if (tb.ForeColor == Color.Gray)
+            if (control is TextBox tb && tb.ForeColor == Color.Gray)
             {
                 tb.Text = "";
                 tb.ForeColor = Color.Black;
+                // Chỉ thay đổi UseSystemPasswordChar cho các ô mật khẩu
                 if (tb == txtPassword || tb == txtConfirmPassword)
                 {
                     tb.UseSystemPasswordChar = true;
@@ -92,17 +84,24 @@ namespace N6
             }
         }
 
-        private void TextBox_LostFocus(object sender, EventArgs e)
+        // Sự kiện Leave thay cho LostFocus
+        private void Control_Leave(object sender, EventArgs e)
         {
-            var tb = sender as TextBox;
-            var pnl = tb.Parent;
-            borderColors[pnl] = Color.Lavender;
+            var control = sender as Control;
+            if (control == null) return;
+            var pnl = control.Parent;
+            _borderColors[pnl] = Color.Lavender;
             pnl.Invalidate();
 
-            if (string.IsNullOrWhiteSpace(tb.Text))
+            if (control is TextBox tb && string.IsNullOrWhiteSpace(tb.Text))
             {
                 tb.ForeColor = Color.Gray;
-                tb.Text = tb.Tag.ToString();
+                if (tb.Tag != null)
+                {
+                    tb.Text = tb.Tag.ToString();
+                }
+
+                // Chỉ thay đổi UseSystemPasswordChar cho các ô mật khẩu
                 if (tb == txtPassword || tb == txtConfirmPassword)
                 {
                     tb.UseSystemPasswordChar = false;
@@ -110,26 +109,12 @@ namespace N6
             }
         }
 
-        private void ComboBox_GotFocus(object sender, EventArgs e)
-        {
-            var pnl = (sender as ComboBox).Parent;
-            borderColors[pnl] = Color.RoyalBlue;
-            pnl.Invalidate();
-        }
-
-        private void ComboBox_LostFocus(object sender, EventArgs e)
-        {
-            var pnl = (sender as ComboBox).Parent;
-            borderColors[pnl] = Color.Lavender;
-            pnl.Invalidate();
-        }
-
         private void PnlBorder_Paint(object sender, PaintEventArgs e)
         {
             var pnl = sender as Panel;
-            if (pnl != null && borderColors.ContainsKey(pnl))
+            if (pnl != null && _borderColors.ContainsKey(pnl))
             {
-                DrawBorder(e.Graphics, pnl.ClientRectangle, borderColors[pnl]);
+                DrawBorder(e.Graphics, pnl.ClientRectangle, _borderColors[pnl]);
             }
         }
         #endregion
@@ -137,22 +122,27 @@ namespace N6
         #region Form Loading and Submission
         private void TeacherRegistrationForm_Load(object sender, EventArgs e)
         {
-            txtName.Tag = "Họ và tên";
-            txtUsername.Tag = "Tên đăng nhập";
-            txtEmail.Tag = "Email";
-            txtPhone.Tag = "Số điện thoại";
-            txtPassword.Tag = "Mật khẩu";
-            txtConfirmPassword.Tag = "Xác nhận mật khẩu";
+            // Tải dữ liệu môn học
+            try
+            {
+                // Gọi phương thức từ lớp Helper để lấy dữ liệu
+                DataTable dtSubjects = DatabaseHelper.GetAllMonHoc();
 
-            DataTable dtSubjects = DatabaseHelper.GetAllMonHoc();
-            DataRow placeholder = dtSubjects.NewRow();
-            placeholder["MaMon"] = "";
-            placeholder["TenMon"] = "Chọn môn học...";
-            dtSubjects.Rows.InsertAt(placeholder, 0);
+                // Tạo dòng placeholder
+                DataRow placeholder = dtSubjects.NewRow();
+                placeholder["MaMon"] = ""; // Hoặc DBNull.Value
+                placeholder["TenMon"] = "Chọn môn học...";
+                dtSubjects.Rows.InsertAt(placeholder, 0);
 
-            cmbSubject.DataSource = dtSubjects;
-            cmbSubject.DisplayMember = "TenMon";
-            cmbSubject.ValueMember = "MaMon";
+                // Gán dữ liệu cho ComboBox
+                cmbSubject.DataSource = dtSubjects;
+                cmbSubject.DisplayMember = "TenMon"; // Hiển thị tên môn học
+                cmbSubject.ValueMember = "MaMon";   // Giá trị thực sự là mã môn
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Không thể tải danh sách môn học: " + ex.Message, "Lỗi Dữ Liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnSubmit_Click(object sender, EventArgs e)
@@ -160,6 +150,24 @@ namespace N6
             if (IsPlaceholder(txtName) || IsPlaceholder(txtUsername) || IsPlaceholder(txtEmail) || IsPlaceholder(txtPhone) || IsPlaceholder(txtPassword))
             {
                 MessageBox.Show("Vui lòng điền đầy đủ các thông tin bắt buộc.", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!Regex.IsMatch(txtName.Text.Trim(), @"^[\p{L}\s]+$"))
+            {
+                MessageBox.Show("Họ và tên không hợp lệ. Vui lòng chỉ nhập chữ cái và khoảng trắng.", "Lỗi Định Dạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!Regex.IsMatch(txtEmail.Text.Trim(), @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                MessageBox.Show("Địa chỉ email không hợp lệ. Vui lòng nhập lại.", "Lỗi Định Dạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!Regex.IsMatch(txtPhone.Text.Trim(), @"^\d{10}$"))
+            {
+                MessageBox.Show("Số điện thoại không hợp lệ. Vui lòng nhập chính xác 10 chữ số.", "Lỗi Định Dạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -177,6 +185,7 @@ namespace N6
 
             try
             {
+                
                 DatabaseHelper.CreateTeacherRequest(
                     txtName.Text.Trim(),
                     txtUsername.Text.Trim(),
@@ -185,14 +194,14 @@ namespace N6
                     txtEmail.Text.Trim(),
                     txtPhone.Text.Trim()
                 );
-
+                
                 MessageBox.Show("Yêu cầu đã được gửi thành công. Vui lòng chờ admin xác nhận.", "Thành Công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Đã xảy ra lỗi: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Đã xảy ra lỗi khi gửi yêu cầu: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -209,24 +218,24 @@ namespace N6
         #endregion
 
         #region UI Helpers
-        private void Form_MouseDown(object sender, MouseEventArgs e) => lastPoint = new Point(e.X, e.Y);
+        private void Form_MouseDown(object sender, MouseEventArgs e) => _lastPoint = new Point(e.X, e.Y);
         private void Form_MouseMove(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
             {
-                this.Left += e.X - lastPoint.X;
-                this.Top += e.Y - lastPoint.Y;
+                this.Left += e.X - _lastPoint.X;
+                this.Top += e.Y - _lastPoint.Y;
             }
         }
-        private void Form_MouseUp(object sender, MouseEventArgs e) => lastPoint = Point.Empty;
+        private void Form_MouseUp(object sender, MouseEventArgs e) => _lastPoint = Point.Empty;
 
         private void DrawBorder(Graphics g, Rectangle rect, Color color)
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            using (Pen pen = new Pen(color, 2))
-            using (GraphicsPath path = RoundedRect(rect, 8))
+            using (var pen = new Pen(color, 2))
+            using (var path = RoundedRect(rect, 8))
             {
-                g.Clear(this.BackColor);
+                // Dòng g.Clear() đã được bỏ đi, đây là điều đúng đắn
                 g.DrawPath(pen, path);
             }
         }
@@ -235,7 +244,7 @@ namespace N6
         {
             r.Width--; r.Height--;
             int d = radius * 2;
-            GraphicsPath path = new GraphicsPath();
+            var path = new GraphicsPath();
             path.AddArc(r.X, r.Y, d, d, 180, 90);
             path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
             path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
@@ -252,15 +261,16 @@ namespace N6
         private Bitmap MakeRegisterIcon()
         {
             int size = 80;
-            Bitmap bmp = new Bitmap(size, size);
+            var bmp = new Bitmap(size, size);
             using (Graphics g = Graphics.FromImage(bmp))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
-                using (var br = new LinearGradientBrush(new Rectangle(0, 0, size, size), Color.FromArgb(230, 245, 255), Color.FromArgb(200, 230, 250), 45f))
+                var rect = new Rectangle(0, 0, size, size);
+                using (var br = new LinearGradientBrush(rect, Color.FromArgb(230, 245, 255), Color.FromArgb(200, 230, 250), 45f))
                 {
-                    g.FillEllipse(br, 0, 0, size, size);
+                    g.FillEllipse(br, rect);
                 }
-                using (Pen p = new Pen(Color.RoyalBlue, 4))
+                using (var p = new Pen(Color.RoyalBlue, 4))
                 {
                     p.StartCap = LineCap.Round;
                     p.EndCap = LineCap.Round;
@@ -274,27 +284,29 @@ namespace N6
         }
         #endregion
 
-        // === FIX START: Ghi đè Dispose để hủy đăng ký sự kiện ===
+        // Cải thiện phương thức Dispose để hủy đăng ký sự kiện, tránh rò rỉ bộ nhớ
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                // Hủy đăng ký sự kiện Paint cho tất cả các panel
-                pnlNameBorder.Paint -= _pnlBorderPaintHandler;
-                pnlUsernameBorder.Paint -= _pnlBorderPaintHandler;
-                pnlEmailBorder.Paint -= _pnlBorderPaintHandler;
-                pnlPhoneBorder.Paint -= _pnlBorderPaintHandler;
-                pnlPasswordBorder.Paint -= _pnlBorderPaintHandler;
-                pnlConfirmPasswordBorder.Paint -= _pnlBorderPaintHandler;
-                pnlSubjectBorder.Paint -= _pnlBorderPaintHandler;
-
                 if (components != null)
                 {
                     components.Dispose();
                 }
+
+                // Hủy đăng ký tất cả các sự kiện đã dùng
+                foreach (var pnl in _borderColors.Keys)
+                {
+                    pnl.Paint -= _pnlBorderPaintHandler;
+                    if (pnl.Controls.Count > 0)
+                    {
+                        var control = pnl.Controls[0];
+                        control.Enter -= Control_Enter;
+                        control.Leave -= Control_Leave;
+                    }
+                }
             }
             base.Dispose(disposing);
         }
-        // === FIX END ===
     }
 }

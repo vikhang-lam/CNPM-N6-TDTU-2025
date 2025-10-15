@@ -61,11 +61,11 @@ namespace N6
             this.pnlHeader = new System.Windows.Forms.Panel();
             this.pnlHeaderRight = new System.Windows.Forms.FlowLayoutPanel();
             this.pnlFilters = new System.Windows.Forms.FlowLayoutPanel();
+            this.lblMonDay = new System.Windows.Forms.Label();
+            this.cboMonDay = new System.Windows.Forms.ComboBox();
             this.tabLoaiGiaoVien = new System.Windows.Forms.TabControl();
             this.tabChuNhiem = new System.Windows.Forms.TabPage();
             this.tabGiangDay = new System.Windows.Forms.TabPage();
-            this.lblMonDay = new System.Windows.Forms.Label();
-            this.cboMonDay = new System.Windows.Forms.ComboBox();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.pnlCharts = new System.Windows.Forms.FlowLayoutPanel();
             this.chart1 = new System.Windows.Forms.DataVisualization.Charting.Chart();
@@ -107,7 +107,7 @@ namespace N6
             this.btnXuatExcel.Location = new System.Drawing.Point(190, 5);
             this.btnXuatExcel.Margin = new System.Windows.Forms.Padding(10, 5, 0, 5);
             this.btnXuatExcel.Name = "btnXuatExcel";
-            this.btnXuatExcel.Size = new System.Drawing.Size(150, 36);
+            this.btnXuatExcel.Size = new System.Drawing.Size(150, 29);
             this.btnXuatExcel.TabIndex = 0;
             this.btnXuatExcel.Text = "📊 Xuất Excel";
             this.btnXuatExcel.UseVisualStyleBackColor = false;
@@ -123,7 +123,7 @@ namespace N6
             this.btnXuatPDF.Location = new System.Drawing.Point(20, 5);
             this.btnXuatPDF.Margin = new System.Windows.Forms.Padding(10, 5, 10, 5);
             this.btnXuatPDF.Name = "btnXuatPDF";
-            this.btnXuatPDF.Size = new System.Drawing.Size(150, 36);
+            this.btnXuatPDF.Size = new System.Drawing.Size(150, 29);
             this.btnXuatPDF.TabIndex = 1;
             this.btnXuatPDF.Text = "📄 Xuất PDF";
             this.btnXuatPDF.UseVisualStyleBackColor = false;
@@ -184,7 +184,7 @@ namespace N6
             this.btnXuatBaoCao.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnXuatBaoCao.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnXuatBaoCao.ForeColor = System.Drawing.Color.White;
-            this.btnXuatBaoCao.Location = new System.Drawing.Point(770, 15);
+            this.btnXuatBaoCao.Location = new System.Drawing.Point(962, 15);
             this.btnXuatBaoCao.Margin = new System.Windows.Forms.Padding(0, 5, 0, 5);
             this.btnXuatBaoCao.Name = "btnXuatBaoCao";
             this.btnXuatBaoCao.Size = new System.Drawing.Size(160, 36);
@@ -271,6 +271,31 @@ namespace N6
             this.pnlFilters.TabIndex = 1;
             this.pnlFilters.WrapContents = false;
             // 
+            // lblMonDay
+            // 
+            this.lblMonDay.AutoSize = true;
+            this.lblMonDay.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblMonDay.ForeColor = System.Drawing.Color.White;
+            this.lblMonDay.Location = new System.Drawing.Point(770, 15);
+            this.lblMonDay.Margin = new System.Windows.Forms.Padding(0, 5, 5, 5);
+            this.lblMonDay.Name = "lblMonDay";
+            this.lblMonDay.Size = new System.Drawing.Size(51, 23);
+            this.lblMonDay.TabIndex = 6;
+            this.lblMonDay.Text = "Môn:";
+            this.lblMonDay.Visible = false;
+            // 
+            // cboMonDay
+            // 
+            this.cboMonDay.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboMonDay.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.cboMonDay.FormattingEnabled = true;
+            this.cboMonDay.Location = new System.Drawing.Point(826, 15);
+            this.cboMonDay.Margin = new System.Windows.Forms.Padding(0, 5, 15, 5);
+            this.cboMonDay.Name = "cboMonDay";
+            this.cboMonDay.Size = new System.Drawing.Size(121, 31);
+            this.cboMonDay.TabIndex = 7;
+            this.cboMonDay.Visible = false;
+            // 
             // tabLoaiGiaoVien
             // 
             this.tabLoaiGiaoVien.Controls.Add(this.tabChuNhiem);
@@ -303,31 +328,6 @@ namespace N6
             this.tabGiangDay.TabIndex = 1;
             this.tabGiangDay.Text = "Lớp giảng dạy";
             this.tabGiangDay.UseVisualStyleBackColor = true;
-            // 
-            // lblMonDay
-            // 
-            this.lblMonDay.AutoSize = true;
-            this.lblMonDay.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.lblMonDay.ForeColor = System.Drawing.Color.White;
-            this.lblMonDay.Location = new System.Drawing.Point(770, 15);
-            this.lblMonDay.Margin = new System.Windows.Forms.Padding(0, 5, 5, 5);
-            this.lblMonDay.Name = "lblMonDay";
-            this.lblMonDay.Size = new System.Drawing.Size(53, 23);
-            this.lblMonDay.TabIndex = 6;
-            this.lblMonDay.Text = "Môn:";
-            this.lblMonDay.Visible = false;
-            // 
-            // cboMonDay
-            // 
-            this.cboMonDay.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboMonDay.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.cboMonDay.FormattingEnabled = true;
-            this.cboMonDay.Location = new System.Drawing.Point(828, 15);
-            this.cboMonDay.Margin = new System.Windows.Forms.Padding(0, 5, 15, 5);
-            this.cboMonDay.Name = "cboMonDay";
-            this.cboMonDay.Size = new System.Drawing.Size(121, 31);
-            this.cboMonDay.TabIndex = 7;
-            this.cboMonDay.Visible = false;
             // 
             // splitContainer1
             // 
@@ -415,6 +415,7 @@ namespace N6
             ((System.ComponentModel.ISupportInitialize)(this.chart1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.chart2)).EndInit();
             this.ResumeLayout(false);
+
         }
     }
 }

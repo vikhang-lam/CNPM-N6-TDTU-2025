@@ -13,7 +13,6 @@ namespace N6
         private float baseHeight = 782f;
         private Dictionary<Control, float> baseFonts = new Dictionary<Control, float>();
 
-        // THÊM VÀO: Các hàm để kéo thả cửa sổ
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HT_CAPTION = 0x2;
 
@@ -38,7 +37,6 @@ namespace N6
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = Color.White;
-
             this.Resize += login_Resize;
         }
 
@@ -62,13 +60,7 @@ namespace N6
         }
 
         private void login_Load(object sender, EventArgs e)
-            {
-        //    Properties.Settings.Default["User1"] = "";
-        //    Properties.Settings.Default["User2"] = "";
-        //    Properties.Settings.Default["User3"] = "";
-
-        //    // Lưu lại thay đổi
-        //    Properties.Settings.Default.Save();
+        {
             paneluser1.BorderStyle = BorderStyle.None;
             paneluser2.BorderStyle = BorderStyle.None;
             paneluser3.BorderStyle = BorderStyle.None;
@@ -97,7 +89,6 @@ namespace N6
 
             this.pictureBoxAppIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pictureBoxAppIcon_MouseClick);
 
-            // THÊM VÀO: Gán sự kiện kéo thả cho các control ở header
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
             this.labelGreeting.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
             this.labelInstruction.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
@@ -166,15 +157,18 @@ namespace N6
         private void MakePanelRound(Panel panel)
         {
             if (panel.Width <= 0 || panel.Height <= 0) return;
-            GraphicsPath path = new GraphicsPath();
-            int cornerRadius = 30;
-            path.AddArc(0, 0, cornerRadius * 2, cornerRadius * 2, 180, 90);
-            path.AddArc(panel.Width - cornerRadius * 2, 0, cornerRadius * 2, cornerRadius * 2, 270, 90);
-            path.AddArc(panel.Width - cornerRadius * 2, panel.Height - cornerRadius * 2, cornerRadius * 2, cornerRadius * 2, 0, 90);
-            path.AddArc(0, panel.Height - cornerRadius * 2, cornerRadius * 2, cornerRadius * 2, 90, 90);
-            path.CloseAllFigures();
-            panel.Region = new Region(path);
-            panel.BackColor = Color.White;
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                int cornerRadius = 30;
+                path.AddArc(0, 0, cornerRadius * 2, cornerRadius * 2, 180, 90);
+                path.AddArc(panel.Width - cornerRadius * 2, 0, cornerRadius * 2, cornerRadius * 2, 270, 90);
+                path.AddArc(panel.Width - cornerRadius * 2, panel.Height - cornerRadius * 2, cornerRadius * 2, cornerRadius * 2, 0, 90);
+                path.AddArc(0, panel.Height - cornerRadius * 2, cornerRadius * 2, cornerRadius * 2, 90, 90);
+                path.CloseAllFigures();
+                panel.Region?.Dispose();
+                panel.Region = new Region(path);
+                panel.BackColor = Color.White;
+            }
         }
 
         private void AddContentToPanel(Panel panel, string name, Image avatar = null)
@@ -238,6 +232,7 @@ namespace N6
 
             Label otherTeacherLabel = new Label
             {
+                Text = "Giáo viên khác",
                 Font = new Font("Segoe UI", 12),
                 ForeColor = Color.FromArgb(97, 97, 97),
                 AutoSize = true
@@ -319,30 +314,29 @@ namespace N6
         {
             try
             {
-                // For panel 4 ("+"), always open a blank login dialog.
-                if (panelIndex == 4)
+                string presetUsername = "";
+                bool requireUsername = true;
+
+                if (panelIndex >= 1 && panelIndex <= 3)
                 {
-                    using (var dlg = new LoginDialog(requireUsername: true)) // Username is editable
+                    presetUsername = Properties.Settings.Default[$"User{panelIndex}"]?.ToString();
+                    if (string.IsNullOrEmpty(presetUsername) || presetUsername.StartsWith("GV"))
                     {
-                        if (dlg.ShowDialog() == DialogResult.OK)
-                        {
-                            ProcessLogin(dlg.Username, dlg.Password);
-                        }
+                        presetUsername = "";
                     }
-                    return; // Exit the method here
                 }
 
-                string savedUser = Properties.Settings.Default[$"User{panelIndex}"]?.ToString();
+                using (var dlg = new LoginDialog(requireUsername, presetUsername))
+                {
+                    var dialogResult = dlg.ShowDialog();
 
-                if (string.IsNullOrEmpty(savedUser) || savedUser.StartsWith("GV"))
-                {
-                    savedUser = "";
-                }
-                using (var dlg = new LoginDialog(requireUsername: true, presetUsername: savedUser))
-                {
-                    if (dlg.ShowDialog() == DialogResult.OK)
+                    if (dialogResult == DialogResult.OK)
                     {
                         ProcessLogin(dlg.Username, dlg.Password);
+                    }
+                    else if (dialogResult == DialogResult.Retry)
+                    {
+                        ShowRegistrationForm();
                     }
                 }
             }
@@ -350,6 +344,25 @@ namespace N6
             {
                 MessageBox.Show("Lỗi hệ thống: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        // === PHƯƠNG THỨC ĐÃ ĐƯỢC CẬP NHẬT ===
+        private void ShowRegistrationForm()
+        {
+            // Không ẩn form login nữa
+            // this.Visible = false; 
+
+            using (var registrationForm = new TeacherRegistrationForm())
+            {
+                // Hiển thị form đăng ký. Form login sẽ tự động bị vô hiệu hóa cho đến khi form này đóng.
+                registrationForm.ShowDialog(this);
+            }
+
+            // Không cần hiện lại form login
+            // this.Visible = true;
+
+            // Chỉ cần tải lại danh sách người dùng
+            LoadAndDisplaySavedUsers();
         }
 
         private void ProcessLogin(string username, string password)
@@ -411,27 +424,46 @@ namespace N6
         {
             if (disposing && (components != null))
             {
-                // Unhook all events to prevent memory leaks and crashes
                 this.Resize -= login_Resize;
-
-                this.paneluser1.Resize -= paneluser_Resize;
-                this.paneluser2.Resize -= paneluser_Resize;
-                this.paneluser3.Resize -= paneluser_Resize;
-                this.paneluser4.Resize -= paneluser_Resize;
-
-                this.paneluser1.Click -= paneluser1_Click;
-                this.paneluser2.Click -= paneluser2_Click;
-                this.paneluser3.Click -= paneluser3_Click;
-                this.paneluser4.Click -= paneluser4_Click;
-
-                this.pictureBoxAppIcon.MouseClick -= pictureBoxAppIcon_MouseClick;
-
-                // Unhook drag events
                 this.MouseDown -= Form_MouseDown;
-                this.labelGreeting.MouseDown -= Form_MouseDown;
-                this.labelInstruction.MouseDown -= Form_MouseDown;
-                this.pictureBoxAppIcon.MouseDown -= Form_MouseDown;
 
+                if (paneluser1 != null)
+                {
+                    paneluser1.Resize -= paneluser_Resize;
+                    paneluser1.Click -= paneluser1_Click;
+                }
+                if (paneluser2 != null)
+                {
+                    paneluser2.Resize -= paneluser_Resize;
+                    paneluser2.Click -= paneluser2_Click;
+                }
+                if (paneluser3 != null)
+                {
+                    paneluser3.Resize -= paneluser_Resize;
+                    paneluser3.Click -= paneluser3_Click;
+                }
+                if (paneluser4 != null)
+                {
+                    paneluser4.Resize -= paneluser_Resize;
+                    paneluser4.Click -= paneluser4_Click;
+                }
+                if (pictureBoxAppIcon != null)
+                {
+                    pictureBoxAppIcon.MouseClick -= pictureBoxAppIcon_MouseClick;
+                    pictureBoxAppIcon.MouseDown -= Form_MouseDown;
+                }
+                if (labelGreeting != null)
+                {
+                    labelGreeting.MouseDown -= Form_MouseDown;
+                }
+                if (labelInstruction != null)
+                {
+                    labelInstruction.MouseDown -= Form_MouseDown;
+                }
+                if (panelTopBar != null)
+                {
+                    panelTopBar.MouseDown -= Form_MouseDown;
+                }
                 components.Dispose();
             }
             base.Dispose(disposing);

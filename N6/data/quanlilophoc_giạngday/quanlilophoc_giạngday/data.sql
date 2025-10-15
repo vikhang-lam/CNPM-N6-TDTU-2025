@@ -2,6 +2,7 @@
 GO
 USE quanlilophoc_giangday;
 GO
+select * from Giaovien
 ----------------
 -- BẢNG KHÔNG CÓ KHÓA NGOẠI
 --------------------------------------------------
@@ -77,6 +78,7 @@ CREATE TABLE DiemDanh (
     NgayDD DATETIME  DEFAULT GETDATE(),
     Buoi NVARCHAR(10),
     TrangThai NVARCHAR(20),
+	ThoiGianCapNhat DATETIME.
     FOREIGN KEY (MaHS) REFERENCES HocSinh(MaHS) ON DELETE CASCADE
 );
 

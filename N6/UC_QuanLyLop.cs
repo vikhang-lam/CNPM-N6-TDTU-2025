@@ -789,29 +789,10 @@ namespace N6
             dgvHocSinh.DataSource = null;
             dgvHocSinh.Columns.Clear();
             dgvHocSinh.AutoGenerateColumns = true;
+            dgvHocSinh.AllowUserToAddRows = false;
+            dgvHocSinh.AllowUserToDeleteRows = false;
             dgvHocSinh.DataSource = DatabaseHelper.GetHocSinhByLop(_maLop);
-            dgvHocSinh.RowValidated -= DgvHocSinh_RowValidated;
-            dgvHocSinh.RowValidated += DgvHocSinh_RowValidated;
             panelContent.Controls.Add(dgvHocSinh);
-        }
-
-        private void DgvHocSinh_RowValidated(object sender, DataGridViewCellEventArgs e)
-        {
-            try
-            {
-                if (dgvHocSinh.CurrentRow == null || dgvHocSinh.CurrentRow.IsNewRow) return;
-                var row = dgvHocSinh.CurrentRow;
-                string maHS = row.Cells["MaHS"]?.Value?.ToString();
-                if (string.IsNullOrEmpty(maHS)) return;
-                string hoTen = row.Cells["HoTen"]?.Value?.ToString();
-                string gioiTinh = row.Cells["GioiTinh"]?.Value?.ToString();
-                DateTime? ns = null;
-                if (row.Cells["NgaySinh"]?.Value != null && row.Cells["NgaySinh"].Value != DBNull.Value)
-                    ns = Convert.ToDateTime(row.Cells["NgaySinh"].Value);
-                string diaChi = row.Cells["DiaChi"]?.Value?.ToString();
-                DatabaseHelper.UpdateHocSinh(maHS, hoTen, gioiTinh, ns, diaChi);
-            }
-            catch (Exception ex) { MessageBox.Show("Lỗi lưu học sinh: " + ex.Message); }
         }
 
         private void SaveAllCurrentEdits()

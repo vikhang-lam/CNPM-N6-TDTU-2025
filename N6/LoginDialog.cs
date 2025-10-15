@@ -20,6 +20,7 @@ namespace N6
         public LoginDialog(bool requireUsername, string presetUsername = "", Image backgroundImage = null)
         {
             InitializeComponent();
+            this.DoubleBuffered = true;
             _usernameBorderPaintHandler = new PaintEventHandler(PnlUsernameBorder_Paint);
             _passwordBorderPaintHandler = new PaintEventHandler(PnlPasswordBorder_Paint);
             pictureBoxAvatar.Image = MakeAvatar();
@@ -175,13 +176,14 @@ namespace N6
             using (Pen pen = new Pen(color, 2))
             using (GraphicsPath path = RoundedRect(rect, 8))
             {
-                g.Clear(Color.White);
+                // g.Clear(Color.White); // Đã loại bỏ để sửa lỗi GDI handle leak
                 g.DrawPath(pen, path);
             }
         }
 
         private GraphicsPath RoundedRect(Rectangle r, int radius)
         {
+            r.Width--; r.Height--;
             int d = radius * 2;
             GraphicsPath path = new GraphicsPath();
             path.AddArc(r.X, r.Y, d, d, 180, 90);
@@ -196,8 +198,11 @@ namespace N6
         {
             if (this.Width > 0 && this.Height > 0)
             {
-                GraphicsPath path = RoundedRect(this.ClientRectangle, radius);
-                this.Region = new Region(path);
+                this.Region?.Dispose();
+                using (var path = RoundedRect(this.ClientRectangle, radius))
+                {
+                    this.Region = new Region(path);
+                }
             }
         }
 
@@ -253,10 +258,8 @@ namespace N6
 
         private void LblNewTeacherLink_Click(object sender, EventArgs e)
         {
-            using (var registrationForm = new TeacherRegistrationForm())
-            {
-                registrationForm.ShowDialog();
-            }
+            this.DialogResult = DialogResult.Retry;
+            this.Close();
         }
 
         private void LblForgotPassword_Click(object sender, EventArgs e) => MessageBox.Show("Chức năng này đang được phát triển.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -271,17 +274,32 @@ namespace N6
                 txtUsername.LostFocus -= TxtUsername_LostFocus;
                 txtPassword.GotFocus -= TxtPassword_GotFocus;
                 txtPassword.LostFocus -= TxtPassword_LostFocus;
-                this.Resize -= LoginDialog_Resize;
+                picEye.Click -= TogglePassword;
+                btnOK.Click -= BtnOK_Click;
+                btnCancel.Click -= BtnCancel_Click;
+                lblClose.Click -= LblClose_Click;
                 lblNewTeacherLink.Click -= LblNewTeacherLink_Click;
+                lblForgotPassword.Click -= LblForgotPassword_Click;
                 lblNewTeacherLink.MouseEnter -= Link_MouseEnter;
                 lblNewTeacherLink.MouseLeave -= Link_MouseLeave;
-                lblForgotPassword.Click -= LblForgotPassword_Click;
                 lblForgotPassword.MouseEnter -= Link_MouseEnter;
                 lblForgotPassword.MouseLeave -= Link_MouseLeave;
 
-                if (pnlUsernameBorder != null) pnlUsernameBorder.Paint -= _usernameBorderPaintHandler;
-                if (pnlPasswordBorder != null) pnlPasswordBorder.Paint -= _passwordBorderPaintHandler;
-                if (components != null) components.Dispose();
+                if (pnlUsernameBorder != null)
+                {
+                    pnlUsernameBorder.Paint -= _usernameBorderPaintHandler;
+                }
+                if (pnlPasswordBorder != null)
+                {
+                    pnlPasswordBorder.Paint -= _passwordBorderPaintHandler;
+                }
+
+                this.Resize -= LoginDialog_Resize;
+
+                if (components != null)
+                {
+                    components.Dispose();
+                }
             }
             base.Dispose(disposing);
         }

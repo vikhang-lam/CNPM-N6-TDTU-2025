@@ -1613,7 +1613,7 @@ public static class DatabaseHelper
             string newMaGV = "GV" + newId.ToString("D3");
 
             string sql = @"INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaMon, Email, SDT, MaAdmin, TrangThai) 
-                           VALUES (@MaGV, @Ten, @Username, @Password, @MaMon, @Email, @SDT, @MaAdmin, @TrangThai)";
+                       VALUES (@MaGV, @Ten, @Username, @Password, @MaMon, @Email, @SDT, @MaAdmin, @TrangThai)";
 
             using (SqlCommand cmd = new SqlCommand(sql, conn))
             {
@@ -1621,10 +1621,20 @@ public static class DatabaseHelper
                 cmd.Parameters.AddWithValue("@Ten", ten);
                 cmd.Parameters.AddWithValue("@Username", username);
                 cmd.Parameters.AddWithValue("@Password", password);
-                cmd.Parameters.AddWithValue("@MaMon", maMon);
+
+                // Cải tiến: Nếu maMon rỗng thì chèn NULL vào DB
+                if (string.IsNullOrEmpty(maMon))
+                {
+                    cmd.Parameters.AddWithValue("@MaMon", DBNull.Value);
+                }
+                else
+                {
+                    cmd.Parameters.AddWithValue("@MaMon", maMon);
+                }
+
                 cmd.Parameters.AddWithValue("@Email", email);
                 cmd.Parameters.AddWithValue("@SDT", sdt);
-                cmd.Parameters.AddWithValue("@MaAdmin", "AD001");
+                cmd.Parameters.AddWithValue("@MaAdmin", "AD001"); // Giả định MaAdmin luôn là AD001
                 cmd.Parameters.AddWithValue("@TrangThai", "Chưa xác nhận");
                 cmd.ExecuteNonQuery();
             }
