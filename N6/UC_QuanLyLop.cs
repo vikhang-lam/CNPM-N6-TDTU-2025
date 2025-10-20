@@ -46,6 +46,12 @@ namespace N6
         private bool isMenuOpen = false;
         private const int menuWidth = 200;
 
+        // ### REDESIGNED: Controls cho Quỹ Lớp ###
+        private DataGridView dgvQuyLop;
+        private Label lblTongThu_Value, lblTongChi_Value, lblTonQuy_Value; // Labels for values
+        private Button btnThemKhoanQuy;
+
+
         public UC_QuanLyLop(string username)
         {
             InitializeComponent();
@@ -54,7 +60,7 @@ namespace N6
             _currentMaMon = DatabaseHelper.GetMonByTeacher(username);
 
             InitializeDynamicControls();
-           
+
 
             btnQuayLaiChonLop.Click += (s, e) => ShowLopChonUI();
             rbDiemDanh.CheckedChanged += TabButton_CheckedChanged;
@@ -65,7 +71,7 @@ namespace N6
             ShowLopChonUI();
         }
 
-        
+
 
         private void InitializeDynamicControls()
         {
@@ -75,6 +81,7 @@ namespace N6
             dgvKi1 = new DataGridView();
             dgvKi2 = new DataGridView();
             dgvHomeroomGradebook = new DataGridView();
+            dgvQuyLop = new DataGridView { Name = "dgvQuyLop" }; // NEW
 
             StyleDataGridViewModern(dgvDiemDanh);
             StyleDataGridViewModern(dgvKetQua);
@@ -82,6 +89,7 @@ namespace N6
             StyleDataGridViewModern(dgvKi1);
             StyleDataGridViewModern(dgvKi2);
             StyleDataGridViewModern(dgvHomeroomGradebook);
+            StyleDataGridViewModern(dgvQuyLop); // NEW
 
             dgvHomeroomGradebook.ReadOnly = true;
             dgvHomeroomGradebook.CellFormatting += dgvHomeroomGradebook_CellFormatting;
@@ -91,6 +99,7 @@ namespace N6
             dgvKi1.DataBindingComplete += DataGridView_DataBindingComplete;
             dgvKi2.DataBindingComplete += DataGridView_DataBindingComplete;
             dgvHomeroomGradebook.DataBindingComplete += DataGridView_DataBindingComplete;
+            dgvQuyLop.DataBindingComplete += DataGridView_DataBindingComplete; // NEW
         }
 
         #region UI States & Navigation
@@ -166,10 +175,6 @@ namespace N6
         {
             panelMainView.Visible = true;
             panelLopChon.Visible = false;
-
-            // Thêm menu trượt vào form và đưa ra phía sau
-            
-
             lblTenLopHienTai.Text = title;
         }
 
@@ -203,7 +208,7 @@ namespace N6
             ActivateMainView($"Chủ nhiệm: {homeroomClassInfo.Value}");
 
             panelTabs.Visible = false;
-            ShowHomeroomGradebook();
+            ShowHomeroomView(); // NEW
         }
 
 
@@ -232,9 +237,6 @@ namespace N6
         }
 
         #endregion
-
-        // ... Các vùng code khác (UI styling, Homeroom, Regular Views...) giữ nguyên và đã được định dạng sạch sẽ
-        // ... Tôi sẽ dán lại đầy đủ để đảm bảo bạn không bị thiếu code
 
         #region UI styling & Formatting
 
@@ -295,6 +297,11 @@ namespace N6
                     if (dgv.Columns.Contains("NgayDD")) dgv.Columns["NgayDD"].Visible = false;
                     if (dgv.Columns.Contains("Buoi")) dgv.Columns["Buoi"].Visible = false;
                 }
+
+                if (dgv == dgvQuyLop)
+                {
+                    FormatQuyLopGrid();
+                }
             }
             catch (Exception) { /* Bỏ qua lỗi nếu cột không tồn tại */ }
         }
@@ -327,9 +334,27 @@ namespace N6
 
         #region Homeroom Teacher View
 
-        private void ShowHomeroomGradebook()
+        private void ShowHomeroomView()
         {
             panelContent.Controls.Clear();
+
+            TabControl tabHomeroom = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10F) };
+            TabPage tabGradebook = new TabPage("Sổ Điểm Chung");
+            TabPage tabFund = new TabPage("Quản Lý Quỹ Lớp");
+
+            BuildHomeroomGradebookTab(tabGradebook);
+            BuildQuyLopTab(tabFund);
+
+            tabHomeroom.TabPages.Add(tabGradebook);
+            tabHomeroom.TabPages.Add(tabFund);
+
+            panelContent.Controls.Add(tabHomeroom);
+        }
+
+        private void BuildHomeroomGradebookTab(TabPage tab)
+        {
+            tab.Controls.Clear();
+            tab.BackColor = Color.White;
 
             Panel filterPanel = new Panel { Dock = DockStyle.Top, Height = 50, Padding = new Padding(10) };
             Label lblFilter = new Label { Text = "Xem điểm:", Dock = DockStyle.Left, AutoSize = true, Padding = new Padding(0, 5, 0, 0), Font = new Font("Segoe UI", 10F) };
@@ -343,8 +368,8 @@ namespace N6
 
             dgvHomeroomGradebook.Dock = DockStyle.Fill;
 
-            panelContent.Controls.Add(dgvHomeroomGradebook);
-            panelContent.Controls.Add(filterPanel);
+            tab.Controls.Add(dgvHomeroomGradebook);
+            tab.Controls.Add(filterPanel);
 
             LoadHomeroomGradebookData();
         }
@@ -356,6 +381,425 @@ namespace N6
             DataTable dt = DatabaseHelper.GetHomeroomGradebook(_maLop, loaiDiem);
             dgvHomeroomGradebook.DataSource = dt;
         }
+
+        #endregion
+
+        #region Quỹ Lớp (REDESIGNED)
+
+        // Helper function to create modern stat cards
+        private Panel CreateStatCard(string title, Color valueColor, out Label valueLabel)
+        {
+            Panel card = new Panel
+            {
+                Size = new Size(180, 70),
+                BackColor = Color.White,
+                Margin = new Padding(5),
+                Padding = new Padding(10)
+            };
+            // Thêm bo viền cho card
+            card.Paint += (s, e) => {
+                ControlPaint.DrawBorder(e.Graphics, card.ClientRectangle,
+                    Color.FromArgb(220, 220, 220), 1, ButtonBorderStyle.Solid,
+                    Color.FromArgb(220, 220, 220), 1, ButtonBorderStyle.Solid,
+                    Color.FromArgb(220, 220, 220), 1, ButtonBorderStyle.Solid,
+                    Color.FromArgb(220, 220, 220), 1, ButtonBorderStyle.Solid);
+            };
+
+            Label lblTitle = new Label
+            {
+                Text = title,
+                Dock = DockStyle.Top,
+                Font = new Font("Segoe UI Semibold", 9F),
+                ForeColor = Color.Gray,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            valueLabel = new Label
+            {
+                Text = "0",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = valueColor,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            card.Controls.Add(valueLabel);
+            card.Controls.Add(lblTitle);
+            return card;
+        }
+
+        private void BuildQuyLopTab(TabPage tab)
+        {
+            tab.Controls.Clear();
+            tab.BackColor = Color.White;
+            var mainPanel = new Panel { Dock = DockStyle.Fill };
+
+            // Top "Dashboard" Panel
+            var dashboardPanel = new Panel { Dock = DockStyle.Top, Height = 90, Padding = new Padding(10), BackColor = Color.White };
+
+            btnThemKhoanQuy = new Button
+            {
+                Text = "Tạo mới Thu/Chi",
+                Dock = DockStyle.Left,
+                Size = new Size(160, 70),
+                BackColor = Color.FromArgb(0, 120, 215),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Image = null, // Bạn có thể thêm Icon ở đây nếu muốn
+                TextImageRelation = TextImageRelation.ImageBeforeText
+            };
+            btnThemKhoanQuy.FlatAppearance.BorderSize = 0;
+            btnThemKhoanQuy.Click += BtnThemKhoanQuy_Click;
+
+            // Stats Panel (using TableLayoutPanel for alignment)
+            var statsPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Right,
+                ColumnCount = 3,
+                RowCount = 1,
+                AutoSize = true,
+                BackColor = Color.White
+            };
+
+            Panel thuCard = CreateStatCard("TỔNG THU", Color.FromArgb(0, 150, 64), out lblTongThu_Value);
+            Panel chiCard = CreateStatCard("TỔNG CHI", Color.FromArgb(210, 43, 43), out lblTongChi_Value);
+            Panel tonCard = CreateStatCard("TỒN QUỸ", Color.FromArgb(0, 80, 155), out lblTonQuy_Value);
+
+            statsPanel.Controls.Add(thuCard, 0, 0);
+            statsPanel.Controls.Add(chiCard, 1, 0);
+            statsPanel.Controls.Add(tonCard, 2, 0);
+
+            dashboardPanel.Controls.Add(statsPanel);
+            dashboardPanel.Controls.Add(btnThemKhoanQuy);
+
+            // DataGridView
+            dgvQuyLop.Dock = DockStyle.Fill;
+            dgvQuyLop.ReadOnly = true;
+            dgvQuyLop.CellClick -= DgvQuyLop_CellClick;
+            dgvQuyLop.CellClick += DgvQuyLop_CellClick;
+
+            mainPanel.Controls.Add(dgvQuyLop); // Add grid first
+            mainPanel.Controls.Add(dashboardPanel); // Add dashboard on top
+            tab.Controls.Add(mainPanel);
+
+            LoadQuyLopData();
+        }
+
+        private void BtnThemKhoanQuy_Click(object sender, EventArgs e)
+        {
+            // Create a modern, responsive dialog form
+            using (var form = new Form())
+            {
+                form.Text = "Tạo Mới Khoản Thu/Chi";
+                form.Size = new Size(520, 390); // Rộng hơn một chút
+                form.StartPosition = FormStartPosition.CenterParent;
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.MaximizeBox = false;
+                form.MinimizeBox = false;
+                form.BackColor = Color.White;
+                form.Font = new Font("Segoe UI", 10F);
+
+                // --- Panel Nội dung (Dùng TableLayoutPanel cho responsive) ---
+                var tlp = new TableLayoutPanel
+                {
+                    Dock = DockStyle.Fill,
+                    Padding = new Padding(25), // Tăng padding
+                    ColumnCount = 2,
+                    RowCount = 5,
+                    BackColor = Color.White
+                };
+                tlp.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); // Cột cho Label
+                tlp.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));  // Cột cho Control
+
+                // Định nghĩa chiều cao các dòng
+                tlp.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+                tlp.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+                tlp.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+                tlp.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+                tlp.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // Dòng trống ở cuối
+
+                // --- Helper function for labels (Canh lề phải cho đẹp) ---
+                Func<string, Label> createLabel = (text) => new Label
+                {
+                    Text = text,
+                    Dock = DockStyle.Fill,
+                    TextAlign = ContentAlignment.MiddleRight,
+                    Font = new Font("Segoe UI Semibold", 10F),
+                    ForeColor = Color.FromArgb(64, 64, 64),
+                    Margin = new Padding(0, 0, 10, 0) // Cách control 10px
+                };
+
+                // --- Helper function for controls (Style phẳng, hiện đại) ---
+                Action<Control> styleControl = (ctrl) => {
+                    ctrl.Dock = DockStyle.Fill;
+                    ctrl.Font = new Font("Segoe UI", 10F);
+                    ctrl.Margin = new Padding(3, 10, 3, 10); // Căn control vào giữa theo chiều dọc
+
+                    if (ctrl is TextBox)
+                    {
+                        ((TextBox)ctrl).BorderStyle = BorderStyle.FixedSingle;
+                    }
+                    else if (ctrl is ComboBox)
+                    {
+                        ((ComboBox)ctrl).FlatStyle = FlatStyle.System;
+                    }
+                    else if (ctrl is DateTimePicker)
+                    {
+                        ((DateTimePicker)ctrl).Format = DateTimePickerFormat.Short;
+                    }
+                    else if (ctrl is NumericUpDown)
+                    {
+                        ((NumericUpDown)ctrl).BorderStyle = BorderStyle.FixedSingle;
+                    }
+                };
+
+                // --- Khởi tạo Controls ---
+                var txtGhiChu = new TextBox();
+                var cbLoai = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList };
+                cbLoai.Items.AddRange(new string[] { "Thu", "Chi" });
+                cbLoai.SelectedIndex = 0;
+
+                var dtpNgay = new DateTimePicker();
+                var numSoTien = new NumericUpDown
+                {
+                    Maximum = 1000000000,
+                    ThousandsSeparator = true,
+                    Increment = 1000 // <-- BƯỚC NHẢY 1000 THEO YÊU CẦU
+                };
+
+                // Áp dụng style
+                styleControl(txtGhiChu);
+                styleControl(cbLoai);
+                styleControl(dtpNgay);
+                styleControl(numSoTien);
+
+                // Add controls to TLP
+                tlp.Controls.Add(createLabel("Tên khoản / Diễn giải:"), 0, 0);
+                tlp.Controls.Add(txtGhiChu, 1, 0);
+
+                tlp.Controls.Add(createLabel("Loại giao dịch:"), 0, 1);
+                tlp.Controls.Add(cbLoai, 1, 1);
+
+                tlp.Controls.Add(createLabel("Ngày thực hiện:"), 0, 2);
+                tlp.Controls.Add(dtpNgay, 1, 2);
+
+                tlp.Controls.Add(createLabel("Số tiền (VNĐ):"), 0, 3);
+                tlp.Controls.Add(numSoTien, 1, 3);
+
+                // --- Button Bar Panel (Đảm bảo nút không bị mất) ---
+                var buttonPanel = new Panel
+                {
+                    Dock = DockStyle.Bottom,
+                    Height = 65,
+                    BackColor = Color.FromArgb(245, 245, 245),
+                    Padding = new Padding(0, 0, 25, 0) // Đẩy nút về bên phải
+                };
+
+                var btnLuu = new Button
+                {
+                    Text = "Lưu",
+                    DialogResult = DialogResult.OK,
+                    Size = new Size(100, 38),
+                    BackColor = Color.FromArgb(0, 120, 215),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI Semibold", 10F),
+                    Dock = DockStyle.Right // <-- Dùng Dock
+                };
+                btnLuu.FlatAppearance.BorderSize = 0;
+
+                var spacer = new Panel { Width = 10, Dock = DockStyle.Right, BackColor = Color.Transparent }; // Đệm giữa 2 nút
+
+                var btnHuy = new Button
+                {
+                    Text = "Hủy",
+                    DialogResult = DialogResult.Cancel,
+                    Size = new Size(90, 38),
+                    BackColor = Color.White,
+                    ForeColor = Color.Black,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 10F),
+                    Dock = DockStyle.Right // <-- Dùng Dock
+                };
+                btnHuy.FlatAppearance.BorderSize = 1;
+                btnHuy.FlatAppearance.BorderColor = Color.FromArgb(220, 220, 220);
+
+                // Canh lề giữa cho các nút
+                btnLuu.Margin = new Padding(0, (buttonPanel.Height - btnLuu.Height) / 2, 0, 0);
+                btnHuy.Margin = new Padding(0, (buttonPanel.Height - btnHuy.Height) / 2, 0, 0);
+
+                // Thêm nút (theo thứ tự ngược lại vì dùng Dock.Right)
+                buttonPanel.Controls.Add(btnLuu);
+                buttonPanel.Controls.Add(spacer);
+                buttonPanel.Controls.Add(btnHuy);
+
+                form.Controls.Add(tlp);
+                form.Controls.Add(buttonPanel);
+                form.AcceptButton = btnLuu;
+                form.CancelButton = btnHuy;
+
+                // --- Logic xử lý khi bấm Lưu ---
+                if (form.ShowDialog(this) == DialogResult.OK)
+                {
+                    if (string.IsNullOrWhiteSpace(txtGhiChu.Text))
+                    {
+                        MessageBox.Show("Tên khoản/Diễn giải không được để trống.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                    if (numSoTien.Value <= 0)
+                    {
+                        MessageBox.Show("Số tiền phải lớn hơn 0.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    try
+                    {
+                        DatabaseHelper.InsertQuyLop(_maLop, cbLoai.SelectedItem.ToString(), numSoTien.Value, dtpNgay.Value, txtGhiChu.Text);
+                        LoadQuyLopData();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Lỗi khi lưu: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+
+        private void LoadQuyLopData()
+        {
+            if (dgvQuyLop == null) return;
+            try
+            {
+                DataTable dt = DatabaseHelper.GetQuyLopByLop(_maLop);
+
+                dt.Columns.Add("Thu", typeof(decimal));
+                dt.Columns.Add("Chi", typeof(decimal));
+                dt.Columns.Add("Tồn", typeof(decimal));
+
+                decimal tongThu = 0;
+                decimal tongChi = 0;
+                decimal ton = 0;
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    string loai = row["Loai"].ToString();
+                    decimal soTien = Convert.ToDecimal(row["SoTien"]);
+
+                    if (loai == "Thu")
+                    {
+                        row["Thu"] = soTien;
+                        tongThu += soTien;
+                        ton += soTien;
+                    }
+                    else if (loai == "Chi")
+                    {
+                        row["Chi"] = soTien;
+                        tongChi += soTien;
+                        ton -= soTien;
+                    }
+                    row["Tồn"] = ton;
+                }
+
+                dgvQuyLop.DataSource = null;
+                dgvQuyLop.Columns.Clear();
+                dgvQuyLop.DataSource = dt;
+
+                if (!dgvQuyLop.Columns.Contains("DeleteColumn"))
+                {
+                    var deleteCol = new DataGridViewButtonColumn
+                    {
+                        Name = "DeleteColumn",
+                        Text = "Xóa",
+                        HeaderText = "",
+                        UseColumnTextForButtonValue = true,
+                        Width = 60,
+                        AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+                        FlatStyle = FlatStyle.Flat
+                    };
+                    deleteCol.DefaultCellStyle.BackColor = Color.FromArgb(254, 235, 235);
+                    deleteCol.DefaultCellStyle.ForeColor = Color.Maroon;
+                    deleteCol.DefaultCellStyle.SelectionBackColor = Color.FromArgb(254, 235, 235);
+                    deleteCol.DefaultCellStyle.SelectionForeColor = Color.Maroon;
+                    dgvQuyLop.Columns.Add(deleteCol);
+                }
+
+                // Update totals in the new dashboard labels
+                if (lblTongThu_Value != null) lblTongThu_Value.Text = $"{tongThu:N0}đ";
+                if (lblTongChi_Value != null) lblTongChi_Value.Text = $"{tongChi:N0}đ";
+                if (lblTonQuy_Value != null) lblTonQuy_Value.Text = $"{ton:N0}đ";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi tải dữ liệu quỹ lớp: " + ex.Message);
+            }
+        }
+
+        private void DgvQuyLop_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+            if (dgvQuyLop.Columns[e.ColumnIndex].Name == "DeleteColumn")
+            {
+                if (MessageBox.Show("Bạn có chắc muốn xóa mục này?", "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                {
+                    try
+                    {
+                        string maQL = dgvQuyLop.Rows[e.RowIndex].Cells["MaQL"].Value.ToString();
+                        DatabaseHelper.DeleteQuyLop(maQL);
+                        LoadQuyLopData();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Lỗi khi xóa: " + ex.Message);
+                    }
+                }
+            }
+        }
+
+        private void FormatQuyLopGrid()
+        {
+            if (dgvQuyLop == null || dgvQuyLop.Columns.Count == 0) return;
+            try
+            {
+                if (dgvQuyLop.Columns.Contains("MaQL")) dgvQuyLop.Columns["MaQL"].Visible = false;
+                if (dgvQuyLop.Columns.Contains("Loai")) dgvQuyLop.Columns["Loai"].Visible = false;
+                if (dgvQuyLop.Columns.Contains("SoTien")) dgvQuyLop.Columns["SoTien"].Visible = false;
+
+                if (dgvQuyLop.Columns.Contains("Ngay"))
+                {
+                    dgvQuyLop.Columns["Ngay"].HeaderText = "Ngày";
+                    dgvQuyLop.Columns["Ngay"].DefaultCellStyle.Format = "dd/MM/yyyy";
+                    dgvQuyLop.Columns["Ngay"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                }
+                if (dgvQuyLop.Columns.Contains("GhiChu"))
+                {
+                    dgvQuyLop.Columns["GhiChu"].HeaderText = "Diễn giải / Ghi chú";
+                    dgvQuyLop.Columns["GhiChu"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                }
+                if (dgvQuyLop.Columns.Contains("Thu"))
+                {
+                    dgvQuyLop.Columns["Thu"].DefaultCellStyle.Format = "N0";
+                    dgvQuyLop.Columns["Thu"].DefaultCellStyle.ForeColor = Color.DarkGreen;
+                    dgvQuyLop.Columns["Thu"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                }
+                if (dgvQuyLop.Columns.Contains("Chi"))
+                {
+                    dgvQuyLop.Columns["Chi"].DefaultCellStyle.Format = "N0";
+                    dgvQuyLop.Columns["Chi"].DefaultCellStyle.ForeColor = Color.Maroon;
+                    dgvQuyLop.Columns["Chi"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                }
+                if (dgvQuyLop.Columns.Contains("Tồn"))
+                {
+                    dgvQuyLop.Columns["Tồn"].DefaultCellStyle.Format = "N0";
+                    dgvQuyLop.Columns["Tồn"].DefaultCellStyle.Font = new Font(dgvQuyLop.Font, FontStyle.Bold);
+                    dgvQuyLop.Columns["Tồn"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                }
+            }
+            catch (Exception) { /* ignore */ }
+        }
+
 
         #endregion
 

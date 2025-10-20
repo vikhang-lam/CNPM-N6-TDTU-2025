@@ -1,35 +1,8 @@
-﻿using System.Windows.Forms;
-
-namespace N6
+﻿namespace N6
 {
     partial class UC_BaoCao
     {
         private System.ComponentModel.IContainer components = null;
-
-        // --- TẤT CẢ CÁC CONTROL ĐÃ ĐƯỢC KHAI BÁO LẠI ---
-        private Label lblTitle;
-        private Button btnXuatExcel;
-        private Button btnXuatPDF;
-        private ComboBox cboLoaiBaoCao;
-        private ComboBox cboLop;
-        private ComboBox cboHocKy;
-        private ComboBox cboKhoi;
-        private Button btnXuatBaoCao;
-        private DataGridView dgvDuLieu;
-        private TableLayoutPanel layoutRoot;
-        private Panel pnlHeader;
-        private FlowLayoutPanel pnlHeaderRight;
-        private FlowLayoutPanel pnlFilters;
-        private TabControl tabLoaiGiaoVien;
-        private TabPage tabChuNhiem;
-        private TabPage tabGiangDay;
-        private ComboBox cboMonDay;
-        private Label lblMonDay;
-        private SplitContainer splitContainer1;
-        private FlowLayoutPanel pnlCharts;
-        private System.Windows.Forms.DataVisualization.Charting.Chart chart1;
-        private System.Windows.Forms.DataVisualization.Charting.Chart chart2;
-
 
         protected override void Dispose(bool disposing)
         {
@@ -40,299 +13,325 @@ namespace N6
             base.Dispose(disposing);
         }
 
+        #region Component Designer generated code
+
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
-            this.lblTitle = new System.Windows.Forms.Label();
-            this.btnXuatExcel = new System.Windows.Forms.Button();
-            this.btnXuatPDF = new System.Windows.Forms.Button();
-            this.cboLoaiBaoCao = new System.Windows.Forms.ComboBox();
-            this.cboLop = new System.Windows.Forms.ComboBox();
-            this.cboHocKy = new System.Windows.Forms.ComboBox();
+            this.pnlFilters = new System.Windows.Forms.Panel();
+            this.flpFilters = new System.Windows.Forms.FlowLayoutPanel();
+            this.pnlReportTypeSelector = new System.Windows.Forms.FlowLayoutPanel();
+            this.rbChuyenCan = new System.Windows.Forms.RadioButton();
+            this.rbBangDiem = new System.Windows.Forms.RadioButton();
+            this.rbHoSo = new System.Windows.Forms.RadioButton();
+            this.rbThongKeKhoi = new System.Windows.Forms.RadioButton();
+            this.pnlKhoi = new System.Windows.Forms.FlowLayoutPanel();
+            this.tabLoaiGiaoVien = new System.Windows.Forms.TabControl();
+            this.tabGiangDay = new System.Windows.Forms.TabPage();
+            this.tabChuNhiem = new System.Windows.Forms.TabPage();
+            this.lblKhoi = new System.Windows.Forms.Label();
             this.cboKhoi = new System.Windows.Forms.ComboBox();
-            this.btnXuatBaoCao = new System.Windows.Forms.Button();
-            this.dgvDuLieu = new System.Windows.Forms.DataGridView();
-            this.layoutRoot = new System.Windows.Forms.TableLayoutPanel();
-            this.pnlHeader = new System.Windows.Forms.Panel();
-            this.pnlHeaderRight = new System.Windows.Forms.FlowLayoutPanel();
-            this.pnlFilters = new System.Windows.Forms.FlowLayoutPanel();
+            this.pnlLop = new System.Windows.Forms.FlowLayoutPanel();
+            this.lblLop = new System.Windows.Forms.Label();
+            this.cboLop = new System.Windows.Forms.ComboBox();
+            this.pnlHocKy = new System.Windows.Forms.FlowLayoutPanel();
+            this.lblHocKy = new System.Windows.Forms.Label();
+            this.cboHocKy = new System.Windows.Forms.ComboBox();
+            this.pnlMon = new System.Windows.Forms.FlowLayoutPanel();
             this.lblMonDay = new System.Windows.Forms.Label();
             this.cboMonDay = new System.Windows.Forms.ComboBox();
-            this.tabLoaiGiaoVien = new System.Windows.Forms.TabControl();
-            this.tabChuNhiem = new System.Windows.Forms.TabPage();
-            this.tabGiangDay = new System.Windows.Forms.TabPage();
+            this.btnXuatPDF = new System.Windows.Forms.Button();
+            this.btnXuatExcel = new System.Windows.Forms.Button();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.pnlCharts = new System.Windows.Forms.FlowLayoutPanel();
-            this.chart1 = new System.Windows.Forms.DataVisualization.Charting.Chart();
-            this.chart2 = new System.Windows.Forms.DataVisualization.Charting.Chart();
-            ((System.ComponentModel.ISupportInitialize)(this.dgvDuLieu)).BeginInit();
-            this.layoutRoot.SuspendLayout();
-            this.pnlHeader.SuspendLayout();
-            this.pnlHeaderRight.SuspendLayout();
+            this.dgvDuLieu = new System.Windows.Forms.DataGridView();
+            this.flpCharts = new System.Windows.Forms.FlowLayoutPanel();
             this.pnlFilters.SuspendLayout();
+            this.flpFilters.SuspendLayout();
+            this.pnlReportTypeSelector.SuspendLayout();
+            this.pnlKhoi.SuspendLayout();
             this.tabLoaiGiaoVien.SuspendLayout();
+            this.pnlLop.SuspendLayout();
+            this.pnlHocKy.SuspendLayout();
+            this.pnlMon.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
-            this.pnlCharts.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.chart1)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.chart2)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvDuLieu)).BeginInit();
             this.SuspendLayout();
             // 
-            // lblTitle
+            // pnlFilters
             // 
-            this.lblTitle.AutoSize = true;
-            this.lblTitle.Dock = System.Windows.Forms.DockStyle.Left;
-            this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold);
-            this.lblTitle.ForeColor = System.Drawing.Color.White;
-            this.lblTitle.Location = new System.Drawing.Point(20, 10);
-            this.lblTitle.Name = "lblTitle";
-            this.lblTitle.Size = new System.Drawing.Size(422, 41);
-            this.lblTitle.TabIndex = 1;
-            this.lblTitle.Text = "📑 BÁO CÁO & XUẤT DỮ LIỆU";
+            this.pnlFilters.BackColor = System.Drawing.Color.White;
+            this.pnlFilters.Controls.Add(this.flpFilters);
+            this.pnlFilters.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlFilters.Location = new System.Drawing.Point(10, 10);
+            this.pnlFilters.MinimumSize = new System.Drawing.Size(0, 130);
+            this.pnlFilters.Name = "pnlFilters";
+            this.pnlFilters.Padding = new System.Windows.Forms.Padding(10);
+            this.pnlFilters.Size = new System.Drawing.Size(980, 130);
+            this.pnlFilters.TabIndex = 0;
+            this.pnlFilters.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlFilters_Paint);
             // 
-            // btnXuatExcel
+            // flpFilters
             // 
-            this.btnXuatExcel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(120)))), ((int)(((byte)(215)))));
-            this.btnXuatExcel.FlatAppearance.BorderSize = 0;
-            this.btnXuatExcel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnXuatExcel.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnXuatExcel.ForeColor = System.Drawing.Color.White;
-            this.btnXuatExcel.Location = new System.Drawing.Point(190, 5);
-            this.btnXuatExcel.Margin = new System.Windows.Forms.Padding(10, 5, 0, 5);
-            this.btnXuatExcel.Name = "btnXuatExcel";
-            this.btnXuatExcel.Size = new System.Drawing.Size(150, 29);
-            this.btnXuatExcel.TabIndex = 0;
-            this.btnXuatExcel.Text = "📊 Xuất Excel";
-            this.btnXuatExcel.UseVisualStyleBackColor = false;
-            this.btnXuatExcel.Click += new System.EventHandler(this.btnXuatExcel_Click);
+            this.flpFilters.AutoScroll = true;
+            this.flpFilters.Controls.Add(this.pnlReportTypeSelector);
+            this.flpFilters.Controls.Add(this.pnlKhoi);
+            this.flpFilters.Controls.Add(this.pnlLop);
+            this.flpFilters.Controls.Add(this.pnlHocKy);
+            this.flpFilters.Controls.Add(this.pnlMon);
+            this.flpFilters.Controls.Add(this.btnXuatPDF);
+            this.flpFilters.Controls.Add(this.btnXuatExcel);
+            this.flpFilters.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flpFilters.Location = new System.Drawing.Point(10, 10);
+            this.flpFilters.Name = "flpFilters";
+            this.flpFilters.Size = new System.Drawing.Size(960, 110);
+            this.flpFilters.TabIndex = 1;
             // 
-            // btnXuatPDF
+            // pnlReportTypeSelector
             // 
-            this.btnXuatPDF.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(70)))), ((int)(((byte)(70)))));
-            this.btnXuatPDF.FlatAppearance.BorderSize = 0;
-            this.btnXuatPDF.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnXuatPDF.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnXuatPDF.ForeColor = System.Drawing.Color.White;
-            this.btnXuatPDF.Location = new System.Drawing.Point(20, 5);
-            this.btnXuatPDF.Margin = new System.Windows.Forms.Padding(10, 5, 10, 5);
-            this.btnXuatPDF.Name = "btnXuatPDF";
-            this.btnXuatPDF.Size = new System.Drawing.Size(150, 29);
-            this.btnXuatPDF.TabIndex = 1;
-            this.btnXuatPDF.Text = "📄 Xuất PDF";
-            this.btnXuatPDF.UseVisualStyleBackColor = false;
-            this.btnXuatPDF.Click += new System.EventHandler(this.btnXuatPDF_Click);
+            this.pnlReportTypeSelector.AutoSize = true;
+            this.pnlReportTypeSelector.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.pnlReportTypeSelector.Controls.Add(this.rbChuyenCan);
+            this.pnlReportTypeSelector.Controls.Add(this.rbBangDiem);
+            this.pnlReportTypeSelector.Controls.Add(this.rbHoSo);
+            this.pnlReportTypeSelector.Controls.Add(this.rbThongKeKhoi);
+            this.pnlReportTypeSelector.Location = new System.Drawing.Point(3, 3);
+            this.pnlReportTypeSelector.Margin = new System.Windows.Forms.Padding(3, 3, 3, 10);
+            this.pnlReportTypeSelector.Name = "pnlReportTypeSelector";
+            this.pnlReportTypeSelector.Padding = new System.Windows.Forms.Padding(5);
+            this.pnlReportTypeSelector.Size = new System.Drawing.Size(653, 49);
+            this.pnlReportTypeSelector.TabIndex = 6;
+            this.pnlReportTypeSelector.WrapContents = false;
             // 
-            // cboLoaiBaoCao
+            // rbChuyenCan
             // 
-            this.cboLoaiBaoCao.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboLoaiBaoCao.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.cboLoaiBaoCao.Items.AddRange(new object[] {
-            "Báo cáo chuyên cần",
-            "Bảng điểm học kỳ",
-            "Hồ sơ học sinh",
-            "Thống kê tổng hợp khối"});
-            this.cboLoaiBaoCao.Location = new System.Drawing.Point(20, 15);
-            this.cboLoaiBaoCao.Margin = new System.Windows.Forms.Padding(0, 5, 15, 5);
-            this.cboLoaiBaoCao.Name = "cboLoaiBaoCao";
-            this.cboLoaiBaoCao.Size = new System.Drawing.Size(230, 31);
-            this.cboLoaiBaoCao.TabIndex = 0;
+            this.rbChuyenCan.Location = new System.Drawing.Point(8, 8);
+            this.rbChuyenCan.Name = "rbChuyenCan";
+            this.rbChuyenCan.Size = new System.Drawing.Size(150, 33);
+            this.rbChuyenCan.TabIndex = 0;
+            this.rbChuyenCan.TabStop = true;
+            this.rbChuyenCan.Text = "Báo cáo chuyên cần";
+            this.rbChuyenCan.UseVisualStyleBackColor = true;
             // 
-            // cboLop
+            // rbBangDiem
             // 
-            this.cboLop.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboLop.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.cboLop.Location = new System.Drawing.Point(430, 15);
-            this.cboLop.Margin = new System.Windows.Forms.Padding(0, 5, 15, 5);
-            this.cboLop.Name = "cboLop";
-            this.cboLop.Size = new System.Drawing.Size(180, 31);
-            this.cboLop.TabIndex = 2;
-            this.cboLop.Visible = false;
+            this.rbBangDiem.Location = new System.Drawing.Point(164, 8);
+            this.rbBangDiem.Name = "rbBangDiem";
+            this.rbBangDiem.Size = new System.Drawing.Size(150, 33);
+            this.rbBangDiem.TabIndex = 1;
+            this.rbBangDiem.TabStop = true;
+            this.rbBangDiem.Text = "Bảng điểm học kỳ";
+            this.rbBangDiem.UseVisualStyleBackColor = true;
             // 
-            // cboHocKy
+            // rbHoSo
             // 
-            this.cboHocKy.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboHocKy.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.cboHocKy.Location = new System.Drawing.Point(625, 15);
-            this.cboHocKy.Margin = new System.Windows.Forms.Padding(0, 5, 15, 5);
-            this.cboHocKy.Name = "cboHocKy";
-            this.cboHocKy.Size = new System.Drawing.Size(130, 31);
-            this.cboHocKy.TabIndex = 3;
-            this.cboHocKy.Visible = false;
+            this.rbHoSo.Location = new System.Drawing.Point(320, 8);
+            this.rbHoSo.Name = "rbHoSo";
+            this.rbHoSo.Size = new System.Drawing.Size(150, 33);
+            this.rbHoSo.TabIndex = 2;
+            this.rbHoSo.TabStop = true;
+            this.rbHoSo.Text = "Hồ sơ học sinh";
+            this.rbHoSo.UseVisualStyleBackColor = true;
+            // 
+            // rbThongKeKhoi
+            // 
+            this.rbThongKeKhoi.Location = new System.Drawing.Point(476, 8);
+            this.rbThongKeKhoi.Name = "rbThongKeKhoi";
+            this.rbThongKeKhoi.Size = new System.Drawing.Size(169, 33);
+            this.rbThongKeKhoi.TabIndex = 3;
+            this.rbThongKeKhoi.TabStop = true;
+            this.rbThongKeKhoi.Text = "Thống kê tổng hợp khối";
+            this.rbThongKeKhoi.UseVisualStyleBackColor = true;
+            // 
+            // pnlKhoi
+            // 
+            this.pnlKhoi.AutoSize = true;
+            this.pnlKhoi.Controls.Add(this.tabLoaiGiaoVien);
+            this.pnlKhoi.Controls.Add(this.lblKhoi);
+            this.pnlKhoi.Controls.Add(this.cboKhoi);
+            this.pnlKhoi.Location = new System.Drawing.Point(0, 67);
+            this.pnlKhoi.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
+            this.pnlKhoi.Name = "pnlKhoi";
+            this.pnlKhoi.Size = new System.Drawing.Size(402, 40);
+            this.pnlKhoi.TabIndex = 2;
+            // 
+            // tabLoaiGiaoVien
+            // 
+            this.tabLoaiGiaoVien.Controls.Add(this.tabGiangDay);
+            this.tabLoaiGiaoVien.Controls.Add(this.tabChuNhiem);
+            this.tabLoaiGiaoVien.Location = new System.Drawing.Point(5, 5);
+            this.tabLoaiGiaoVien.Margin = new System.Windows.Forms.Padding(5);
+            this.tabLoaiGiaoVien.Name = "tabLoaiGiaoVien";
+            this.tabLoaiGiaoVien.SelectedIndex = 0;
+            this.tabLoaiGiaoVien.Size = new System.Drawing.Size(200, 30);
+            this.tabLoaiGiaoVien.TabIndex = 1;
+            this.tabLoaiGiaoVien.Visible = false;
+            // 
+            // tabGiangDay
+            // 
+            this.tabGiangDay.Location = new System.Drawing.Point(4, 30);
+            this.tabGiangDay.Name = "tabGiangDay";
+            this.tabGiangDay.Padding = new System.Windows.Forms.Padding(3);
+            this.tabGiangDay.Size = new System.Drawing.Size(192, 0);
+            this.tabGiangDay.TabIndex = 0;
+            this.tabGiangDay.Text = "Giảng Dạy";
+            this.tabGiangDay.UseVisualStyleBackColor = true;
+            // 
+            // tabChuNhiem
+            // 
+            this.tabChuNhiem.Location = new System.Drawing.Point(4, 30);
+            this.tabChuNhiem.Name = "tabChuNhiem";
+            this.tabChuNhiem.Padding = new System.Windows.Forms.Padding(3);
+            this.tabChuNhiem.Size = new System.Drawing.Size(192, 0);
+            this.tabChuNhiem.TabIndex = 1;
+            this.tabChuNhiem.Text = "Chủ Nhiệm";
+            this.tabChuNhiem.UseVisualStyleBackColor = true;
+            // 
+            // lblKhoi
+            // 
+            this.lblKhoi.AutoSize = true;
+            this.lblKhoi.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F);
+            this.lblKhoi.Location = new System.Drawing.Point(215, 8);
+            this.lblKhoi.Margin = new System.Windows.Forms.Padding(5, 8, 0, 5);
+            this.lblKhoi.Name = "lblKhoi";
+            this.lblKhoi.Size = new System.Drawing.Size(47, 21);
+            this.lblKhoi.TabIndex = 0;
+            this.lblKhoi.Text = "Khối:";
             // 
             // cboKhoi
             // 
             this.cboKhoi.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboKhoi.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.cboKhoi.Location = new System.Drawing.Point(265, 15);
-            this.cboKhoi.Margin = new System.Windows.Forms.Padding(0, 5, 15, 5);
+            this.cboKhoi.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+            this.cboKhoi.FormattingEnabled = true;
+            this.cboKhoi.Location = new System.Drawing.Point(267, 5);
+            this.cboKhoi.Margin = new System.Windows.Forms.Padding(5);
             this.cboKhoi.Name = "cboKhoi";
-            this.cboKhoi.Size = new System.Drawing.Size(150, 31);
+            this.cboKhoi.Size = new System.Drawing.Size(130, 29);
             this.cboKhoi.TabIndex = 1;
-            this.cboKhoi.Visible = false;
             // 
-            // btnXuatBaoCao
+            // pnlLop
             // 
-            this.btnXuatBaoCao.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(34)))), ((int)(((byte)(139)))), ((int)(((byte)(34)))));
-            this.btnXuatBaoCao.FlatAppearance.BorderSize = 0;
-            this.btnXuatBaoCao.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnXuatBaoCao.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnXuatBaoCao.ForeColor = System.Drawing.Color.White;
-            this.btnXuatBaoCao.Location = new System.Drawing.Point(962, 15);
-            this.btnXuatBaoCao.Margin = new System.Windows.Forms.Padding(0, 5, 0, 5);
-            this.btnXuatBaoCao.Name = "btnXuatBaoCao";
-            this.btnXuatBaoCao.Size = new System.Drawing.Size(160, 36);
-            this.btnXuatBaoCao.TabIndex = 4;
-            this.btnXuatBaoCao.Text = "📋 Xuất Báo Cáo";
-            this.btnXuatBaoCao.UseVisualStyleBackColor = false;
-            this.btnXuatBaoCao.Click += new System.EventHandler(this.btnXuatBaoCao_Click);
+            this.pnlLop.AutoSize = true;
+            this.pnlLop.Controls.Add(this.lblLop);
+            this.pnlLop.Controls.Add(this.cboLop);
+            this.pnlLop.Location = new System.Drawing.Point(402, 67);
+            this.pnlLop.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
+            this.pnlLop.Name = "pnlLop";
+            this.pnlLop.Size = new System.Drawing.Size(170, 39);
+            this.pnlLop.TabIndex = 3;
             // 
-            // dgvDuLieu
+            // lblLop
             // 
-            this.dgvDuLieu.AllowUserToAddRows = false;
-            this.dgvDuLieu.AllowUserToDeleteRows = false;
-            this.dgvDuLieu.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-            this.dgvDuLieu.BackgroundColor = System.Drawing.Color.White;
-            this.dgvDuLieu.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvDuLieu.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dgvDuLieu.Location = new System.Drawing.Point(0, 0);
-            this.dgvDuLieu.Name = "dgvDuLieu";
-            this.dgvDuLieu.ReadOnly = true;
-            this.dgvDuLieu.RowHeadersWidth = 51;
-            this.dgvDuLieu.RowTemplate.Height = 24;
-            this.dgvDuLieu.Size = new System.Drawing.Size(934, 215);
-            this.dgvDuLieu.TabIndex = 2;
+            this.lblLop.AutoSize = true;
+            this.lblLop.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F);
+            this.lblLop.Location = new System.Drawing.Point(5, 8);
+            this.lblLop.Margin = new System.Windows.Forms.Padding(5, 8, 0, 5);
+            this.lblLop.Name = "lblLop";
+            this.lblLop.Size = new System.Drawing.Size(42, 21);
+            this.lblLop.TabIndex = 0;
+            this.lblLop.Text = "Lớp:";
             // 
-            // layoutRoot
+            // cboLop
             // 
-            this.layoutRoot.ColumnCount = 1;
-            this.layoutRoot.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.layoutRoot.Controls.Add(this.pnlHeader, 0, 0);
-            this.layoutRoot.Controls.Add(this.pnlFilters, 0, 2);
-            this.layoutRoot.Controls.Add(this.tabLoaiGiaoVien, 0, 1);
-            this.layoutRoot.Controls.Add(this.splitContainer1, 0, 3);
-            this.layoutRoot.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.layoutRoot.Location = new System.Drawing.Point(0, 0);
-            this.layoutRoot.Name = "layoutRoot";
-            this.layoutRoot.RowCount = 4;
-            this.layoutRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 60F));
-            this.layoutRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 40F));
-            this.layoutRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 60F));
-            this.layoutRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.layoutRoot.Size = new System.Drawing.Size(940, 600);
-            this.layoutRoot.TabIndex = 0;
+            this.cboLop.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboLop.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+            this.cboLop.FormattingEnabled = true;
+            this.cboLop.Location = new System.Drawing.Point(52, 5);
+            this.cboLop.Margin = new System.Windows.Forms.Padding(5);
+            this.cboLop.Name = "cboLop";
+            this.cboLop.Size = new System.Drawing.Size(113, 29);
+            this.cboLop.TabIndex = 1;
             // 
-            // pnlHeader
+            // pnlHocKy
             // 
-            this.pnlHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
-            this.pnlHeader.Controls.Add(this.pnlHeaderRight);
-            this.pnlHeader.Controls.Add(this.lblTitle);
-            this.pnlHeader.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlHeader.Location = new System.Drawing.Point(3, 3);
-            this.pnlHeader.Name = "pnlHeader";
-            this.pnlHeader.Padding = new System.Windows.Forms.Padding(20, 10, 20, 10);
-            this.pnlHeader.Size = new System.Drawing.Size(934, 54);
-            this.pnlHeader.TabIndex = 0;
+            this.pnlHocKy.AutoSize = true;
+            this.pnlHocKy.Controls.Add(this.lblHocKy);
+            this.pnlHocKy.Controls.Add(this.cboHocKy);
+            this.pnlHocKy.Location = new System.Drawing.Point(572, 67);
+            this.pnlHocKy.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
+            this.pnlHocKy.Name = "pnlHocKy";
+            this.pnlHocKy.Size = new System.Drawing.Size(193, 39);
+            this.pnlHocKy.TabIndex = 4;
             // 
-            // pnlHeaderRight
+            // lblHocKy
             // 
-            this.pnlHeaderRight.Controls.Add(this.btnXuatExcel);
-            this.pnlHeaderRight.Controls.Add(this.btnXuatPDF);
-            this.pnlHeaderRight.Dock = System.Windows.Forms.DockStyle.Right;
-            this.pnlHeaderRight.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
-            this.pnlHeaderRight.Location = new System.Drawing.Point(574, 10);
-            this.pnlHeaderRight.Margin = new System.Windows.Forms.Padding(0);
-            this.pnlHeaderRight.Name = "pnlHeaderRight";
-            this.pnlHeaderRight.Size = new System.Drawing.Size(340, 34);
-            this.pnlHeaderRight.TabIndex = 0;
-            this.pnlHeaderRight.WrapContents = false;
+            this.lblHocKy.AutoSize = true;
+            this.lblHocKy.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F);
+            this.lblHocKy.Location = new System.Drawing.Point(5, 8);
+            this.lblHocKy.Margin = new System.Windows.Forms.Padding(5, 8, 0, 5);
+            this.lblHocKy.Name = "lblHocKy";
+            this.lblHocKy.Size = new System.Drawing.Size(64, 21);
+            this.lblHocKy.TabIndex = 0;
+            this.lblHocKy.Text = "Học kỳ:";
             // 
-            // pnlFilters
+            // cboHocKy
             // 
-            this.pnlFilters.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(40)))), ((int)(((byte)(55)))));
-            this.pnlFilters.Controls.Add(this.cboLoaiBaoCao);
-            this.pnlFilters.Controls.Add(this.cboKhoi);
-            this.pnlFilters.Controls.Add(this.cboLop);
-            this.pnlFilters.Controls.Add(this.cboHocKy);
-            this.pnlFilters.Controls.Add(this.lblMonDay);
-            this.pnlFilters.Controls.Add(this.cboMonDay);
-            this.pnlFilters.Controls.Add(this.btnXuatBaoCao);
-            this.pnlFilters.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlFilters.Location = new System.Drawing.Point(3, 103);
-            this.pnlFilters.Name = "pnlFilters";
-            this.pnlFilters.Padding = new System.Windows.Forms.Padding(20, 10, 20, 10);
-            this.pnlFilters.Size = new System.Drawing.Size(934, 54);
-            this.pnlFilters.TabIndex = 1;
-            this.pnlFilters.WrapContents = false;
+            this.cboHocKy.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboHocKy.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+            this.cboHocKy.FormattingEnabled = true;
+            this.cboHocKy.Location = new System.Drawing.Point(74, 5);
+            this.cboHocKy.Margin = new System.Windows.Forms.Padding(5);
+            this.cboHocKy.Name = "cboHocKy";
+            this.cboHocKy.Size = new System.Drawing.Size(114, 29);
+            this.cboHocKy.TabIndex = 1;
+            // 
+            // pnlMon
+            // 
+            this.pnlMon.AutoSize = true;
+            this.pnlMon.Controls.Add(this.lblMonDay);
+            this.pnlMon.Controls.Add(this.cboMonDay);
+            this.pnlMon.Location = new System.Drawing.Point(0, 112);
+            this.pnlMon.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
+            this.pnlMon.Name = "pnlMon";
+            this.pnlMon.Size = new System.Drawing.Size(200, 39);
+            this.pnlMon.TabIndex = 5;
             // 
             // lblMonDay
             // 
             this.lblMonDay.AutoSize = true;
-            this.lblMonDay.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.lblMonDay.ForeColor = System.Drawing.Color.White;
-            this.lblMonDay.Location = new System.Drawing.Point(770, 15);
-            this.lblMonDay.Margin = new System.Windows.Forms.Padding(0, 5, 5, 5);
+            this.lblMonDay.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F);
+            this.lblMonDay.Location = new System.Drawing.Point(5, 8);
+            this.lblMonDay.Margin = new System.Windows.Forms.Padding(5, 8, 0, 5);
             this.lblMonDay.Name = "lblMonDay";
-            this.lblMonDay.Size = new System.Drawing.Size(51, 23);
-            this.lblMonDay.TabIndex = 6;
+            this.lblMonDay.Size = new System.Drawing.Size(48, 21);
+            this.lblMonDay.TabIndex = 0;
             this.lblMonDay.Text = "Môn:";
-            this.lblMonDay.Visible = false;
             // 
             // cboMonDay
             // 
             this.cboMonDay.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboMonDay.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.cboMonDay.Font = new System.Drawing.Font("Segoe UI", 9.5F);
             this.cboMonDay.FormattingEnabled = true;
-            this.cboMonDay.Location = new System.Drawing.Point(826, 15);
-            this.cboMonDay.Margin = new System.Windows.Forms.Padding(0, 5, 15, 5);
+            this.cboMonDay.Location = new System.Drawing.Point(58, 5);
+            this.cboMonDay.Margin = new System.Windows.Forms.Padding(5);
             this.cboMonDay.Name = "cboMonDay";
-            this.cboMonDay.Size = new System.Drawing.Size(121, 31);
-            this.cboMonDay.TabIndex = 7;
-            this.cboMonDay.Visible = false;
+            this.cboMonDay.Size = new System.Drawing.Size(137, 29);
+            this.cboMonDay.TabIndex = 1;
             // 
-            // tabLoaiGiaoVien
+            // btnXuatPDF
             // 
-            this.tabLoaiGiaoVien.Controls.Add(this.tabChuNhiem);
-            this.tabLoaiGiaoVien.Controls.Add(this.tabGiangDay);
-            this.tabLoaiGiaoVien.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tabLoaiGiaoVien.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.tabLoaiGiaoVien.Location = new System.Drawing.Point(3, 63);
-            this.tabLoaiGiaoVien.Name = "tabLoaiGiaoVien";
-            this.tabLoaiGiaoVien.SelectedIndex = 0;
-            this.tabLoaiGiaoVien.Size = new System.Drawing.Size(934, 34);
-            this.tabLoaiGiaoVien.TabIndex = 3;
-            this.tabLoaiGiaoVien.Visible = false;
+            this.btnXuatPDF.Location = new System.Drawing.Point(203, 110);
+            this.btnXuatPDF.Name = "btnXuatPDF";
+            this.btnXuatPDF.Size = new System.Drawing.Size(114, 41);
+            this.btnXuatPDF.TabIndex = 8;
+            this.btnXuatPDF.Text = "Xuất PDF";
+            this.btnXuatPDF.UseVisualStyleBackColor = false;
             // 
-            // tabChuNhiem
+            // btnXuatExcel
             // 
-            this.tabChuNhiem.Location = new System.Drawing.Point(4, 29);
-            this.tabChuNhiem.Name = "tabChuNhiem";
-            this.tabChuNhiem.Padding = new System.Windows.Forms.Padding(3);
-            this.tabChuNhiem.Size = new System.Drawing.Size(926, 1);
-            this.tabChuNhiem.TabIndex = 0;
-            this.tabChuNhiem.Text = "Lớp chủ nhiệm";
-            this.tabChuNhiem.UseVisualStyleBackColor = true;
-            // 
-            // tabGiangDay
-            // 
-            this.tabGiangDay.Location = new System.Drawing.Point(4, 29);
-            this.tabGiangDay.Name = "tabGiangDay";
-            this.tabGiangDay.Padding = new System.Windows.Forms.Padding(3);
-            this.tabGiangDay.Size = new System.Drawing.Size(926, 1);
-            this.tabGiangDay.TabIndex = 1;
-            this.tabGiangDay.Text = "Lớp giảng dạy";
-            this.tabGiangDay.UseVisualStyleBackColor = true;
+            this.btnXuatExcel.Location = new System.Drawing.Point(323, 110);
+            this.btnXuatExcel.Name = "btnXuatExcel";
+            this.btnXuatExcel.Size = new System.Drawing.Size(106, 38);
+            this.btnXuatExcel.TabIndex = 7;
+            this.btnXuatExcel.Text = "Xuất Excel";
+            this.btnXuatExcel.UseVisualStyleBackColor = false;
             // 
             // splitContainer1
             // 
+            this.splitContainer1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer1.Location = new System.Drawing.Point(3, 163);
+            this.splitContainer1.Location = new System.Drawing.Point(10, 140);
             this.splitContainer1.Name = "splitContainer1";
             this.splitContainer1.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
@@ -342,80 +341,93 @@ namespace N6
             // 
             // splitContainer1.Panel2
             // 
-            this.splitContainer1.Panel2.Controls.Add(this.pnlCharts);
-            this.splitContainer1.Size = new System.Drawing.Size(934, 434);
-            this.splitContainer1.SplitterDistance = 215;
-            this.splitContainer1.TabIndex = 4;
+            this.splitContainer1.Panel2.Controls.Add(this.flpCharts);
+            this.splitContainer1.Size = new System.Drawing.Size(980, 450);
+            this.splitContainer1.SplitterDistance = 230;
+            this.splitContainer1.TabIndex = 1;
             // 
-            // pnlCharts
+            // dgvDuLieu
             // 
-            this.pnlCharts.AutoScroll = true;
-            this.pnlCharts.BackColor = System.Drawing.Color.White;
-            this.pnlCharts.Controls.Add(this.chart1);
-            this.pnlCharts.Controls.Add(this.chart2);
-            this.pnlCharts.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlCharts.Location = new System.Drawing.Point(0, 0);
-            this.pnlCharts.Name = "pnlCharts";
-            this.pnlCharts.Size = new System.Drawing.Size(934, 215);
-            this.pnlCharts.TabIndex = 0;
+            this.dgvDuLieu.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvDuLieu.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgvDuLieu.Location = new System.Drawing.Point(0, 0);
+            this.dgvDuLieu.Name = "dgvDuLieu";
+            this.dgvDuLieu.RowHeadersWidth = 51;
+            this.dgvDuLieu.Size = new System.Drawing.Size(978, 228);
+            this.dgvDuLieu.TabIndex = 0;
             // 
-            // chart1
+            // flpCharts
             // 
-            chartArea1.Name = "ChartArea1";
-            this.chart1.ChartAreas.Add(chartArea1);
-            legend1.Name = "Legend1";
-            this.chart1.Legends.Add(legend1);
-            this.chart1.Location = new System.Drawing.Point(3, 3);
-            this.chart1.Name = "chart1";
-            series1.ChartArea = "ChartArea1";
-            series1.Legend = "Legend1";
-            series1.Name = "Series1";
-            this.chart1.Series.Add(series1);
-            this.chart1.Size = new System.Drawing.Size(450, 200);
-            this.chart1.TabIndex = 0;
-            this.chart1.Text = "chart1";
-            // 
-            // chart2
-            // 
-            chartArea2.Name = "ChartArea1";
-            this.chart2.ChartAreas.Add(chartArea2);
-            legend2.Name = "Legend1";
-            this.chart2.Legends.Add(legend2);
-            this.chart2.Location = new System.Drawing.Point(459, 3);
-            this.chart2.Name = "chart2";
-            series2.ChartArea = "ChartArea1";
-            series2.Legend = "Legend1";
-            series2.Name = "Series1";
-            this.chart2.Series.Add(series2);
-            this.chart2.Size = new System.Drawing.Size(450, 200);
-            this.chart2.TabIndex = 1;
-            this.chart2.Text = "chart2";
+            this.flpCharts.AutoScroll = true;
+            this.flpCharts.BackColor = System.Drawing.Color.White;
+            this.flpCharts.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flpCharts.Location = new System.Drawing.Point(0, 0);
+            this.flpCharts.Name = "flpCharts";
+            this.flpCharts.Padding = new System.Windows.Forms.Padding(10);
+            this.flpCharts.Size = new System.Drawing.Size(978, 214);
+            this.flpCharts.TabIndex = 0;
             // 
             // UC_BaoCao
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 21F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(30)))), ((int)(((byte)(45)))));
-            this.Controls.Add(this.layoutRoot);
+            this.BackColor = System.Drawing.Color.White;
+            this.Controls.Add(this.splitContainer1);
+            this.Controls.Add(this.pnlFilters);
+            this.Font = new System.Drawing.Font("Segoe UI", 9.5F);
             this.Name = "UC_BaoCao";
-            this.Size = new System.Drawing.Size(940, 600);
-            ((System.ComponentModel.ISupportInitialize)(this.dgvDuLieu)).EndInit();
-            this.layoutRoot.ResumeLayout(false);
-            this.pnlHeader.ResumeLayout(false);
-            this.pnlHeader.PerformLayout();
-            this.pnlHeaderRight.ResumeLayout(false);
+            this.Padding = new System.Windows.Forms.Padding(10);
+            this.Size = new System.Drawing.Size(1000, 600);
             this.pnlFilters.ResumeLayout(false);
-            this.pnlFilters.PerformLayout();
+            this.flpFilters.ResumeLayout(false);
+            this.flpFilters.PerformLayout();
+            this.pnlReportTypeSelector.ResumeLayout(false);
+            this.pnlKhoi.ResumeLayout(false);
+            this.pnlKhoi.PerformLayout();
             this.tabLoaiGiaoVien.ResumeLayout(false);
+            this.pnlLop.ResumeLayout(false);
+            this.pnlLop.PerformLayout();
+            this.pnlHocKy.ResumeLayout(false);
+            this.pnlHocKy.PerformLayout();
+            this.pnlMon.ResumeLayout(false);
+            this.pnlMon.PerformLayout();
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
-            this.pnlCharts.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.chart1)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.chart2)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvDuLieu)).EndInit();
             this.ResumeLayout(false);
 
         }
+
+        #endregion
+
+        private System.Windows.Forms.Panel pnlFilters;
+        private System.Windows.Forms.FlowLayoutPanel flpFilters;
+        private System.Windows.Forms.TabControl tabLoaiGiaoVien;
+        private System.Windows.Forms.TabPage tabGiangDay;
+        private System.Windows.Forms.TabPage tabChuNhiem;
+        private System.Windows.Forms.ComboBox cboLop;
+        private System.Windows.Forms.ComboBox cboKhoi;
+        private System.Windows.Forms.ComboBox cboHocKy;
+        private System.Windows.Forms.Label lblMonDay;
+        private System.Windows.Forms.ComboBox cboMonDay;
+        private System.Windows.Forms.SplitContainer splitContainer1;
+        private System.Windows.Forms.DataGridView dgvDuLieu;
+        private System.Windows.Forms.FlowLayoutPanel flpCharts;
+        private System.Windows.Forms.FlowLayoutPanel pnlKhoi;
+        private System.Windows.Forms.Label lblKhoi;
+        private System.Windows.Forms.FlowLayoutPanel pnlLop;
+        private System.Windows.Forms.Label lblLop;
+        private System.Windows.Forms.FlowLayoutPanel pnlHocKy;
+        private System.Windows.Forms.Label lblHocKy;
+        private System.Windows.Forms.FlowLayoutPanel pnlMon;
+        private System.Windows.Forms.FlowLayoutPanel pnlReportTypeSelector;
+        private System.Windows.Forms.RadioButton rbChuyenCan;
+        private System.Windows.Forms.RadioButton rbBangDiem;
+        private System.Windows.Forms.RadioButton rbHoSo;
+        private System.Windows.Forms.RadioButton rbThongKeKhoi;
+        private System.Windows.Forms.Button btnXuatPDF;
+        private System.Windows.Forms.Button btnXuatExcel;
     }
 }

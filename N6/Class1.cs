@@ -961,4 +961,28 @@ public static class DatabaseHelper
         object result = ExecuteScalarStoredProcedure("sp_GetTeacherNameById", pMaGV);
         return result?.ToString() ?? "Không rõ";
     }
+    #region Quỹ Lớp
+    public static DataTable GetQuyLopByLop(string maLop)
+    {
+        var pMaLop = new SqlParameter("@MaLop", maLop);
+        return ExecuteStoredProcedure("sp_GetQuyLopByLop", pMaLop);
+    }
+
+    public static void InsertQuyLop(string maLop, string loai, decimal soTien, DateTime ngay, string ghiChu)
+    {
+        var pMaLop = new SqlParameter("@MaLop", maLop);
+        var pLoai = new SqlParameter("@Loai", loai);
+        var pSoTien = new SqlParameter("@SoTien", soTien);
+        var pNgay = new SqlParameter("@Ngay", ngay.Date);
+        var pGhiChu = new SqlParameter("@GhiChu", (object)ghiChu ?? DBNull.Value);
+
+        ExecuteNonQueryStoredProcedure("sp_InsertQuyLop", pMaLop, pLoai, pSoTien, pNgay, pGhiChu);
+    }
+
+    public static void DeleteQuyLop(string maQL)
+    {
+        var pMaQL = new SqlParameter("@MaQL", maQL);
+        ExecuteNonQueryStoredProcedure("sp_DeleteQuyLop", pMaQL);
+    }
+    #endregion
 }

@@ -1,8 +1,4 @@
 ﻿
-
-
-
--- BƯỚC 2: TẠO DATABASE MỚI
 CREATE DATABASE quanlilophoc_giangday;
 GO
 USE quanlilophoc_giangday;
@@ -1640,7 +1636,89 @@ BEGIN
     SELECT Ten FROM GiaoVien WHERE MaGV = @MaGV;
 END;
 GO
+GO
+CREATE PROCEDURE sp_GetQuyLopByLop
+    @MaLop VARCHAR(10)
+AS
+BEGIN
+    SELECT 
+        MaQL,
+        Ngay,
+        GhiChu,
+        Loai,
+        SoTien
+    FROM QuyLop 
+    WHERE MaLop = @MaLop 
+    ORDER BY Ngay, MaQL;
+END;
+GO
+CREATE PROCEDURE sp_InsertQuyLop
+    @MaLop VARCHAR(10),
+    @Loai NVARCHAR(10),
+    @SoTien DECIMAL(12,2),
+    @Ngay DATE,
+    @GhiChu NVARCHAR(200)
+AS
+BEGIN
+    INSERT INTO QuyLop (MaQL, MaLop, Loai, SoTien, Ngay, GhiChu)
+    VALUES (LEFT(NEWID(), 10), @MaLop, @Loai, @SoTien, @Ngay, @GhiChu);
+END;
+GO
+CREATE PROCEDURE sp_DeleteQuyLop
+    @MaQL VARCHAR(10)
+AS
+BEGIN
+    DELETE FROM QuyLop WHERE MaQL = @MaQL;
+END;
+GO
 -- #endregion
+Go
+ALTER PROCEDURE sp_GetThongKeKhoi 
+    @khoi NVARCHAR(20) -- Đầu vào C# vẫn gửi là "Khối 5"
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @khoiFilter NVARCHAR(25) = @khoi;
 
+    -- Bảng tạm 1: Chỉ đếm Sĩ số, Nam, Nữ (Không join KetQuaHocTap)
+    -- Việc này đảm bảo mỗi học sinh CHỈ ĐƯỢC ĐẾM 1 LẦN.
+    WITH StudentCounts AS (
+        SELECT
+            l.MaLop,
+            l.TenLop,
+            COUNT(hs.MaHS) AS SoHocSinh, -- Đếm tổng số HS trong lớp
+            SUM(CASE WHEN hs.GioiTinh = N'Nam' THEN 1 ELSE 0 END) AS SoNam, -- Đếm số Nam
+            SUM(CASE WHEN hs.GioiTinh = N'Nữ' THEN 1 ELSE 0 END) AS SoNu  -- Đếm số Nữ
+        FROM LopHoc l
+        LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
+        WHERE l.Khoi = @khoiFilter
+        GROUP BY l.MaLop, l.TenLop
+    ),
+    
+    -- Bảng tạm 2: Tính điểm trung bình (vẫn là cách tính cũ, 
+    -- lấy TB của tất cả điểm, nhưng giờ nó không ảnh hưởng đến việc đếm)
+    AvgScores AS (
+        SELECT
+            l.MaLop,
+            ROUND(AVG(kq.Diem), 2) AS DiemTrungBinh
+        FROM LopHoc l
+        LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
+        LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
+        WHERE l.Khoi = @khoiFilter AND kq.Diem IS NOT NULL
+        GROUP BY l.MaLop
+    )
+    
+    -- Kết hợp hai bảng tạm lại
+    SELECT
+        sc.TenLop,
+        sc.SoHocSinh,
+        ISNULL(av.DiemTrungBinh, 0) AS DiemTrungBinh, -- Lấy điểm TB từ bảng tạm 2
+        sc.SoNam,  -- Lấy số Nam từ bảng tạm 1
+        sc.SoNu    -- Lấy số Nữ từ bảng tạm 1
+    FROM StudentCounts sc
+    LEFT JOIN AvgScores av ON sc.MaLop = av.MaLop
+    ORDER BY sc.TenLop;
+END;
+GO
 PRINT 'TẤT CẢ STORED PROCEDURES ĐÃ ĐƯỢC TẠO.';
 PRINT 'QUÁ TRÌNH TÁI TẠO HOÀN TẤT!';
