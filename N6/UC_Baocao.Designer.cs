@@ -153,7 +153,7 @@
             this.pnlKhoi.Location = new System.Drawing.Point(0, 67);
             this.pnlKhoi.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.pnlKhoi.Name = "pnlKhoi";
-            this.pnlKhoi.Size = new System.Drawing.Size(402, 40);
+            this.pnlKhoi.Size = new System.Drawing.Size(384, 40);
             this.pnlKhoi.TabIndex = 2;
             // 
             // tabLoaiGiaoVien
@@ -164,7 +164,7 @@
             this.tabLoaiGiaoVien.Margin = new System.Windows.Forms.Padding(5);
             this.tabLoaiGiaoVien.Name = "tabLoaiGiaoVien";
             this.tabLoaiGiaoVien.SelectedIndex = 0;
-            this.tabLoaiGiaoVien.Size = new System.Drawing.Size(200, 30);
+            this.tabLoaiGiaoVien.Size = new System.Drawing.Size(151, 30);
             this.tabLoaiGiaoVien.TabIndex = 1;
             this.tabLoaiGiaoVien.Visible = false;
             // 
@@ -173,7 +173,7 @@
             this.tabGiangDay.Location = new System.Drawing.Point(4, 30);
             this.tabGiangDay.Name = "tabGiangDay";
             this.tabGiangDay.Padding = new System.Windows.Forms.Padding(3);
-            this.tabGiangDay.Size = new System.Drawing.Size(192, 0);
+            this.tabGiangDay.Size = new System.Drawing.Size(174, 0);
             this.tabGiangDay.TabIndex = 0;
             this.tabGiangDay.Text = "Giảng Dạy";
             this.tabGiangDay.UseVisualStyleBackColor = true;
@@ -183,7 +183,7 @@
             this.tabChuNhiem.Location = new System.Drawing.Point(4, 30);
             this.tabChuNhiem.Name = "tabChuNhiem";
             this.tabChuNhiem.Padding = new System.Windows.Forms.Padding(3);
-            this.tabChuNhiem.Size = new System.Drawing.Size(192, 0);
+            this.tabChuNhiem.Size = new System.Drawing.Size(174, 0);
             this.tabChuNhiem.TabIndex = 1;
             this.tabChuNhiem.Text = "Chủ Nhiệm";
             this.tabChuNhiem.UseVisualStyleBackColor = true;
@@ -192,7 +192,7 @@
             // 
             this.lblKhoi.AutoSize = true;
             this.lblKhoi.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F);
-            this.lblKhoi.Location = new System.Drawing.Point(215, 8);
+            this.lblKhoi.Location = new System.Drawing.Point(197, 8);
             this.lblKhoi.Margin = new System.Windows.Forms.Padding(5, 8, 0, 5);
             this.lblKhoi.Name = "lblKhoi";
             this.lblKhoi.Size = new System.Drawing.Size(47, 21);
@@ -204,7 +204,7 @@
             this.cboKhoi.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboKhoi.Font = new System.Drawing.Font("Segoe UI", 9.5F);
             this.cboKhoi.FormattingEnabled = true;
-            this.cboKhoi.Location = new System.Drawing.Point(267, 5);
+            this.cboKhoi.Location = new System.Drawing.Point(249, 5);
             this.cboKhoi.Margin = new System.Windows.Forms.Padding(5);
             this.cboKhoi.Name = "cboKhoi";
             this.cboKhoi.Size = new System.Drawing.Size(130, 29);
@@ -215,7 +215,7 @@
             this.pnlLop.AutoSize = true;
             this.pnlLop.Controls.Add(this.lblLop);
             this.pnlLop.Controls.Add(this.cboLop);
-            this.pnlLop.Location = new System.Drawing.Point(402, 67);
+            this.pnlLop.Location = new System.Drawing.Point(384, 67);
             this.pnlLop.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.pnlLop.Name = "pnlLop";
             this.pnlLop.Size = new System.Drawing.Size(170, 39);
@@ -248,7 +248,7 @@
             this.pnlHocKy.AutoSize = true;
             this.pnlHocKy.Controls.Add(this.lblHocKy);
             this.pnlHocKy.Controls.Add(this.cboHocKy);
-            this.pnlHocKy.Location = new System.Drawing.Point(572, 67);
+            this.pnlHocKy.Location = new System.Drawing.Point(554, 67);
             this.pnlHocKy.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.pnlHocKy.Name = "pnlHocKy";
             this.pnlHocKy.Size = new System.Drawing.Size(193, 39);

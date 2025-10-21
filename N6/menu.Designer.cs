@@ -45,7 +45,7 @@
             this.panelTopBar.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelTopBar.Location = new System.Drawing.Point(0, 0);
             this.panelTopBar.Name = "panelTopBar";
-            this.panelTopBar.Size = new System.Drawing.Size(1200, 50);
+            this.panelTopBar.Size = new System.Drawing.Size(1200, 59);
             this.panelTopBar.TabIndex = 0;
             // 
             // labelAppTitle
@@ -53,7 +53,7 @@
             this.labelAppTitle.AutoSize = true;
             this.labelAppTitle.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
             this.labelAppTitle.ForeColor = System.Drawing.Color.White;
-            this.labelAppTitle.Location = new System.Drawing.Point(60, 15);
+            this.labelAppTitle.Location = new System.Drawing.Point(60, 19);
             this.labelAppTitle.Name = "labelAppTitle";
             this.labelAppTitle.Size = new System.Drawing.Size(206, 25);
             this.labelAppTitle.TabIndex = 5;
@@ -66,7 +66,7 @@
             this.btnThemeToggle.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnThemeToggle.Font = new System.Drawing.Font("Segoe UI", 14F);
             this.btnThemeToggle.ForeColor = System.Drawing.Color.White;
-            this.btnThemeToggle.Location = new System.Drawing.Point(950, 0);
+            this.btnThemeToggle.Location = new System.Drawing.Point(950, 4);
             this.btnThemeToggle.Name = "btnThemeToggle";
             this.btnThemeToggle.Size = new System.Drawing.Size(50, 50);
             this.btnThemeToggle.TabIndex = 1;
@@ -78,7 +78,7 @@
             this.labelMaximize.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.labelMaximize.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
             this.labelMaximize.ForeColor = System.Drawing.Color.White;
-            this.labelMaximize.Location = new System.Drawing.Point(1080, 0);
+            this.labelMaximize.Location = new System.Drawing.Point(1080, 4);
             this.labelMaximize.Name = "labelMaximize";
             this.labelMaximize.Size = new System.Drawing.Size(50, 50);
             this.labelMaximize.TabIndex = 2;
@@ -91,7 +91,7 @@
             this.labelClose.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.labelClose.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
             this.labelClose.ForeColor = System.Drawing.Color.White;
-            this.labelClose.Location = new System.Drawing.Point(1130, 0);
+            this.labelClose.Location = new System.Drawing.Point(1130, 4);
             this.labelClose.Name = "labelClose";
             this.labelClose.Size = new System.Drawing.Size(50, 50);
             this.labelClose.TabIndex = 3;
@@ -104,7 +104,7 @@
             this.labelMinimize.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.labelMinimize.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
             this.labelMinimize.ForeColor = System.Drawing.Color.White;
-            this.labelMinimize.Location = new System.Drawing.Point(1030, 0);
+            this.labelMinimize.Location = new System.Drawing.Point(1030, 4);
             this.labelMinimize.Name = "labelMinimize";
             this.labelMinimize.Size = new System.Drawing.Size(50, 50);
             this.labelMinimize.TabIndex = 4;
@@ -115,7 +115,7 @@
             // pictureBoxAppIcon
             // 
             this.pictureBoxAppIcon.Image = global::N6.Properties.Resources.logo;
-            this.pictureBoxAppIcon.Location = new System.Drawing.Point(12, 7);
+            this.pictureBoxAppIcon.Location = new System.Drawing.Point(12, 10);
             this.pictureBoxAppIcon.Name = "pictureBoxAppIcon";
             this.pictureBoxAppIcon.Size = new System.Drawing.Size(42, 40);
             this.pictureBoxAppIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -125,7 +125,7 @@
             // pictureBoxUser
             // 
             this.pictureBoxUser.BackColor = System.Drawing.Color.LightGray;
-            this.pictureBoxUser.Location = new System.Drawing.Point(224, 3);
+            this.pictureBoxUser.Location = new System.Drawing.Point(224, 10);
             this.pictureBoxUser.Name = "pictureBoxUser";
             this.pictureBoxUser.Size = new System.Drawing.Size(45, 43);
             this.pictureBoxUser.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -137,7 +137,7 @@
             this.labelUserName.AutoSize = true;
             this.labelUserName.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.labelUserName.ForeColor = System.Drawing.Color.White;
-            this.labelUserName.Location = new System.Drawing.Point(275, 7);
+            this.labelUserName.Location = new System.Drawing.Point(275, 10);
             this.labelUserName.Name = "labelUserName";
             this.labelUserName.Size = new System.Drawing.Size(108, 23);
             this.labelUserName.TabIndex = 8;
@@ -158,18 +158,18 @@
             this.panelMenu.AutoScroll = true;
             this.panelMenu.BackColor = System.Drawing.Color.White;
             this.panelMenu.Dock = System.Windows.Forms.DockStyle.Left;
-            this.panelMenu.Location = new System.Drawing.Point(0, 50);
+            this.panelMenu.Location = new System.Drawing.Point(0, 59);
             this.panelMenu.Name = "panelMenu";
-            this.panelMenu.Size = new System.Drawing.Size(200, 700);
+            this.panelMenu.Size = new System.Drawing.Size(200, 691);
             this.panelMenu.TabIndex = 1;
             // 
             // panelContent
             // 
             this.panelContent.Controls.Add(this.panelMain);
             this.panelContent.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelContent.Location = new System.Drawing.Point(200, 50);
+            this.panelContent.Location = new System.Drawing.Point(200, 59);
             this.panelContent.Name = "panelContent";
-            this.panelContent.Size = new System.Drawing.Size(1000, 700);
+            this.panelContent.Size = new System.Drawing.Size(1000, 691);
             this.panelContent.TabIndex = 2;
             // 
             // panelMain
@@ -177,7 +177,7 @@
             this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelMain.Location = new System.Drawing.Point(0, 0);
             this.panelMain.Name = "panelMain";
-            this.panelMain.Size = new System.Drawing.Size(1000, 700);
+            this.panelMain.Size = new System.Drawing.Size(1000, 691);
             this.panelMain.TabIndex = 0;
             // 
             // lblAssistiveToggle

@@ -1,13 +1,15 @@
-﻿
+﻿--================================================================
+-- HỦY VÀ TẠO MỚI DATABASE
+--================================================================
 CREATE DATABASE quanlilophoc_giangday;
 GO
 USE quanlilophoc_giangday;
 GO
-PRINT 'ĐÃ TẠO DATABASE MỚI.';
+PRINT 'ĐÃ TẠO DATABASE MỚI: quanlilophoc_giangday.';
 
---------------------------------------------------
--- BƯỚC 3: TẠO CÁC BẢNG
---------------------------------------------------
+--================================================================
+-- BƯỚC 1: TẠO CÁC BẢNG
+--================================================================
 CREATE TABLE Admin (
     MaAdmin VARCHAR(10) PRIMARY KEY,
     Username NVARCHAR(50) NOT NULL,
@@ -26,19 +28,27 @@ CREATE TABLE Minigame (
     DuLieu NVARCHAR(MAX)
 );
 
+-- BẢNG GIAOVIEN (KHÔNG CÒN CỘT MAMON)
 CREATE TABLE GiaoVien (
     MaGV VARCHAR(10) PRIMARY KEY,
     Ten NVARCHAR(100) NOT NULL,
     Username NVARCHAR(50) NOT NULL,
     Password VARCHAR(30) NOT NULL,
-    MaMon VARCHAR(10),
     Email NVARCHAR(50),
     SDT VARCHAR(15),
     MaAdmin VARCHAR(10),
     AnhDaiDien NVARCHAR(200),
     TrangThai NVARCHAR(20) DEFAULT N'Chưa xác nhận',
-    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon),
     FOREIGN KEY (MaAdmin) REFERENCES Admin(MaAdmin)
+);
+
+-- BẢNG MỚI: GIAOVIEN_MONHOC (QUAN HỆ NHIỀU-NHIỀU)
+CREATE TABLE GiaoVien_MonHoc (
+    MaGV VARCHAR(10) NOT NULL,
+    MaMon VARCHAR(10) NOT NULL,
+    PRIMARY KEY (MaGV, MaMon),
+    FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV) ON DELETE CASCADE,
+    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon) ON DELETE CASCADE
 );
 
 CREATE TABLE LopHoc (
@@ -62,12 +72,15 @@ CREATE TABLE HocSinh (
     FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop)
 );
 
+-- BẢNG PHANCONGGIANGDAY (PHIÊN BẢN CUỐI CÙNG - CÓ MAMON)
 CREATE TABLE PhanCongGiangDay (
     MaGV VARCHAR(10) NOT NULL,
     MaLop VARCHAR(10) NOT NULL,
-    PRIMARY KEY (MaGV, MaLop),
+    MaMon VARCHAR(10) NOT NULL,
+    PRIMARY KEY (MaLop, MaMon), -- Mỗi lớp chỉ có 1 GV cho 1 môn
     FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV) ON DELETE CASCADE,
-    FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop) ON DELETE CASCADE
+    FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop) ON DELETE CASCADE,
+    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon) ON DELETE CASCADE
 );
 
 CREATE TABLE DiemDanh (
@@ -140,37 +153,72 @@ CREATE TABLE QuyLop (
 );
 PRINT 'ĐÃ TẠO TẤT CẢ CÁC BẢNG.';
 GO
---------------------------------------------------
--- BƯỚC 4: CHÈN DỮ LIỆU MẪU (GIỮ NGUYÊN)
---------------------------------------------------
+--================================================================
+-- BƯỚC 2: CHÈN DỮ LIỆU MẪU
+--================================================================
 INSERT INTO Admin (MaAdmin, Username, Password, Email) VALUES ('AD001', 'admin', '123456', 'admin@example.com');
-INSERT INTO MonHoc (MaMon, TenMon) VALUES ('VAN', N'Ngữ văn'), ('TOAN', N'Toán'), ('ANH', N'Tiếng Anh');
+INSERT INTO MonHoc (MaMon, TenMon) VALUES ('VAN', N'Ngữ văn'), ('TOAN', N'Toán'), ('ANH', N'Tiếng Anh'), ('TIN', N'Tin học'); -- Thêm môn Tin
 
 INSERT INTO LopHoc (MaLop, TenLop, Khoi, NamHoc) VALUES
 ('5A10', N'Lớp 5A10', N'Khối 5', '2025'),
 ('5A11', N'Lớp 5A11', N'Khối 5', '2025'),
 ('5A12', N'Lớp 5A12', N'Khối 5', '2025');
 
-INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaMon, Email, SDT, MaAdmin, TrangThai) VALUES
-('GV001', N'Cô Minh Anh', 'minhanh', '123456', 'VAN', 'minhanh@example.com', '0905123456', 'AD001', N'Đã xác nhận'),
-('GV002', N'Thầy Quốc Hưng', 'quochung', '123456', 'TOAN', 'quochung@example.com', '0912345002', 'AD001', N'Đã xác nhận'),
-('GV003', N'Cô Thu Hà', 'thuha', '123456', 'ANH', 'thuha@example.com', '0912345003', 'AD001', N'Đã xác nhận'),
-('GV004', N'Thầy Trung', 'quoTrung', '123456', NULL, 'quoctrung@example.com', '09123450012', 'AD001', N'Chưa xác nhận');
+-- INSERT GIAOVIEN
+INSERT INTO GiaoVien (MaGV, Ten, Username, Password, Email, SDT, MaAdmin, TrangThai) VALUES
+('GV001', N'Cô Minh Anh', 'minhanh', '123456', 'minhanh@example.com', '0905123456', 'AD001', N'Đã xác nhận'),
+('GV002', N'Thầy Quốc Hưng', 'quochung', '123456', 'quochung@example.com', '0912345002', 'AD001', N'Đã xác nhận'),
+('GV003', N'Cô Thu Hà', 'thuha', '123456', 'thuha@example.com', '0912345003', 'AD001', N'Đã xác nhận'),
+('GV004', N'Thầy Trung', 'quoctrung', '123456', 'quoctrung@example.com', '09123450012', 'AD001', N'Chưa xác nhận'),
+('GV005', N'Cô Thanh Tâm', 'thanhtam', '123456', 'tam@example.com', '09123450013', 'AD001', N'Đã xác nhận');
+
+-- INSERT DỮ LIỆU MỚI CHO GIAOVIEN_MONHOC
+INSERT INTO GiaoVien_MonHoc (MaGV, MaMon) VALUES
+('GV001', 'VAN'), -- Cô Minh Anh dạy Văn
+('GV002', 'TOAN'), -- Thầy Quốc Hưng dạy Toán
+('GV003', 'ANH'), -- Cô Thu Hà dạy Anh
+('GV005', 'TIN'), -- Cô Thanh Tâm dạy Tin
+('GV005', 'TOAN'); -- Cô Thanh Tâm dạy cả Toán
+GO
 
 UPDATE LopHoc SET MaGVCN = 'GV001' WHERE MaLop = '5A10';
 UPDATE LopHoc SET MaGVCN = 'GV002' WHERE MaLop = '5A11';
+UPDATE LopHoc SET MaGVCN = 'GV003' WHERE MaLop = '5A12';
 
-INSERT INTO PhanCongGiangDay (MaGV, MaLop) VALUES
-('GV001', '5A10'), ('GV002', '5A10'), ('GV003', '5A10'),
-('GV001', '5A11'), ('GV002', '5A11'),
-('GV002', '5A12');
+-- INSERT DỮ LIỆU MỚI CHO PHANCONGGIANGDAY (PHIÊN BẢN CUỐI CÙNG)
+INSERT INTO PhanCongGiangDay (MaGV, MaLop, MaMon) VALUES
+-- Lớp 5A10
+('GV001', '5A10', 'VAN'),  -- Cô Minh Anh dạy Văn lớp 5A10
+('GV002', '5A10', 'TOAN'), -- Thầy Quốc Hưng dạy Toán lớp 5A10
+('GV003', '5A10', 'ANH'),  -- Cô Thu Hà dạy Anh lớp 5A10
+('GV005', '5A10', 'TIN'),  -- Cô Thanh Tâm dạy Tin lớp 5A10
+-- Lớp 5A11
+('GV001', '5A11', 'VAN'),  -- Cô Minh Anh dạy Văn lớp 5A11
+('GV002', '5A11', 'TOAN'), -- Thầy Quốc Hưng dạy Toán lớp 5A11
+-- ('GV005', '5A11', 'TIN') -- Cô Tâm KHÔNG dạy Tin lớp 5A11
+-- Lớp 5A12
+('GV003', '5A12', 'ANH'),  -- Cô Thu Hà dạy Anh lớp 5A12
+('GV005', '5A12', 'TIN'),  -- Cô Thanh Tâm dạy Tin lớp 5A12
+('GV005', '5A12', 'TOAN'); -- Cô Thanh Tâm dạy Toán lớp 5A12 (Dạy 2 môn ở lớp này)
+GO
 
+-- THÊM NHIỀU HỌC SINH
 INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
 ('HS001', '5A10', N'Nguyễn Văn Nam', N'Kinh', N'Nam', '0912345678', N'Hà Nội', '2015-09-10'),
 ('HS002', '5A10', N'Trần Thị Lan', N'Kinh', N'Nữ', '0987654321', N'Hà Nội', '2015-04-15'),
 ('HS003', '5A10', N'Lê Hoàng Anh', N'Kinh', N'Nam', '0977123456', N'Hà Nội', '2015-12-01'),
-('HS004', '5A11', N'Phạm Thị Bích', N'Kinh', N'Nữ', '0911223344', N'Hải Phòng', '2015-01-20'),
-('HS005', '5A11', N'Đặng Văn Long', N'Kinh', N'Nam', '0922334455', N'Hà Nội', '2015-03-25');
+('HS004', '5A10', N'Phạm Gia Hân', N'Kinh', N'Nữ', '0911223344', N'Hà Nội', '2015-02-22'),
+('HS005', '5A10', N'Đặng Minh Triết', N'Kinh', N'Nam', '0922334455', N'Hà Nội', '2015-07-18'),
+('HS006', '5A11', N'Phạm Thị Bích', N'Kinh', N'Nữ', '0911223344', N'Hải Phòng', '2015-01-20'),
+('HS007', '5A11', N'Đặng Văn Long', N'Kinh', N'Nam', '0922334455', N'Hà Nội', '2015-03-25'),
+('HS008', '5A11', N'Hoàng Thị Yến', N'Kinh', N'Nữ', '0933445566', N'Hà Nội', '2015-05-30'),
+('HS009', '5A11', N'Vũ Trung Kiên', N'Kinh', N'Nam', '0944556677', N'Quảng Ninh', '2015-10-11'),
+('HS010', '5A11', N'Bùi Phương Thảo', N'Kinh', N'Nữ', '0955667788', N'Hà Nội', '2015-11-05'),
+('HS011', '5A12', N'Lý Văn Cường', N'Tày', N'Nam', '0966778899', N'Lạng Sơn', '2015-01-15'),
+('HS012', '5A12', N'Trương Mỹ Duyên', N'Kinh', N'Nữ', '0977889900', N'Hà Nội', '2015-06-20'),
+('HS013', '5A12', N'Hà Văn Đức', N'Kinh', N'Nam', '0988990011', N'Hà Nội', '2015-08-08'),
+('HS014', '5A12', N'Ngô Bảo Châu', N'Kinh', N'Nữ', '0912121212', N'TP. HCM', '2015-04-01'),
+('HS015', '5A12', N'Dương Hữu Tài', N'Kinh', N'Nam', '0934343434', N'Đà Nẵng', '2015-03-03');
 
 INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, GhiChu, MaGV, MaLop) VALUES
 ('TKB001', '2025-10-06', 1, 'VAN', N'Ôn tập chương 1', 'GV001', '5A10'),
@@ -184,7 +232,11 @@ INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, GhiChu, MaGV, MaLop) VALUES
 ('TKB009', '2025-10-10', 2, 'ANH', N'Kiểm tra 15 phút', 'GV003', '5A10'),
 ('TKB010', '2025-10-10', 3, 'TOAN', N'Ôn tập chương 2', 'GV002', '5A10'),
 ('TKB011', '2025-10-06', 3, 'VAN', N'Giới thiệu tác phẩm mới', 'GV001', '5A11'),
-('TKB012', '2025-10-07', 4, 'TOAN', N'Hình học', 'GV002', '5A11');
+('TKB012', '2025-10-07', 4, 'TOAN', N'Hình học', 'GV002', '5A11'),
+('TKB013', '2025-10-07', 3, 'TIN', N'Luyện gõ 10 ngón', 'GV005', '5A10'),
+('TKB014', '2025-10-08', 1, 'TIN', N'Làm quen Powerpoint', 'GV005', '5A12'), -- Đổi sang 5A12
+('TKB015', '2025-10-09', 2, 'TIN', N'Bài tập Excel cơ bản', 'GV005', '5A12'),
+('TKB016', '2025-10-09', 3, 'TOAN', N'Đại số', 'GV005', '5A12'); -- Cô Tâm dạy Toán lớp 5A12
 
 INSERT INTO Minigame (MaMNG, Ten, DuLieu) VALUES
 ('MNG01', N'Quiz nhanh', NULL), ('MNG02', N'Gọi tên ngẫu nhiên', NULL), ('MNG03', N'Flashcard', NULL),
@@ -193,10 +245,9 @@ INSERT INTO Minigame (MaMNG, Ten, DuLieu) VALUES
 
 PRINT 'ĐÃ CHÈN TẤT CẢ DỮ LIỆU MẪU.';
 GO
-
---------------------------------------------------
--- BƯỚC 5: TẠO CÁC TRIGGERS VÀ SP GỐC
---------------------------------------------------
+--================================================================
+-- BƯỚC 3: TẠO CÁC TRIGGERS VÀ SP KHỞI TẠO
+--================================================================
 
 CREATE PROCEDURE sp_TaoDiemDanhMacDinh
     @MaLop VARCHAR(10),
@@ -333,14 +384,16 @@ GO
 --------------------------------------------------
 EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A10';
 EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A11';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A12';
 EXEC sp_TaoKetQuaHocTapMacDinh;
 GO
 
--- Cập nhật điểm mẫu (GIỮ NGUYÊN)
+-- Cập nhật điểm mẫu (CHO NHIỀU HỌC SINH)
 UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS001' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
 UPDATE KetQuaHocTap SET Diem = 7.0 WHERE MaHS = 'HS001' AND MaMon = 'VAN' AND Loai = 'GiuaKi1';
 UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS001' AND MaMon = 'ANH' AND Loai = 'CuoiKi1';
 UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS001' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS001' AND MaMon = 'TIN' AND Loai = 'GiuaKi1';
 
 UPDATE KetQuaHocTap SET Diem = 6.5 WHERE MaHS = 'HS002' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
 UPDATE KetQuaHocTap SET Diem = 5.0 WHERE MaHS = 'HS002' AND MaMon = 'VAN' AND Loai = 'GiuaKi1';
@@ -350,115 +403,21 @@ UPDATE KetQuaHocTap SET Diem = 2.0 WHERE MaHS = 'HS002' AND MaMon = 'TOAN' AND L
 UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS003' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
 UPDATE KetQuaHocTap SET Diem = 10.0 WHERE MaHS = 'HS003' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
 
-UPDATE KetQuaHocTap SET Diem = 4.5 WHERE MaHS = 'HS004' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS004' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
-UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS004' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 4.5 WHERE MaHS = 'HS006' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS006' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS006' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
 
-UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS005' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS005' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS007' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS007' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
+
+UPDATE KetQuaHocTap SET Diem = 7.0 WHERE MaHS = 'HS011' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 6.5 WHERE MaHS = 'HS011' AND MaMon = 'ANH' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS012' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
 GO
 
--- CÁC SP BÁO CÁO GỐC
-CREATE PROCEDURE sp_BaoCaoChuyenCan_Lop
-    @maLop VARCHAR(10),
-    @hocKy NVARCHAR(20)
-AS
-BEGIN
-    DECLARE @NamHoc INT = YEAR(GETDATE());
-    DECLARE @StartDate DATETime, @EndDate DATETime;
-
-    IF @hocKy = N'Học kỳ 1'
-    BEGIN
-        SET @StartDate = DATEFROMPARTS(@NamHoc - 1, 9, 1);
-        SET @EndDate = DATEFROMPARTS(@NamHoc, 1, 15);
-    END
-    ELSE IF @hocKy = N'Học kỳ 2'
-    BEGIN
-        SET @StartDate = DATEFROMPARTS(@NamHoc, 1, 16);
-        SET @EndDate = DATEFROMPARTS(@NamHoc, 5, 31);
-    END
-    ELSE -- Cả năm
-    BEGIN
-        SET @StartDate = DATEFROMPARTS(@NamHoc - 1, 9, 1);
-        SET @EndDate = DATEFROMPARTS(@NamHoc, 5, 31);
-    END;
-
-    SELECT
-        hs.MaHS,
-        hs.HoTen,
-        COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) as SoBuoiCoMat,
-        COUNT(CASE WHEN dd.TrangThai = N'Vắng' THEN 1 END) as SoBuoiVang,
-        COUNT(CASE WHEN dd.TrangThai LIKE N'%Có phép%' THEN 1 END) as SoBuoiVangCoPhep,
-        COUNT(dd.MaDD) as TongSoBuoi,
-        CAST(
-            (COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) * 100.0) / NULLIF(COUNT(dd.MaDD), 0)
-            AS DECIMAL(5,0)
-        ) as TyLeChuyenCan
-    FROM HocSinh hs
-    LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS
-    WHERE hs.MaLop = @maLop AND dd.NgayDD BETWEEN @StartDate AND @EndDate
-    GROUP BY hs.MaHS, hs.HoTen;
-END
-GO
-CREATE PROCEDURE sp_BaoCaoDiemSo_Lop
-    @maLop VARCHAR(10),
-    @hocKy NVARCHAR(20)
-AS
-BEGIN
-    SELECT
-        hs.MaHS,
-        hs.HoTen,
-        mh.TenMon,
-        kqht.Diem
-    FROM HocSinh hs
-    JOIN KetQuaHocTap kqht ON hs.MaHS = kqht.MaHS
-    JOIN MonHoc mh ON kqht.MaMon = mh.MaMon
-    WHERE hs.MaLop = @maLop AND kqht.Loai = @hocKy;
-END
-GO
-CREATE PROCEDURE sp_ThongKeDiemTB_Khoi
-    @khoi NVARCHAR(20),
-    @hocKy NVARCHAR(20)
-AS
-BEGIN
-    SELECT
-        hs.MaLop,
-        AVG(kqht.Diem) as DiemTrungBinh
-    FROM HocSinh hs
-    JOIN KetQuaHocTap kqht ON hs.MaHS = kqht.MaHS
-    WHERE hs.MaLop LIKE @khoi + '%' AND kqht.Loai = @hocKy
-    GROUP BY hs.MaLop;
-END
-GO
-CREATE PROCEDURE sp_ThongKeHocLuc_Khoi
-    @khoi NVARCHAR(20),
-    @hocKy NVARCHAR(20)
-AS
-BEGIN
-    SELECT
-        HocLuc,
-        COUNT(*) as SoLuong
-    FROM (
-        SELECT
-            CASE
-                WHEN AVG(kqht.Diem) >= 8.5 THEN N'Giỏi'
-                WHEN AVG(kqht.Diem) >= 6.5 THEN N'Khá'
-                WHEN AVG(kqht.Diem) >= 5.0 THEN N'Trung bình'
-                ELSE N'Yếu'
-            END as HocLuc
-        FROM HocSinh hs
-        JOIN KetQuaHocTap kqht ON hs.MaHS = kqht.MaHS
-        WHERE hs.MaLop LIKE @khoi + '%' AND kqht.Loai = @hocKy
-        GROUP BY hs.MaHS
-    ) as BangHocLuc
-    GROUP BY HocLuc;
-END
-GO
-PRINT 'ĐÃ TẠO SP GỐC VÀ CẬP NHẬT ĐIỂM MẪU.';
-
---------------------------------------------------
--- BƯỚC 6: TẠO CÁC TABLE TYPES MỚI
---------------------------------------------------
+--================================================================
+-- BƯỚC 4: TẠO CÁC TABLE TYPES (CHO IMPORT)
+--================================================================
 
 CREATE TYPE ut_HocSinhImport AS TABLE(
     MaHS VARCHAR(10) PRIMARY KEY,
@@ -484,12 +443,12 @@ CREATE TYPE ut_TKBImport AS TABLE(
     MauSac VARCHAR(20) NULL
 );
 GO
+PRINT 'ĐÃ TẠO CÁC TABLE TYPES.';
 
-
---------------------------------------------------
--- BƯỚC 7: TẠO TẤT CẢ CÁC SP ĐÃ CHUYỂN ĐỔI (ĐÃ SỬA LỖI)
---------------------------------------------------
-
+--================================================================
+-- BƯỚC 5: TẠO TẤT CẢ CÁC STORED PROCEDURE ĐÃ FIX
+--================================================================
+go
 -- #region Đăng nhập
 CREATE PROCEDURE sp_CheckTeacherLogin
     @user NVARCHAR(50),
@@ -518,9 +477,21 @@ CREATE PROCEDURE sp_GetTeacherProfile
     @user NVARCHAR(50)
 AS
 BEGIN
-    SELECT gv.Ten, gv.Email, gv.SDT, gv.AnhDaiDien, mh.TenMon
+    SET NOCOUNT ON;
+    SELECT 
+        gv.Ten, 
+        gv.Email, 
+        gv.SDT, 
+        gv.AnhDaiDien,
+        ISNULL(STUFF((
+            SELECT N', ' + mh.TenMon
+            FROM GiaoVien_MonHoc gvm
+            JOIN MonHoc mh ON gvm.MaMon = mh.MaMon
+            WHERE gvm.MaGV = gv.MaGV
+            ORDER BY mh.TenMon
+            FOR XML PATH('')
+        ), 1, 2, N''), N'Chưa có môn') AS TenMon
     FROM GiaoVien gv
-    LEFT JOIN MonHoc mh ON gv.MaMon = mh.MaMon
     WHERE gv.Username = @user OR gv.Ten = @user;
 END;
 GO
@@ -538,9 +509,12 @@ CREATE PROCEDURE sp_GetMonByTeacher
     @id NVARCHAR(50)
 AS
 BEGIN
-    SELECT MaMon 
-    FROM GiaoVien 
-    WHERE Username=@id OR Ten=@id;
+    SET NOCOUNT ON;
+    SELECT TOP 1 gvm.MaMon
+    FROM GiaoVien gv
+    JOIN GiaoVien_MonHoc gvm ON gv.MaGV = gvm.MaGV
+    WHERE gv.Username=@id OR gv.Ten=@id
+    ORDER BY gvm.MaMon;
 END;
 GO
 -- #endregion
@@ -555,6 +529,29 @@ BEGIN
     WHERE MaLop = @malop 
     ORDER BY HoTen;
 END;
+ALTER PROCEDURE sp_GetHocSinhByLop
+    @malop VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        -- Tự động tạo cột STT, sắp xếp theo Họ Tên
+        ROW_NUMBER() OVER (ORDER BY HoTen) AS STT, 
+        
+        -- Các cột cũ
+        MaHS, 
+        HoTen, 
+        GioiTinh, 
+        NgaySinh, 
+        DiaChi, 
+        DanToc, 
+        SDTPhuHuynh 
+    FROM HocSinh 
+    WHERE MaLop = @malop 
+    ORDER BY HoTen; -- Vẫn giữ ORDER BY ở cuối để đảm bảo thứ tự
+END;
+GO
 GO
 CREATE PROCEDURE sp_GetHocSinhProfile
     @maHS VARCHAR(10)
@@ -1021,7 +1018,23 @@ GO
 CREATE PROCEDURE sp_GetAllGiaoVien
 AS
 BEGIN
-    SELECT MaGV, Ten, Username, Email, SDT, TrangThai, MaMon FROM GiaoVien;
+    SET NOCOUNT ON;
+    SELECT 
+        gv.MaGV, 
+        gv.Ten, 
+        gv.Username, 
+        gv.Email, 
+        gv.SDT, 
+        gv.TrangThai,
+        ISNULL(STUFF((
+            SELECT N', ' + mh.TenMon
+            FROM GiaoVien_MonHoc gvm
+            JOIN MonHoc mh ON gvm.MaMon = mh.MaMon
+            WHERE gvm.MaGV = gv.MaGV
+            ORDER BY mh.TenMon
+            FOR XML PATH('')
+        ), 1, 2, N''), N'Chưa có môn') AS CacMonDay
+    FROM GiaoVien gv;
 END;
 GO
 CREATE PROCEDURE sp_GetAllHocSinh
@@ -1110,15 +1123,20 @@ GO
 -- #endregion
 
 -- #region Báo cáo
-CREATE PROCEDURE sp_GetLopByGiaoVien
+CREATE PROCEDURE sp_GetLopByGiaoVien -- ĐÃ FIX (Dùng bảng PCGD mới)
     @maGV VARCHAR(10)
 AS
 BEGIN
+    SET NOCOUNT ON;
+    
+    -- Lấy các lớp GV này được phân công giảng dạy (từ bảng mới)
     SELECT DISTINCT l.MaLop, l.TenLop 
     FROM LopHoc l
     JOIN PhanCongGiangDay pc ON l.MaLop = pc.MaLop
     WHERE pc.MaGV = @maGV
-    UNION
+    
+    UNION -- Cộng với các lớp GV này làm chủ nhiệm
+    
     SELECT MaLop, TenLop 
     FROM LopHoc
     WHERE MaGVCN = @maGV;
@@ -1207,18 +1225,40 @@ CREATE PROCEDURE sp_GetThongKeKhoi
     @khoi NVARCHAR(20)
 AS
 BEGIN
-    SELECT 
-        l.TenLop,
-        COUNT(hs.MaHS) as SoHocSinh,
-        ROUND(AVG(kq.Diem), 2) as DiemTrungBinh, 
-        COUNT(CASE WHEN hs.GioiTinh = N'Nam' THEN 1 END) as SoNam,
-        COUNT(CASE WHEN hs.GioiTinh = N'Nữ' THEN 1 END) as SoNu
-    FROM LopHoc l
-    LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
-    LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
-    WHERE l.Khoi = @khoi
-    GROUP BY l.TenLop
-    ORDER BY l.TenLop;
+    SET NOCOUNT ON;
+    DECLARE @khoiFilter NVARCHAR(25) = @khoi;
+
+    WITH StudentCounts AS (
+        SELECT
+            l.MaLop,
+            l.TenLop,
+            COUNT(hs.MaHS) AS SoHocSinh,
+            SUM(CASE WHEN hs.GioiTinh = N'Nam' THEN 1 ELSE 0 END) AS SoNam,
+            SUM(CASE WHEN hs.GioiTinh = N'Nữ' THEN 1 ELSE 0 END) AS SoNu
+        FROM LopHoc l
+        LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
+        WHERE l.Khoi = @khoiFilter
+        GROUP BY l.MaLop, l.TenLop
+    ),
+    AvgScores AS (
+        SELECT
+            l.MaLop,
+            ROUND(AVG(kq.Diem), 2) AS DiemTrungBinh
+        FROM LopHoc l
+        LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
+        LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
+        WHERE l.Khoi = @khoiFilter AND kq.Diem IS NOT NULL
+        GROUP BY l.MaLop
+    )
+    SELECT
+        sc.TenLop,
+        sc.SoHocSinh,
+        ISNULL(av.DiemTrungBinh, 0) AS DiemTrungBinh,
+        sc.SoNam,
+        sc.SoNu
+    FROM StudentCounts sc
+    LEFT JOIN AvgScores av ON sc.MaLop = av.MaLop
+    ORDER BY sc.TenLop;
 END;
 GO
 -- #endregion
@@ -1344,6 +1384,7 @@ CREATE PROCEDURE sp_CreateTeacherRequest
     @SDT VARCHAR(15)
 AS
 BEGIN
+    SET NOCOUNT ON;
     IF EXISTS (SELECT 1 FROM GiaoVien WHERE Username=@Username)
     BEGIN
         RAISERROR(N'Tên đăng nhập này đã tồn tại. Vui lòng chọn tên khác.', 16, 1);
@@ -1355,8 +1396,13 @@ BEGIN
     
     DECLARE @newMaGV VARCHAR(10) = 'GV' + RIGHT('000' + CAST(@newId AS VARCHAR), 3);
 
-    INSERT INTO GiaoVien (MaGV, Ten, Username, Password, MaMon, Email, SDT, MaAdmin, TrangThai) 
-    VALUES (@newMaGV, @Ten, @Username, @Password, @MaMon, @Email, @SDT, 'AD001', N'Chưa xác nhận');
+    INSERT INTO GiaoVien (MaGV, Ten, Username, Password, Email, SDT, MaAdmin, TrangThai) 
+    VALUES (@newMaGV, @Ten, @Username, @Password, @Email, @SDT, 'AD001', N'Chưa xác nhận');
+
+    IF @MaMon IS NOT NULL AND @MaMon != '' AND EXISTS (SELECT 1 FROM MonHoc WHERE MaMon = @MaMon)
+    BEGIN
+        INSERT INTO GiaoVien_MonHoc (MaGV, MaMon) VALUES (@newMaGV, @MaMon);
+    END
 END;
 GO
 CREATE PROCEDURE sp_GetTaiLieuSharedWithUploader
@@ -1450,10 +1496,11 @@ CREATE PROCEDURE sp_GetMonHocByGiaoVienAndLop
     @maLop VARCHAR(10)
 AS
 BEGIN
-    SELECT DISTINCT t.MaMon, m.TenMon 
-    FROM ThoiKhoaBieu t
-    JOIN MonHoc m ON t.MaMon = m.MaMon
-    WHERE t.MaGV = @maGV AND t.MaLop = @maLop AND t.MaMon IS NOT NULL
+    -- Lấy các môn GV được phân công DẠY LỚP ĐÓ
+    SELECT DISTINCT m.MaMon, m.TenMon 
+    FROM PhanCongGiangDay pc
+    JOIN MonHoc m ON pc.MaMon = m.MaMon
+    WHERE pc.MaGV = @maGV AND pc.MaLop = @maLop
     ORDER BY m.TenMon;
 END;
 GO
@@ -1493,25 +1540,24 @@ BEGIN
     WHERE l.MaLop = @MaLop;
 END;
 GO
-CREATE PROCEDURE sp_GetPhanCongGiangDayByLop
+CREATE PROCEDURE sp_GetPhanCongGiangDayByLop -- ĐÃ FIX (Dùng bảng PCGD mới)
     @MaLop VARCHAR(10)
 AS
 BEGIN
+    SET NOCOUNT ON;
+    
     SELECT 
-        m.MaMon, m.TenMon,
-        Assigned.MaGV,
-        ISNULL(Assigned.TenGV, 'Chưa phân công') AS TenGV
+        m.MaMon, 
+        m.TenMon,
+        ISNULL(pc.MaGV, '') AS MaGV, 
+        ISNULL(gv.Ten, 'Chưa phân công') AS TenGV
     FROM MonHoc m
-    LEFT JOIN (
-        SELECT g.MaMon, g.MaGV, g.Ten as TenGV
-        FROM PhanCongGiangDay pc
-        JOIN GiaoVien g ON pc.MaGV = g.MaGV
-        WHERE pc.MaLop = @MaLop
-    ) AS Assigned ON m.MaMon = Assigned.MaMon
+    LEFT JOIN PhanCongGiangDay pc ON m.MaMon = pc.MaMon AND pc.MaLop = @MaLop
+    LEFT JOIN GiaoVien gv ON pc.MaGV = gv.MaGV
     ORDER BY m.TenMon;
 END;
 GO
-CREATE PROCEDURE sp_UpdatePhanCong
+CREATE PROCEDURE sp_UpdatePhanCong -- ĐÃ FIX (Dùng bảng PCGD mới)
     @MaLop VARCHAR(10),
     @MaMon VARCHAR(10),
     @NewMaGV VARCHAR(10)
@@ -1520,22 +1566,25 @@ BEGIN
     SET NOCOUNT ON;
     BEGIN TRANSACTION;
     BEGIN TRY
-        DECLARE @OldMaGV VARCHAR(10);
-        SELECT @OldMaGV = pc.MaGV 
-        FROM PhanCongGiangDay pc
-        JOIN GiaoVien g ON pc.MaGV = g.MaGV
-        WHERE pc.MaLop = @MaLop AND g.MaMon = @MaMon;
-
-        IF @OldMaGV IS NOT NULL
-        BEGIN
-            DELETE FROM PhanCongGiangDay 
-            WHERE MaLop = @MaLop AND MaGV = @OldMaGV;
-        END
+        
+        DELETE FROM PhanCongGiangDay 
+        WHERE MaLop = @MaLop AND MaMon = @MaMon;
 
         IF @NewMaGV IS NOT NULL AND @NewMaGV != ''
         BEGIN
-            INSERT INTO PhanCongGiangDay (MaGV, MaLop) 
-            VALUES (@NewMaGV, @MaLop);
+            IF NOT EXISTS (SELECT 1 FROM GiaoVien_MonHoc WHERE MaGV = @NewMaGV AND MaMon = @MaMon)
+            BEGIN
+                DECLARE @TenGV NVARCHAR(100), @TenMon NVARCHAR(50);
+                SELECT @TenGV = Ten FROM GiaoVien WHERE MaGV = @NewMaGV;
+                SELECT @TenMon = TenMon FROM MonHoc WHERE MaMon = @MaMon;
+                
+                RAISERROR(N'Không thể phân công. Giáo viên [%s] không dạy Môn [%s].', 16, 1, @TenGV, @TenMon);
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            INSERT INTO PhanCongGiangDay (MaGV, MaLop, MaMon) 
+            VALUES (@NewMaGV, @MaLop, @MaMon);
         END
 
         COMMIT TRANSACTION;
@@ -1636,7 +1685,6 @@ BEGIN
     SELECT Ten FROM GiaoVien WHERE MaGV = @MaGV;
 END;
 GO
-GO
 CREATE PROCEDURE sp_GetQuyLopByLop
     @MaLop VARCHAR(10)
 AS
@@ -1672,53 +1720,5 @@ BEGIN
 END;
 GO
 -- #endregion
-Go
-ALTER PROCEDURE sp_GetThongKeKhoi 
-    @khoi NVARCHAR(20) -- Đầu vào C# vẫn gửi là "Khối 5"
-AS
-BEGIN
-    SET NOCOUNT ON;
-    DECLARE @khoiFilter NVARCHAR(25) = @khoi;
-
-    -- Bảng tạm 1: Chỉ đếm Sĩ số, Nam, Nữ (Không join KetQuaHocTap)
-    -- Việc này đảm bảo mỗi học sinh CHỈ ĐƯỢC ĐẾM 1 LẦN.
-    WITH StudentCounts AS (
-        SELECT
-            l.MaLop,
-            l.TenLop,
-            COUNT(hs.MaHS) AS SoHocSinh, -- Đếm tổng số HS trong lớp
-            SUM(CASE WHEN hs.GioiTinh = N'Nam' THEN 1 ELSE 0 END) AS SoNam, -- Đếm số Nam
-            SUM(CASE WHEN hs.GioiTinh = N'Nữ' THEN 1 ELSE 0 END) AS SoNu  -- Đếm số Nữ
-        FROM LopHoc l
-        LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
-        WHERE l.Khoi = @khoiFilter
-        GROUP BY l.MaLop, l.TenLop
-    ),
-    
-    -- Bảng tạm 2: Tính điểm trung bình (vẫn là cách tính cũ, 
-    -- lấy TB của tất cả điểm, nhưng giờ nó không ảnh hưởng đến việc đếm)
-    AvgScores AS (
-        SELECT
-            l.MaLop,
-            ROUND(AVG(kq.Diem), 2) AS DiemTrungBinh
-        FROM LopHoc l
-        LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
-        LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
-        WHERE l.Khoi = @khoiFilter AND kq.Diem IS NOT NULL
-        GROUP BY l.MaLop
-    )
-    
-    -- Kết hợp hai bảng tạm lại
-    SELECT
-        sc.TenLop,
-        sc.SoHocSinh,
-        ISNULL(av.DiemTrungBinh, 0) AS DiemTrungBinh, -- Lấy điểm TB từ bảng tạm 2
-        sc.SoNam,  -- Lấy số Nam từ bảng tạm 1
-        sc.SoNu    -- Lấy số Nữ từ bảng tạm 1
-    FROM StudentCounts sc
-    LEFT JOIN AvgScores av ON sc.MaLop = av.MaLop
-    ORDER BY sc.TenLop;
-END;
-GO
 PRINT 'TẤT CẢ STORED PROCEDURES ĐÃ ĐƯỢC TẠO.';
 PRINT 'QUÁ TRÌNH TÁI TẠO HOÀN TẤT!';

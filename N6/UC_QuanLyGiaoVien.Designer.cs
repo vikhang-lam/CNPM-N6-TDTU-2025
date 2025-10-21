@@ -15,10 +15,6 @@
         private System.Windows.Forms.Label lblEmail;
         private System.Windows.Forms.Label lblSDT;
         private System.Windows.Forms.Panel pnlEdit;
-        private System.Windows.Forms.TabControl tabControl1;
-        private System.Windows.Forms.TabPage tabTatCa;
-        private System.Windows.Forms.TabPage tabChoDuyet;
-        private System.Windows.Forms.TabPage tabDaXacNhan;
         private System.Windows.Forms.FlowLayoutPanel pnlDuyet;
         private System.Windows.Forms.Label lblSelectedGV;
         private System.Windows.Forms.Button btnLamMoi;
@@ -31,9 +27,9 @@
 
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle10 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle11 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle12 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             this.dgvGV = new System.Windows.Forms.DataGridView();
             this.btnXacNhan = new System.Windows.Forms.Button();
             this.btnHuy = new System.Windows.Forms.Button();
@@ -46,13 +42,13 @@
             this.lblEmail = new System.Windows.Forms.Label();
             this.lblSDT = new System.Windows.Forms.Label();
             this.pnlEdit = new System.Windows.Forms.Panel();
-            this.btnLamMoi = new System.Windows.Forms.Button();
             this.lblSelectedGV = new System.Windows.Forms.Label();
             this.pnlDuyet = new System.Windows.Forms.FlowLayoutPanel();
-            this.tabControl1 = new System.Windows.Forms.TabControl();
-            this.tabTatCa = new System.Windows.Forms.TabPage();
-            this.tabChoDuyet = new System.Windows.Forms.TabPage();
+            this.btnLamMoi = new System.Windows.Forms.Button();
             this.tabDaXacNhan = new System.Windows.Forms.TabPage();
+            this.tabChoDuyet = new System.Windows.Forms.TabPage();
+            this.tabTatCa = new System.Windows.Forms.TabPage();
+            this.tabControl1 = new System.Windows.Forms.TabControl();
             ((System.ComponentModel.ISupportInitialize)(this.dgvGV)).BeginInit();
             this.pnlEdit.SuspendLayout();
             this.pnlDuyet.SuspendLayout();
@@ -66,24 +62,24 @@
             this.dgvGV.BackgroundColor = System.Drawing.Color.White;
             this.dgvGV.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.dgvGV.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
-            dataGridViewCellStyle10.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle10.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(150)))), ((int)(((byte)(200)))));
-            dataGridViewCellStyle10.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
-            dataGridViewCellStyle10.ForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle10.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(150)))), ((int)(((byte)(200)))));
-            dataGridViewCellStyle10.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle10.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgvGV.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle10;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(150)))), ((int)(((byte)(200)))));
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            dataGridViewCellStyle1.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(150)))), ((int)(((byte)(200)))));
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvGV.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
             this.dgvGV.ColumnHeadersHeight = 40;
             this.dgvGV.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            dataGridViewCellStyle11.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle11.BackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle11.Font = new System.Drawing.Font("Segoe UI", 10F);
-            dataGridViewCellStyle11.ForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle11.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(245)))), ((int)(((byte)(255)))));
-            dataGridViewCellStyle11.SelectionForeColor = System.Drawing.Color.Black;
-            dataGridViewCellStyle11.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.dgvGV.DefaultCellStyle = dataGridViewCellStyle11;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Segoe UI", 10F);
+            dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(230)))), ((int)(((byte)(245)))), ((int)(((byte)(255)))));
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.Color.Black;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dgvGV.DefaultCellStyle = dataGridViewCellStyle2;
             this.dgvGV.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvGV.EnableHeadersVisualStyles = false;
             this.dgvGV.GridColor = System.Drawing.Color.Gainsboro;
@@ -91,10 +87,10 @@
             this.dgvGV.Name = "dgvGV";
             this.dgvGV.ReadOnly = true;
             this.dgvGV.RowHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
-            dataGridViewCellStyle12.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle12.SelectionBackColor = System.Drawing.Color.LightSkyBlue;
-            dataGridViewCellStyle12.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            this.dgvGV.RowHeadersDefaultCellStyle = dataGridViewCellStyle12;
+            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.Color.LightSkyBlue;
+            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            this.dgvGV.RowHeadersDefaultCellStyle = dataGridViewCellStyle3;
             this.dgvGV.RowHeadersVisible = false;
             this.dgvGV.RowHeadersWidth = 51;
             this.dgvGV.RowTemplate.Height = 36;
@@ -127,7 +123,7 @@
             this.btnHuy.ForeColor = System.Drawing.Color.White;
             this.btnHuy.Location = new System.Drawing.Point(149, 3);
             this.btnHuy.Name = "btnHuy";
-            this.btnHuy.Size = new System.Drawing.Size(140, 42);
+            this.btnHuy.Size = new System.Drawing.Size(167, 42);
             this.btnHuy.TabIndex = 5;
             this.btnHuy.Text = "❌ Hủy Yêu Cầu";
             this.btnHuy.UseVisualStyleBackColor = false;
@@ -218,7 +214,6 @@
             // 
             this.pnlEdit.BackColor = System.Drawing.Color.WhiteSmoke;
             this.pnlEdit.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pnlEdit.Controls.Add(this.btnLamMoi);
             this.pnlEdit.Controls.Add(this.lblSelectedGV);
             this.pnlEdit.Controls.Add(this.pnlDuyet);
             this.pnlEdit.Controls.Add(this.lblTen);
@@ -235,20 +230,6 @@
             this.pnlEdit.Size = new System.Drawing.Size(940, 160);
             this.pnlEdit.TabIndex = 1;
             // 
-            // btnLamMoi
-            // 
-            this.btnLamMoi.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(120)))), ((int)(((byte)(120)))), ((int)(((byte)(120)))));
-            this.btnLamMoi.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnLamMoi.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.btnLamMoi.ForeColor = System.Drawing.Color.White;
-            this.btnLamMoi.Location = new System.Drawing.Point(740, 100);
-            this.btnLamMoi.Name = "btnLamMoi";
-            this.btnLamMoi.Size = new System.Drawing.Size(140, 42);
-            this.btnLamMoi.TabIndex = 0;
-            this.btnLamMoi.Text = "🔄 Tải Lại DS";
-            this.btnLamMoi.UseVisualStyleBackColor = false;
-            this.btnLamMoi.Click += new System.EventHandler(this.btnLamMoi_Click);
-            // 
             // lblSelectedGV
             // 
             this.lblSelectedGV.AutoSize = true;
@@ -264,17 +245,56 @@
             // 
             this.pnlDuyet.Controls.Add(this.btnXacNhan);
             this.pnlDuyet.Controls.Add(this.btnHuy);
+            this.pnlDuyet.Controls.Add(this.btnLamMoi);
             this.pnlDuyet.Location = new System.Drawing.Point(20, 100);
             this.pnlDuyet.Name = "pnlDuyet";
-            this.pnlDuyet.Size = new System.Drawing.Size(300, 50);
+            this.pnlDuyet.Size = new System.Drawing.Size(469, 50);
             this.pnlDuyet.TabIndex = 8;
             this.pnlDuyet.Visible = false;
+            // 
+            // btnLamMoi
+            // 
+            this.btnLamMoi.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(120)))), ((int)(((byte)(120)))), ((int)(((byte)(120)))));
+            this.btnLamMoi.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnLamMoi.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.btnLamMoi.ForeColor = System.Drawing.Color.White;
+            this.btnLamMoi.Location = new System.Drawing.Point(322, 3);
+            this.btnLamMoi.Name = "btnLamMoi";
+            this.btnLamMoi.Size = new System.Drawing.Size(140, 42);
+            this.btnLamMoi.TabIndex = 0;
+            this.btnLamMoi.Text = "🔄 Tải Lại DS";
+            this.btnLamMoi.UseVisualStyleBackColor = false;
+            this.btnLamMoi.Click += new System.EventHandler(this.btnLamMoi_Click);
+            // 
+            // tabDaXacNhan
+            // 
+            this.tabDaXacNhan.Location = new System.Drawing.Point(4, 32);
+            this.tabDaXacNhan.Name = "tabDaXacNhan";
+            this.tabDaXacNhan.Size = new System.Drawing.Size(932, 0);
+            this.tabDaXacNhan.TabIndex = 2;
+            // 
+            // tabChoDuyet
+            // 
+            this.tabChoDuyet.Location = new System.Drawing.Point(4, 32);
+            this.tabChoDuyet.Name = "tabChoDuyet";
+            this.tabChoDuyet.Size = new System.Drawing.Size(932, 0);
+            this.tabChoDuyet.TabIndex = 1;
+            this.tabChoDuyet.Text = " Yêu cầu chờ duyệt ";
+
+            
+            // 
+            // tabTatCa
+            // 
+            this.tabTatCa.Location = new System.Drawing.Point(4, 32);
+            this.tabTatCa.Name = "tabTatCa";
+            this.tabTatCa.Size = new System.Drawing.Size(932, 0);
+            this.tabTatCa.TabIndex = 0;
+            this.tabTatCa.Text = " Tất cả Giáo viên ";
             // 
             // tabControl1
             // 
             this.tabControl1.Controls.Add(this.tabTatCa);
             this.tabControl1.Controls.Add(this.tabChoDuyet);
-            this.tabControl1.Controls.Add(this.tabDaXacNhan);
             this.tabControl1.Dock = System.Windows.Forms.DockStyle.Top;
             this.tabControl1.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.tabControl1.Location = new System.Drawing.Point(0, 0);
@@ -283,30 +303,6 @@
             this.tabControl1.Size = new System.Drawing.Size(940, 32);
             this.tabControl1.TabIndex = 2;
             this.tabControl1.SelectedIndexChanged += new System.EventHandler(this.tabControl1_SelectedIndexChanged);
-            // 
-            // tabTatCa
-            // 
-            this.tabTatCa.Location = new System.Drawing.Point(4, 32);
-            this.tabTatCa.Name = "tabTatCa";
-            this.tabTatCa.Size = new System.Drawing.Size(932, 0);
-            this.tabTatCa.TabIndex = 0;
-            this.tabTatCa.Text = "Tất cả Giáo viên";
-            // 
-            // tabChoDuyet
-            // 
-            this.tabChoDuyet.Location = new System.Drawing.Point(4, 32);
-            this.tabChoDuyet.Name = "tabChoDuyet";
-            this.tabChoDuyet.Size = new System.Drawing.Size(932, 0);
-            this.tabChoDuyet.TabIndex = 1;
-            this.tabChoDuyet.Text = "Yêu cầu chờ duyệt";
-            // 
-            // tabDaXacNhan
-            // 
-            this.tabDaXacNhan.Location = new System.Drawing.Point(4, 32);
-            this.tabDaXacNhan.Name = "tabDaXacNhan";
-            this.tabDaXacNhan.Size = new System.Drawing.Size(932, 0);
-            this.tabDaXacNhan.TabIndex = 2;
-            this.tabDaXacNhan.Text = "GV đã xác nhận";
             // 
             // UC_QuanLyGiaoVien
             // 
@@ -326,5 +322,10 @@
             this.ResumeLayout(false);
 
         }
+
+        private System.Windows.Forms.TabPage tabDaXacNhan;
+        private System.Windows.Forms.TabPage tabChoDuyet;
+        private System.Windows.Forms.TabPage tabTatCa;
+        private System.Windows.Forms.TabControl tabControl1;
     }
 }

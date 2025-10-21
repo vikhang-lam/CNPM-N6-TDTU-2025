@@ -289,7 +289,7 @@ namespace N6
             var menuItems = new string[]
             {
                 "🚪 Đăng xuất", "📊 Phân tích AI", "📑 Báo cáo và Xuất dữ liệu", "🎮 Mini-games",
-                "📑 quản lí tài liệu", "☁️ Thời khóa biểu", "👨‍🎓 Quản lý lớp học", "🏠 Trang chủ"
+                "📑 Quản lý tài liệu", "☁️ Thời khóa biểu", "👨‍🎓 Quản lý lớp học", "🏠 Trang chủ"
             };
 
             foreach (var item in menuItems)
@@ -340,7 +340,7 @@ namespace N6
             if (text.Contains("Trang chủ")) maCN = "CN1";
             else if (text.Contains("Quản lý lớp học")) maCN = "CN2";
             else if (text.Contains("Thời khóa biểu")) maCN = "CN3";
-            else if (text.Contains("quản lí tài liệu")) maCN = "CN4";
+            else if (text.Contains("Quản lý tài liệu")) maCN = "CN4";
             else if (text.Contains("Mini-games")) maCN = "CN5";
             else if (text.Contains("Báo cáo")) maCN = "CN6";
             else if (text.Contains("Phân tích AI")) maCN = "CN7";
@@ -353,7 +353,6 @@ namespace N6
             SetActiveMenuButton(btn);
             MoChucNang(maCN);
         }
-
         private void btnThemeToggle_Click(object sender, EventArgs e)
         {
             isDarkMode = !isDarkMode;

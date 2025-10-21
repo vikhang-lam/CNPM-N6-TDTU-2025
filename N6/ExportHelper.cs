@@ -7,6 +7,7 @@ using System.Text;
 using System.Windows.Forms;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
+using PdfSharp.Drawing.Layout; // SỬA LỖI FONT: Thêm thư viện này
 
 namespace N6
 {
@@ -77,6 +78,7 @@ namespace N6
             try
             {
                 PdfDocument document = new PdfDocument();
+                // Giữ lại việc xóa dấu cho metadata của file PDF cho an toàn
                 document.Info.Title = RemoveVietnameseDiacritics(title);
 
                 // --- TRANG 1: DỮ LIỆU BẢNG ---
@@ -85,19 +87,29 @@ namespace N6
                 page.Orientation = PdfSharp.PageOrientation.Landscape;
                 XGraphics gfx = XGraphics.FromPdfPage(page);
 
-                XFont titleFont = new XFont("Arial", 16, XFontStyle.Bold);
-                XFont headerFont = new XFont("Arial", 10, XFontStyle.Bold);
-                XFont cellFont = new XFont("Arial", 9, XFontStyle.Regular);
-                XFont infoFont = new XFont("Arial", 8, XFontStyle.Italic);
+                // SỬA LỖI FONT: Thêm XPdfFontOptions để hỗ trợ Unicode (tiếng Việt)
+                XPdfFontOptions options = new XPdfFontOptions(PdfFontEncoding.Unicode);
+
+                // SỬA LỖI FONT: Sử dụng font "Arial" (hoặc "Tahoma", "Times New Roman") với options Unicode
+                XFont titleFont = new XFont("Arial", 16, XFontStyle.Bold, options);
+                XFont headerFont = new XFont("Arial", 10, XFontStyle.Bold, options);
+                XFont cellFont = new XFont("Arial", 9, XFontStyle.Regular, options);
+                XFont infoFont = new XFont("Arial", 8, XFontStyle.Italic, options);
 
                 double yPos = 30;
                 double leftMargin = 30;
                 double pageWidth = page.Width - 60;
 
-                string cleanTitle = RemoveVietnameseDiacritics(title);
-                XSize titleSize = gfx.MeasureString(cleanTitle, titleFont);
-                gfx.DrawString(cleanTitle, titleFont, XBrushes.Black, leftMargin + (pageWidth - titleSize.Width) / 2, yPos);
-                yPos += titleSize.Height + 20;
+                // SỬA LỖI FONT: Dùng XTextFormatter để vẽ title nhiều dòng và giữ tiếng Việt
+                XTextFormatter tf = new XTextFormatter(gfx);
+                XRect titleRect = new XRect(leftMargin, yPos, pageWidth, 100); // Khu vực vẽ title
+                // Sử dụng title GỐC, không gọi RemoveVietnameseDiacritics
+                tf.DrawString(title, titleFont, XBrushes.Black, titleRect, XStringFormats.TopLeft);
+
+                // Cập nhật yPos dựa trên số dòng của title
+                int lineCount = title.Split('\n').Length;
+                yPos += (titleFont.GetHeight() * lineCount) + 20; // Thêm khoảng đệm
+                // --- Kết thúc sửa lỗi title ---
 
                 string dateInfo = $"Ngay xuat: {DateTime.Now:dd/MM/yyyy HH:mm}";
                 XSize dateSize = gfx.MeasureString(dateInfo, infoFont);
@@ -115,9 +127,10 @@ namespace N6
 
                 foreach (DataGridViewColumn col in gridView.Columns)
                 {
-                    string headerText = RemoveVietnameseDiacritics(col.HeaderText);
+                    // SỬA LỖI FONT: Bỏ RemoveVietnameseDiacritics, dùng HeaderText gốc
+                    string headerText = col.HeaderText;
                     XRect headerRect = new XRect(currentX + 2, yPos + 2, colWidth - 4, headerHeight - 4);
-                    gfx.DrawString(headerText, headerFont, XBrushes.Black, headerRect, XStringFormats.Center);
+                    gfx.DrawString(headerText, headerFont, XBrushes.Black, headerRect, XStringFormats.TopLeft);
                     if (currentX > leftMargin)
                         gfx.DrawLine(XPens.Black, currentX, yPos, currentX, yPos + headerHeight);
                     currentX += colWidth;
@@ -131,7 +144,7 @@ namespace N6
                 {
                     if (row.IsNewRow) continue;
 
-                    if (yPos + rowHeight > page.Height - 50)
+                    if (yPos + rowHeight > page.Height - 50) // Xử lý ngắt trang
                     {
                         page = document.AddPage();
                         page.Orientation = PdfSharp.PageOrientation.Landscape;
@@ -143,9 +156,10 @@ namespace N6
                         gfx.DrawRectangle(XPens.Black, leftMargin, yPos, pageWidth, headerHeight);
                         foreach (DataGridViewColumn col in gridView.Columns)
                         {
-                            string headerText = RemoveVietnameseDiacritics(col.HeaderText);
+                            // SỬA LỖI FONT: Bỏ RemoveVietnameseDiacritics (cả ở phần ngắt trang)
+                            string headerText = col.HeaderText;
                             XRect headerRect = new XRect(currentX + 2, yPos + 2, colWidth - 4, headerHeight - 4);
-                            gfx.DrawString(headerText, headerFont, XBrushes.Black, headerRect, XStringFormats.Center);
+                            gfx.DrawString(headerText, headerFont, XBrushes.Black, headerRect, XStringFormats.TopLeft);
                             if (currentX > leftMargin)
                                 gfx.DrawLine(XPens.Black, currentX, yPos, currentX, yPos + headerHeight);
                             currentX += colWidth;
@@ -160,9 +174,10 @@ namespace N6
 
                     for (int i = 0; i < gridView.Columns.Count; i++)
                     {
-                        string cellText = RemoveVietnameseDiacritics(row.Cells[i].Value?.ToString() ?? "");
+                        // SỬA LỖI FONT: Bỏ RemoveVietnameseDiacritics, dùng giá trị gốc
+                        string cellText = row.Cells[i].Value?.ToString() ?? "";
                         XRect cellRect = new XRect(currentX + 2, yPos + 2, colWidth - 4, rowHeight - 4);
-                        gfx.DrawString(cellText, cellFont, XBrushes.Black, cellRect, XStringFormats.CenterLeft);
+                        gfx.DrawString(cellText, cellFont, XBrushes.Black, cellRect, XStringFormats.TopLeft);
                         if (currentX > leftMargin)
                             gfx.DrawLine(XPens.Gray, currentX, yPos, currentX, yPos + rowHeight);
                         currentX += colWidth;

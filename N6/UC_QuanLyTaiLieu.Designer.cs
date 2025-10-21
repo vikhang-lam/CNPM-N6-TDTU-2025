@@ -67,7 +67,7 @@
             // 
             // btnUpload
             // 
-            this.btnUpload.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(24)))), ((int)(((byte)(119)))), ((int)(((byte)(242)))));
+            this.btnUpload.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
             this.btnUpload.FlatAppearance.BorderSize = 0;
             this.btnUpload.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnUpload.Font = new System.Drawing.Font("Segoe UI Semibold", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -96,10 +96,10 @@
             // tabMyDocs
             // 
             this.tabMyDocs.Controls.Add(this.flowMyDocs);
-            this.tabMyDocs.Location = new System.Drawing.Point(4, 30);
+            this.tabMyDocs.Location = new System.Drawing.Point(4, 34);
             this.tabMyDocs.Name = "tabMyDocs";
             this.tabMyDocs.Padding = new System.Windows.Forms.Padding(3);
-            this.tabMyDocs.Size = new System.Drawing.Size(792, 516);
+            this.tabMyDocs.Size = new System.Drawing.Size(792, 512);
             this.tabMyDocs.TabIndex = 0;
             this.tabMyDocs.Text = "📂 Tài liệu của tôi";
             this.tabMyDocs.UseVisualStyleBackColor = true;
@@ -112,16 +112,16 @@
             this.flowMyDocs.Location = new System.Drawing.Point(3, 3);
             this.flowMyDocs.Name = "flowMyDocs";
             this.flowMyDocs.Padding = new System.Windows.Forms.Padding(15);
-            this.flowMyDocs.Size = new System.Drawing.Size(786, 510);
+            this.flowMyDocs.Size = new System.Drawing.Size(786, 506);
             this.flowMyDocs.TabIndex = 0;
             // 
             // tabSharedDocs
             // 
             this.tabSharedDocs.Controls.Add(this.flowSharedDocs);
-            this.tabSharedDocs.Location = new System.Drawing.Point(4, 30);
+            this.tabSharedDocs.Location = new System.Drawing.Point(4, 34);
             this.tabSharedDocs.Name = "tabSharedDocs";
             this.tabSharedDocs.Padding = new System.Windows.Forms.Padding(3);
-            this.tabSharedDocs.Size = new System.Drawing.Size(792, 516);
+            this.tabSharedDocs.Size = new System.Drawing.Size(792, 512);
             this.tabSharedDocs.TabIndex = 1;
             this.tabSharedDocs.Text = "🤝 Được chia sẻ";
             this.tabSharedDocs.UseVisualStyleBackColor = true;
@@ -134,7 +134,7 @@
             this.flowSharedDocs.Location = new System.Drawing.Point(3, 3);
             this.flowSharedDocs.Name = "flowSharedDocs";
             this.flowSharedDocs.Padding = new System.Windows.Forms.Padding(15);
-            this.flowSharedDocs.Size = new System.Drawing.Size(786, 510);
+            this.flowSharedDocs.Size = new System.Drawing.Size(786, 506);
             this.flowSharedDocs.TabIndex = 0;
             // 
             // UC_QuanLyTaiLieu
@@ -149,6 +149,7 @@
             this.tabMyDocs.ResumeLayout(false);
             this.tabSharedDocs.ResumeLayout(false);
             this.ResumeLayout(false);
+
         }
     }
 }

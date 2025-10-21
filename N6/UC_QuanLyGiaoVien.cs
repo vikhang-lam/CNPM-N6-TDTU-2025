@@ -10,6 +10,9 @@ namespace N6
         public UC_QuanLyGiaoVien()
         {
             InitializeComponent();
+            this.tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
+
+            this.tabControl1.DrawItem += new DrawItemEventHandler(this.tabControl1_DrawItem);
             LoadDataForCurrentTab();
             UpdatePanelVisibility();
         }
@@ -65,7 +68,41 @@ namespace N6
                 ClearInputs();
             }
         }
+        private void tabControl1_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            TabPage currentPage = tabControl1.TabPages[e.Index];
+            Rectangle tabBounds = e.Bounds;
 
+            Brush backgroundBrush;
+
+            if ((e.State & DrawItemState.Selected) == DrawItemState.Selected)
+            {
+                backgroundBrush = Brushes.White;
+            }
+            else
+            {
+                backgroundBrush = SystemBrushes.Control;
+            }
+
+            e.Graphics.FillRectangle(backgroundBrush, tabBounds);
+
+            Brush textBrush;
+
+            if (currentPage == tabChoDuyet)
+            {
+                textBrush = Brushes.Red;
+            }
+            else
+            {
+                textBrush = Brushes.Black;
+            }
+
+            StringFormat stringFlags = new StringFormat();
+            stringFlags.Alignment = StringAlignment.Center;
+            stringFlags.LineAlignment = StringAlignment.Center;
+
+            e.Graphics.DrawString(currentPage.Text, e.Font, textBrush, tabBounds, stringFlags);
+        }
         private void ClearInputs()
         {
             txtTen.Clear();

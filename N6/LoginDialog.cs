@@ -27,7 +27,6 @@ namespace N6
             SetPlaceholder(txtUsername, "Nhập tên đăng nhập");
             SetPlaceholder(txtPassword, "Nhập mật khẩu");
             txtPassword.UseSystemPasswordChar = false;
-
             if (!string.IsNullOrEmpty(presetUsername))
             {
                 txtUsername.Text = presetUsername;

@@ -40,7 +40,7 @@ namespace N6
         {
             string[] cnTen = {
                 "🏠 Trang chủ", "👨‍🎓 Quản lý lớp học", "☁️ Thời khóa biểu",
-                "📑 Quản lý tài liệu", "🎮 Mini-games", "📑 Báo cáo & Xuất dữ liệu",
+                "📑 Quản lý tài liệu", "🎮 Mini-games", "📑 Báo cáo và Xuất dữ liệu",
                 "📊 Phân tích AI", "🚪 Đăng xuất"
             };
 

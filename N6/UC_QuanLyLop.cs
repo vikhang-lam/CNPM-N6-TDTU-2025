@@ -13,7 +13,7 @@ namespace N6
     {
         private string _username;
         private string _maLop;
-        private string _currentMaMon;
+        // private string _currentMaMon; // ### SỬA ###: Đã xóa, không còn dùng biến toàn cục này
         private string _maGV;
         public string SelectedMaLop { get { return _maLop; } }
 
@@ -51,13 +51,16 @@ namespace N6
         private Label lblTongThu_Value, lblTongChi_Value, lblTonQuy_Value; // Labels for values
         private Button btnThemKhoanQuy;
 
+        // ### MỚI ###: ComboBox chọn môn học để nhập điểm
+        private ComboBox cbMonHocChon;
+
 
         public UC_QuanLyLop(string username)
         {
             InitializeComponent();
             _username = username ?? string.Empty;
             _maGV = DatabaseHelper.GetMaGVByUsername(_username);
-            _currentMaMon = DatabaseHelper.GetMonByTeacher(username);
+            // _currentMaMon = DatabaseHelper.GetMonByTeacher(username); // ### SỬA ###: Đã xóa dòng này
 
             InitializeDynamicControls();
 
@@ -130,7 +133,7 @@ namespace N6
                 homeroomClassInfo = new KeyValuePair<string, string>(dtHomeroom.Rows[0]["MaLop"].ToString(), dtHomeroom.Rows[0]["TenLop"].ToString());
                 var btnHomeroom = new Button
                 {
-                    Text = "⭐ Lớp Chủ Nhiệm",
+                    Text = "⭐ Lớp Chủ Nhiệm: " + dtHomeroom.Rows[0]["TenLop"].ToString(),
                     Tag = "HOMEROOM",
                     Size = new Size(flowLayoutPanelLop.Width - 40, 80),
                     Margin = new Padding(10, 10, 10, 20),
@@ -274,11 +277,29 @@ namespace N6
             if (dgv == null || dgv.Columns.Count == 0) return;
             try
             {
+                // ### THÊM MỚI ĐOẠN NÀY ###
+                if (dgv.Columns.Contains("STT"))
+                {
+                    var col = dgv.Columns["STT"];
+                    col.HeaderText = "STT";
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; // Tự động co dãn
+                    col.DisplayIndex = 0; // Đảm bảo nó là cột đầu tiên
+                    col.ReadOnly = true; // Không cho sửa
+                }
+                // #########################
+
                 if (dgv.Columns.Contains("MaHS")) dgv.Columns["MaHS"].Visible = false;
-                if (dgv.Columns.Contains("HoTen")) dgv.Columns["HoTen"].HeaderText = "Họ và Tên";
+                if (dgv.Columns.Contains("HoTen"))
+                {
+                    dgv.Columns["HoTen"].HeaderText = "Họ và Tên";
+                    if (dgv.Columns.Contains("STT"))
+                        dgv.Columns["HoTen"].DisplayIndex = 1; // Đẩy Họ Tên ra sau STT
+                }
+
                 if (dgv.Columns.Contains("GioiTinh")) dgv.Columns["GioiTinh"].HeaderText = "Giới Tính";
                 if (dgv.Columns.Contains("NgaySinh")) { dgv.Columns["NgaySinh"].HeaderText = "Ngày Sinh"; dgv.Columns["NgaySinh"].DefaultCellStyle.Format = "dd/MM/yyyy"; }
                 if (dgv.Columns.Contains("DiaChi")) dgv.Columns["DiaChi"].HeaderText = "Địa Chỉ";
+                if (dgv.Columns.Contains("TenLop")) dgv.Columns["TenLop"].HeaderText = "Tên Lớp";
                 if (dgv.Columns.Contains("DanToc")) dgv.Columns["DanToc"].HeaderText = "Dân Tộc";
                 if (dgv.Columns.Contains("SDTPhuHuynh")) dgv.Columns["SDTPhuHuynh"].HeaderText = "SĐT Phụ Huynh";
                 if (dgv.Columns.Contains("TrangThai")) dgv.Columns["TrangThai"].HeaderText = "Trạng Thái";
@@ -848,7 +869,7 @@ namespace N6
             btnBatDauTC.Click += BtnBatDauTC_Click;
             btnLuuTC = new Button { Text = "Lưu", Width = 70, Height = 28, BackColor = Color.OrangeRed, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Enabled = false };
             btnLuuTC.Click += BtnLuuTC_Click;
-            lblThongKeTC = new Label { AutoSize = true, ForeColor = Color.Maroon, Padding = new Padding(15, 5, 0, 0), Font = new Font("Segoe UI", 9F, FontStyle.Bold) };
+            lblThongKeTC = new Label { AutoSize = true, ForeColor = Color.Maroon, Padding = new Padding(15, 5, 0, 0), Font = new Font("Segoe UI", 11F, FontStyle.Bold) };
 
             top.Controls.Add(new Label { Text = "Ngày:", AutoSize = true, Padding = new Padding(0, 5, 5, 0) });
             top.Controls.Add(dtpNgayTC);
@@ -1148,25 +1169,98 @@ namespace N6
             catch { }
         }
 
+        // ### SỬA ###: Toàn bộ hàm ShowKetQua() đã được viết lại
         private void ShowKetQua()
         {
             SaveAllCurrentEdits();
             StopQrCamera();
             panelContent.Controls.Clear();
             if (string.IsNullOrEmpty(_maLop)) { MessageBox.Show("Vui lòng chọn một lớp trước."); return; }
-            if (string.IsNullOrEmpty(_currentMaMon)) { MessageBox.Show("Giáo viên chưa được gán môn."); return; }
+
+            // Lấy danh sách môn GV này dạy ở lớp này
+            DataTable dtMonHoc = DatabaseHelper.GetMonHocByGiaoVienAndLop(_maGV, _maLop);
+            if (dtMonHoc == null || dtMonHoc.Rows.Count == 0)
+            {
+                MessageBox.Show("Bạn không được phân công giảng dạy môn nào tại lớp này.");
+                return;
+            }
+
+            // --- Panel chọn môn học ---
+            Panel topPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 50,
+                Padding = new Padding(10),
+                BackColor = Color.WhiteSmoke
+            };
+            Label lblChonMon = new Label
+            {
+                Text = "Chọn môn học:",
+                Dock = DockStyle.Left,
+                AutoSize = true,
+                Padding = new Padding(0, 5, 0, 0),
+                Font = new Font("Segoe UI", 10F)
+            };
+            cbMonHocChon = new ComboBox
+            {
+                Dock = DockStyle.Left,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Width = 200,
+                Font = new Font("Segoe UI", 10F)
+            };
+
+            cbMonHocChon.DataSource = dtMonHoc;
+            cbMonHocChon.DisplayMember = "TenMon";
+            cbMonHocChon.ValueMember = "MaMon";
+
+            cbMonHocChon.SelectedIndexChanged += CbMonHocChon_SelectedIndexChanged;
+
+            topPanel.Controls.Add(cbMonHocChon); // Add ComboBox first
+            topPanel.Controls.Add(lblChonMon); // Add Label (it will sit to the left of CB)
+
+            // --- TabControl cho 2 học kỳ ---
             TabControl tab = new TabControl { Dock = DockStyle.Fill };
             TabPage p1 = new TabPage("Học Kì 1");
             TabPage p2 = new TabPage("Học Kì 2");
-            DataTable dt1 = DatabaseHelper.GetBangDiemPivot(_maLop, 1, _currentMaMon);
-            DataTable dt2 = DatabaseHelper.GetBangDiemPivot(_maLop, 2, _currentMaMon);
-            SetupResultGrid(dgvKi1, dt1, 1, _currentMaMon);
-            SetupResultGrid(dgvKi2, dt2, 2, _currentMaMon);
+
+            // Khởi tạo dgvKi1, dgvKi2 (chúng đã là field)
+            dgvKi1.DataSource = null;
+            dgvKi1.Columns.Clear();
+            dgvKi2.DataSource = null;
+            dgvKi2.Columns.Clear();
+
             p1.Controls.Add(dgvKi1);
             p2.Controls.Add(dgvKi2);
             tab.TabPages.Add(p1);
             tab.TabPages.Add(p2);
-            panelContent.Controls.Add(tab);
+
+            panelContent.Controls.Add(tab); // Add TabControl to fill
+            panelContent.Controls.Add(topPanel); // Add TopPanel on top
+
+            // Tải dữ liệu lần đầu
+            LoadKetQuaGrids();
+        }
+
+        // ### MỚI ###: Hàm tải dữ liệu điểm dựa trên ComboBox
+        private void LoadKetQuaGrids()
+        {
+            if (cbMonHocChon == null || cbMonHocChon.SelectedValue == null) return;
+
+            string selectedMaMon = cbMonHocChon.SelectedValue.ToString();
+
+            if (string.IsNullOrEmpty(selectedMaMon)) return;
+
+            DataTable dt1 = DatabaseHelper.GetBangDiemPivot(_maLop, 1, selectedMaMon);
+            DataTable dt2 = DatabaseHelper.GetBangDiemPivot(_maLop, 2, selectedMaMon);
+
+            SetupResultGrid(dgvKi1, dt1, 1, selectedMaMon);
+            SetupResultGrid(dgvKi2, dt2, 2, selectedMaMon);
+        }
+
+        // ### MỚI ###: Sự kiện khi thay đổi môn học
+        private void CbMonHocChon_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadKetQuaGrids();
         }
 
         private void SetupResultGrid(DataGridView dgv, DataTable dt, int ki, string maMon)
@@ -1174,6 +1268,8 @@ namespace N6
             if (dgv == null) return;
             dgv.Dock = DockStyle.Fill;
             dgv.CellEndEdit -= ResultGrid_CellEndEdit;
+            dgv.CellBorderStyle = DataGridViewCellBorderStyle.Single;
+            dgv.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             dgv.CurrentCellDirtyStateChanged -= ResultGrid_CurrentCellDirtyStateChanged;
             dgv.DataSource = null;
             dgv.Columns.Clear();
@@ -1181,7 +1277,7 @@ namespace N6
             dgv.DataSource = dt;
             if (dt != null && dt.Columns.Contains("HoTen") && dgv.Columns.Contains("HoTen")) dgv.Columns["HoTen"].ReadOnly = true;
             if (dt != null && dt.Columns.Contains("MaHS") && dgv.Columns.Contains("MaHS")) dgv.Columns["MaHS"].Visible = false;
-            dgv.Tag = Tuple.Create(ki, maMon);
+            dgv.Tag = Tuple.Create(ki, maMon); // ### SỬA ###: Lưu maMon được chọn
             dgv.CurrentCellDirtyStateChanged += ResultGrid_CurrentCellDirtyStateChanged;
             dgv.CellEndEdit += ResultGrid_CellEndEdit;
         }
@@ -1195,7 +1291,7 @@ namespace N6
             var ctx = dgv.Tag as Tuple<int, string>;
             if (ctx == null) return;
             int ki = ctx.Item1;
-            string maMon = ctx.Item2;
+            string maMon = ctx.Item2; // ### SỬA ###: Lấy maMon từ Tag
             var r = dgv.Rows[row];
             string maHS = r.Cells["MaHS"]?.Value?.ToString();
             if (string.IsNullOrEmpty(maHS)) return;
@@ -1237,6 +1333,8 @@ namespace N6
             dgvHocSinh.AllowUserToDeleteRows = false;
             dgvHocSinh.DataSource = DatabaseHelper.GetHocSinhByLop(_maLop);
             panelContent.Controls.Add(dgvHocSinh);
+            dgvHocSinh.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
+            dgvHocSinh.CellBorderStyle = DataGridViewCellBorderStyle.Single;
         }
 
         private void SaveAllCurrentEdits()

@@ -123,7 +123,7 @@
             this.txtPassword.BackColor = System.Drawing.Color.White;
             this.txtPassword.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtPassword.Font = new System.Drawing.Font("Segoe UI", 12F);
-            this.txtPassword.Location = new System.Drawing.Point(3, 10);
+            this.txtPassword.Location = new System.Drawing.Point(12, 10);
             this.txtPassword.Name = "txtPassword";
             this.txtPassword.Size = new System.Drawing.Size(415, 27);
             this.txtPassword.TabIndex = 0;
@@ -131,7 +131,7 @@
             // picEye
             // 
             this.picEye.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.picEye.Location = new System.Drawing.Point(418, 10);
+            this.picEye.Location = new System.Drawing.Point(428, 10);
             this.picEye.Name = "picEye";
             this.picEye.Size = new System.Drawing.Size(29, 27);
             this.picEye.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;

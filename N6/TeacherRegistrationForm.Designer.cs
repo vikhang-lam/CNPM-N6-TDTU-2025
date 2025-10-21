@@ -54,7 +54,7 @@
             this.btnSubmit.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSubmit.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnSubmit.ForeColor = System.Drawing.Color.White;
-            this.btnSubmit.Location = new System.Drawing.Point(490, 460);
+            this.btnSubmit.Location = new System.Drawing.Point(172, 459);
             this.btnSubmit.Name = "btnSubmit";
             this.btnSubmit.Size = new System.Drawing.Size(260, 42);
             this.btnSubmit.TabIndex = 7;
@@ -70,7 +70,7 @@
             this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCancel.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.btnCancel.ForeColor = System.Drawing.Color.Gray;
-            this.btnCancel.Location = new System.Drawing.Point(340, 460);
+            this.btnCancel.Location = new System.Drawing.Point(447, 459);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(140, 42);
             this.btnCancel.TabIndex = 8;

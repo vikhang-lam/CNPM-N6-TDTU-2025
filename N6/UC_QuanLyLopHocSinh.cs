@@ -255,29 +255,46 @@ namespace N6
             }
         }
 
+        // ### SỬA LỖI LOGIC TẠI ĐÂY ###
         private void dgvPhanCong_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
         {
+            // Kiểm tra xem đây có phải là cột ComboBox phân công không
             if (dgvPhanCong.CurrentCell.ColumnIndex == dgvPhanCong.Columns["AssignTeacherColumn"].Index && e.Control is ComboBox comboBox)
             {
                 comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
-                string maMon = dgvPhanCong.CurrentRow.Cells["MaMon"].Value.ToString();
 
-                DataView dv = new DataView(allGiaoVien)
+                // [FIX 1] Lấy TenMon (ví dụ: "Toán") thay vì MaMon (vì allGiaoVien dùng TenMon)
+                string tenMon = dgvPhanCong.CurrentRow.Cells["TenMon"].Value.ToString();
+
+                // [FIX 2] Lọc DataTable allGiaoVien dựa trên cột 'CacMonDay' (ví dụ: "Toán, Tin học")
+                DataView dv = new DataView(allGiaoVien);
+
+                if (string.IsNullOrEmpty(tenMon))
                 {
-                    RowFilter = string.IsNullOrEmpty(maMon) ? "MaMon IS NULL" : $"MaMon = '{maMon}'"
-                };
+                    dv.RowFilter = "CacMonDay = 'Chưa có môn'";
+                }
+                else
+                {
+                    // Lọc an toàn, tránh lỗi nếu tên môn có dấu '
+                    string safeTenMon = tenMon.Replace("'", "''");
+                    dv.RowFilter = $"CacMonDay LIKE '%{safeTenMon}%'";
+                }
 
                 DataTable filteredTeachers = dv.ToTable();
+
+                // Thêm lựa chọn "(Trống)"
                 DataRow emptyRow = filteredTeachers.NewRow();
                 emptyRow["Ten"] = "(Trống)";
                 emptyRow["MaGV"] = DBNull.Value;
                 filteredTeachers.Rows.InsertAt(emptyRow, 0);
 
+                // Gán DataSource đã lọc cho ComboBox
                 comboBox.DataSource = filteredTeachers;
                 comboBox.DisplayMember = "Ten";
                 comboBox.ValueMember = "MaGV";
             }
         }
+
 
         private void dgvPhanCong_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
@@ -383,20 +400,38 @@ namespace N6
 
             dgvHocSinh.ReadOnly = false;
 
+            // ### THÊM MỚI ĐOẠN NÀY ###
+            if (dgvHocSinh.Columns.Contains("STT"))
+            {
+                var col = dgvHocSinh.Columns["STT"];
+                col.HeaderText = "STT";
+                col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                col.DisplayIndex = 0; // Đặt làm cột đầu tiên
+                col.ReadOnly = true;
+            }
+            // #########################
+
             dgvHocSinh.Columns["MaHS"].HeaderText = "Mã Học Sinh";
-            dgvHocSinh.Columns["MaHS"].ReadOnly = true;
+            dgvHocSinh.Columns["MaHS"].ReadOnly = true; // Mã HS thường không nên sửa trực tiếp trên grid
 
             dgvHocSinh.Columns["HoTen"].HeaderText = "Họ và Tên";
+            if (dgvHocSinh.Columns.Contains("STT"))
+                dgvHocSinh.Columns["HoTen"].DisplayIndex = 1; // Đẩy họ tên ra sau STT
+
             dgvHocSinh.Columns["GioiTinh"].HeaderText = "Giới Tính";
             dgvHocSinh.Columns["NgaySinh"].HeaderText = "Ngày Sinh";
             dgvHocSinh.Columns["DiaChi"].HeaderText = "Địa Chỉ";
             dgvHocSinh.Columns["DanToc"].HeaderText = "Dân Tộc";
             dgvHocSinh.Columns["SDTPhuHuynh"].HeaderText = "SĐT Phụ Huynh";
 
+            // Điều chỉnh độ rộng cột cho phù hợp hơn
             dgvHocSinh.Columns["MaHS"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            dgvHocSinh.Columns["HoTen"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dgvHocSinh.Columns["HoTen"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; // Họ tên chiếm phần còn lại
             dgvHocSinh.Columns["GioiTinh"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dgvHocSinh.Columns["NgaySinh"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dgvHocSinh.Columns["DanToc"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dgvHocSinh.Columns["SDTPhuHuynh"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dgvHocSinh.Columns["DiaChi"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; // Địa chỉ cũng có thể dài
         }
 
         private void CustomizeAssignmentGrid()

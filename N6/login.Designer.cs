@@ -115,8 +115,8 @@
             this.labelGreeting.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.labelGreeting.BackColor = System.Drawing.Color.Transparent;
             this.labelGreeting.Font = new System.Drawing.Font("Segoe UI", 24F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelGreeting.ForeColor = System.Drawing.Color.White;
-            this.labelGreeting.Location = new System.Drawing.Point(0, 53);
+            this.labelGreeting.ForeColor = System.Drawing.Color.DimGray;
+            this.labelGreeting.Location = new System.Drawing.Point(0, 70);
             this.labelGreeting.Name = "labelGreeting";
             this.labelGreeting.Size = new System.Drawing.Size(1407, 73);
             this.labelGreeting.TabIndex = 2;
@@ -128,12 +128,12 @@
             this.labelInstruction.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.labelInstruction.BackColor = System.Drawing.Color.Transparent;
             this.labelInstruction.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelInstruction.ForeColor = System.Drawing.Color.White;
-            this.labelInstruction.Location = new System.Drawing.Point(0, 126);
+            this.labelInstruction.ForeColor = System.Drawing.Color.DimGray;
+            this.labelInstruction.Location = new System.Drawing.Point(0, 143);
             this.labelInstruction.Name = "labelInstruction";
             this.labelInstruction.Size = new System.Drawing.Size(1407, 45);
             this.labelInstruction.TabIndex = 3;
-            this.labelInstruction.Text = "Chọn tài khoản giáo viên để tiếp tục";
+            this.labelInstruction.Text = "Chọn tài khoản giáo viên để tiếp tục.";
             this.labelInstruction.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // tableLayoutPanel1
@@ -203,12 +203,12 @@
             this.label1.AutoSize = true;
             this.label1.BackColor = System.Drawing.Color.Transparent;
             this.label1.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.ForeColor = System.Drawing.Color.White;
+            this.label1.ForeColor = System.Drawing.Color.DimGray;
             this.label1.Location = new System.Drawing.Point(52, 6);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(184, 28);
+            this.label1.Size = new System.Drawing.Size(266, 28);
             this.label1.TabIndex = 5;
-            this.label1.Text = "2025 TECH4ALL,inc";
+            this.label1.Text = "Copyright @ 2025 TECH4ALL";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // pictureBox1
@@ -231,7 +231,7 @@
             this.footerFlowLayoutPanel.Controls.Add(this.label1);
             this.footerFlowLayoutPanel.Location = new System.Drawing.Point(584, 732);
             this.footerFlowLayoutPanel.Name = "footerFlowLayoutPanel";
-            this.footerFlowLayoutPanel.Size = new System.Drawing.Size(239, 40);
+            this.footerFlowLayoutPanel.Size = new System.Drawing.Size(321, 40);
             this.footerFlowLayoutPanel.TabIndex = 7;
             this.footerFlowLayoutPanel.WrapContents = false;
             // 
@@ -251,13 +251,14 @@
             this.Load += new System.EventHandler(this.login_Load);
             this.panelTopBar.ResumeLayout(false);
             this.panelTopBar.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).EndInit();
             this.tableLayoutPanel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).EndInit();
             this.footerFlowLayoutPanel.ResumeLayout(false);
             this.footerFlowLayoutPanel.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
+
         }
 
         #endregion
