@@ -130,6 +130,8 @@ namespace N6
                 ("🏠 Trang chủ", btnTrangChu_Click),
                 ("👨‍🏫 Quản lý Giáo viên", btnQuanLyGV_Click),
                 ("🏫 Quản lý Lớp học", btnQuanLyLop_Click),
+                ("Quản Lý Trường học", btnQuanLyTruongHoc_Click),
+                ("📊 Báo cáo Admin", btnBaoCaoAdmin_Click),
                 ("🚪 Đăng xuất", btnDangXuat_Click)
             };
 
@@ -171,7 +173,24 @@ namespace N6
             var homeButton = FindButtonByText("Trang chủ");
             if (homeButton != null) ActivateButton(homeButton);
         }
-
+        private void btnQuanLyTruongHoc_Click(object sender, EventArgs e)
+        {
+            panelContent.Controls.Clear();
+            UC_QuanLyTruongHoc uc = new UC_QuanLyTruongHoc();
+            uc.Dock = DockStyle.Fill;
+            panelContent.Controls.Add(uc);
+            ActivateButton(FindButtonByText("Học vụ & Trường học"));
+        }
+        private void btnBaoCaoAdmin_Click(object sender, EventArgs e)
+        {
+            panelContent.Controls.Clear();
+            // Tạo instance của UserControl mới (đảm bảo namespace đúng)
+            UC_BaoCao_Admin uc = new UC_BaoCao_Admin();
+            uc.Dock = DockStyle.Fill;
+            panelContent.Controls.Add(uc);
+            // Kích hoạt nút menu tương ứng
+            ActivateButton(FindButtonByText("Báo cáo Admin"));
+        }
         private void MoChucNangAdmin(string maCN)
         {
             switch (maCN)
@@ -181,6 +200,12 @@ namespace N6
                     break;
                 case "Admin_QuanLyLop":
                     btnQuanLyLop_Click(this, EventArgs.Empty);
+                    break;
+                case "Admin_QuanLyTruongHoc": // Giữ nguyên case này
+                    btnQuanLyTruongHoc_Click(this, EventArgs.Empty);
+                    break;
+                case "Admin_BaoCao": // <<< THÊM CASE NÀY >>>
+                    btnBaoCaoAdmin_Click(this, EventArgs.Empty);
                     break;
                 case "Admin_DangXuat":
                     btnDangXuat_Click(this, EventArgs.Empty);

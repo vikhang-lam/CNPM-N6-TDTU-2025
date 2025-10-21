@@ -1,6 +1,7 @@
 ﻿--================================================================
 -- HỦY VÀ TẠO MỚI DATABASE
 --================================================================
+
 CREATE DATABASE quanlilophoc_giangday;
 GO
 USE quanlilophoc_giangday;
@@ -8,7 +9,7 @@ GO
 PRINT 'ĐÃ TẠO DATABASE MỚI: quanlilophoc_giangday.';
 
 --================================================================
--- BƯỚC 1: TẠO CÁC BẢNG
+-- BƯỚC 1: TẠO CÁC BẢNG (ĐÃ SỬA LỖI FOREIGN KEY)
 --================================================================
 CREATE TABLE Admin (
     MaAdmin VARCHAR(10) PRIMARY KEY,
@@ -19,7 +20,7 @@ CREATE TABLE Admin (
 
 CREATE TABLE MonHoc (
     MaMon VARCHAR(10) PRIMARY KEY,
-    TenMon NVARCHAR(50) NOT NULL
+    TenMon NVARCHAR(100) NOT NULL
 );
 
 CREATE TABLE Minigame (
@@ -28,7 +29,6 @@ CREATE TABLE Minigame (
     DuLieu NVARCHAR(MAX)
 );
 
--- BẢNG GIAOVIEN (KHÔNG CÒN CỘT MAMON)
 CREATE TABLE GiaoVien (
     MaGV VARCHAR(10) PRIMARY KEY,
     Ten NVARCHAR(100) NOT NULL,
@@ -42,13 +42,12 @@ CREATE TABLE GiaoVien (
     FOREIGN KEY (MaAdmin) REFERENCES Admin(MaAdmin)
 );
 
--- BẢNG MỚI: GIAOVIEN_MONHOC (QUAN HỆ NHIỀU-NHIỀU)
 CREATE TABLE GiaoVien_MonHoc (
     MaGV VARCHAR(10) NOT NULL,
     MaMon VARCHAR(10) NOT NULL,
     PRIMARY KEY (MaGV, MaMon),
     FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV) ON DELETE CASCADE,
-    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon) ON DELETE CASCADE
+    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon) ON DELETE CASCADE -- <<< ĐÃ SỬA
 );
 
 CREATE TABLE LopHoc (
@@ -72,15 +71,14 @@ CREATE TABLE HocSinh (
     FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop)
 );
 
--- BẢNG PHANCONGGIANGDAY (PHIÊN BẢN CUỐI CÙNG - CÓ MAMON)
 CREATE TABLE PhanCongGiangDay (
     MaGV VARCHAR(10) NOT NULL,
     MaLop VARCHAR(10) NOT NULL,
     MaMon VARCHAR(10) NOT NULL,
-    PRIMARY KEY (MaLop, MaMon), -- Mỗi lớp chỉ có 1 GV cho 1 môn
+    PRIMARY KEY (MaLop, MaMon), 
     FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV) ON DELETE CASCADE,
-    FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop) ON DELETE CASCADE,
-    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon) ON DELETE CASCADE
+    FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop) ON DELETE CASCADE, -- <<< ĐÃ SỬA
+    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon) ON DELETE CASCADE  -- <<< ĐÃ SỬA
 );
 
 CREATE TABLE DiemDanh (
@@ -102,7 +100,7 @@ CREATE TABLE KetQuaHocTap (
     GhiChu NVARCHAR(200),
     Loai NVARCHAR(20),
     Diem FLOAT,
-    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon),
+    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon), -- <<< ĐÃ SỬA
     FOREIGN KEY (MaHS) REFERENCES HocSinh(MaHS) ON DELETE CASCADE
 );
 
@@ -126,9 +124,9 @@ CREATE TABLE ThoiKhoaBieu (
     MaGV VARCHAR(10),
     MaLop VARCHAR(10),
     MauSac VARCHAR(20) NULL,
-    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon),
+    FOREIGN KEY (MaMon) REFERENCES MonHoc(MaMon), -- <<< ĐÃ SỬA
     FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV),
-    FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop)
+    FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop)  -- <<< ĐÃ SỬA
 );
 
 CREATE TABLE BaoCao (
@@ -151,97 +149,548 @@ CREATE TABLE QuyLop (
     Loai NVARCHAR(10),
     FOREIGN KEY (MaLop) REFERENCES LopHoc(MaLop)
 );
-PRINT 'ĐÃ TẠO TẤT CẢ CÁC BẢNG.';
+
+CREATE TABLE ThoiHanDiem (
+    MaCotDiem VARCHAR(20) NOT NULL,
+    TenHienThi NVARCHAR(100) NOT NULL,
+    Khoi NVARCHAR(20) NOT NULL,
+    HocKy INT NOT NULL,
+    NgayMoDiem DATE,
+    NgayKhoaDiem DATE,
+    KhoaThuCong BIT NOT NULL DEFAULT 0,
+    PRIMARY KEY (MaCotDiem, Khoi, HocKy)
+);
+
+PRINT 'ĐÃ TẠO TẤT CẢ CÁC BẢNG (ĐÃ SỬA LỖI FK).';
 GO
 --================================================================
 -- BƯỚC 2: CHÈN DỮ LIỆU MẪU
 --================================================================
+
+-- 1. Admin
 INSERT INTO Admin (MaAdmin, Username, Password, Email) VALUES ('AD001', 'admin', '123456', 'admin@example.com');
-INSERT INTO MonHoc (MaMon, TenMon) VALUES ('VAN', N'Ngữ văn'), ('TOAN', N'Toán'), ('ANH', N'Tiếng Anh'), ('TIN', N'Tin học'); -- Thêm môn Tin
 
+-- 2. Môn Học
+INSERT INTO MonHoc (MaMon, TenMon) VALUES 
+('TV', N'Tiếng Việt'),
+('TOAN', N'Toán'),
+('KH', N'Khoa học'),
+('LS_DL', N'Lịch sử và Địa lí'),
+('ANH', N'Tiếng Anh'),
+('DD', N'Đạo đức'),
+('AN', N'Âm nhạc'),
+('MT', N'Mĩ thuật'),
+('TIN', N'Tin học và Công nghệ (Tin học)'),
+('CN', N'Tin học và Công nghệ (Công nghệ)'),
+('GDTC', N'Giáo dục thể chất'),
+('TDT', N'Tiếng dân tộc'),
+('HDTN', N'Hoạt động trải nghiệm');
+
+-- 3. Lớp Học
 INSERT INTO LopHoc (MaLop, TenLop, Khoi, NamHoc) VALUES
-('5A10', N'Lớp 5A10', N'Khối 5', '2025'),
-('5A11', N'Lớp 5A11', N'Khối 5', '2025'),
-('5A12', N'Lớp 5A12', N'Khối 5', '2025');
+('1A1', N'Lớp 1A1', N'Khối 1', '2025'),
+('1A2', N'Lớp 1A2', N'Khối 1', '2025'),
+('1A3', N'Lớp 1A3', N'Khối 1', '2025'),
+('2A1', N'Lớp 2A1', N'Khối 2', '2025'),
+('2A2', N'Lớp 2A2', N'Khối 2', '2025'),
+('2A3', N'Lớp 2A3', N'Khối 2', '2025'),
+('3A1', N'Lớp 3A1', N'Khối 3', '2025'),
+('3A2', N'Lớp 3A2', N'Khối 3', '2025'),
+('3A3', N'Lớp 3A3', N'Khối 3', '2025'),
+('4A1', N'Lớp 4A1', N'Khối 4', '2025'),
+('4A2', N'Lớp 4A2', N'Khối 4', '2025'),
+('4A3', N'Lớp 4A3', N'Khối 4', '2025'),
+('5A1', N'Lớp 5A1', N'Khối 5', '2025'),
+('5A2', N'Lớp 5A2', N'Khối 5', '2025'),
+('5A3', N'Lớp 5A3', N'Khối 5', '2025');
 
--- INSERT GIAOVIEN
+-- 4. Giáo Viên
 INSERT INTO GiaoVien (MaGV, Ten, Username, Password, Email, SDT, MaAdmin, TrangThai) VALUES
-('GV001', N'Cô Minh Anh', 'minhanh', '123456', 'minhanh@example.com', '0905123456', 'AD001', N'Đã xác nhận'),
+('GV001', N'Cô Minh Anh', 'minhanh', '123456', 'minhanh@example.com', '0905123001', 'AD001', N'Đã xác nhận'),
 ('GV002', N'Thầy Quốc Hưng', 'quochung', '123456', 'quochung@example.com', '0912345002', 'AD001', N'Đã xác nhận'),
 ('GV003', N'Cô Thu Hà', 'thuha', '123456', 'thuha@example.com', '0912345003', 'AD001', N'Đã xác nhận'),
-('GV004', N'Thầy Trung', 'quoctrung', '123456', 'quoctrung@example.com', '09123450012', 'AD001', N'Chưa xác nhận'),
-('GV005', N'Cô Thanh Tâm', 'thanhtam', '123456', 'tam@example.com', '09123450013', 'AD001', N'Đã xác nhận');
+('GV004', N'Thầy Bá Trung', 'batrung', '123456', 'batrung@example.com', '0912345004', 'AD001', N'Đã xác nhận'),
+('GV005', N'Cô Thanh Tâm', 'thanhtam', '123456', 'tam@example.com', '0912345005', 'AD001', N'Đã xác nhận'),
+('GV006', N'Thầy Văn Toàn', 'vantoan', '123456', 'toan@example.com', '0912345006', 'AD001', N'Đã xác nhận'),
+('GV007', N'Cô Bích Phương', 'bichphuong', '123456', 'phuong@example.com', '0912345007', 'AD001', N'Đã xác nhận'),
+('GV008', N'Thầy Trọng Tấn', 'trongtan', '123456', 'tan@example.com', '0912345008', 'AD001', N'Đã xác nhận'),
+('GV009', N'Cô Mỹ Linh', 'mylinh', '123456', 'linh@example.com', '0912345009', 'AD001', N'Đã xác nhận'),
+('GV010', N'Thầy Đức Thắng', 'ducthang', '123456', 'thang@example.com', '0912345010', 'AD001', N'Đã xác nhận'),
+('GV011', N'Cô Hoài An', 'hoaian', '123456', 'an@example.com', '0912345011', 'AD001', N'Đã xác nhận'),
+('GV012', N'Thầy Nam Sơn', 'namson', '123456', 'son@example.com', '0912345012', 'AD001', N'Đã xác nhận'),
+('GV013', N'Cô Ánh Tuyết', 'anhtuyet', '123456', 'tuyet@example.com', '0912345013', 'AD001', N'Đã xác nhận'),
+('GV014', N'Thầy Việt Hoàng', 'viethoang', '123456', 'hoang@example.com', '0912345014', 'AD001', N'Đã xác nhận'),
+('GV015', N'Cô Mai Lan', 'mailan', '123456', 'lan@example.com', '0912345015', 'AD001', N'Đã xác nhận'),
+('GV016', N'Thầy Đình Phong', 'dinhphong', '123456', 'phong@example.com', '0912345016', 'AD001', N'Chưa xác nhận'),
+('GV017', N'Cô Thùy Chi', 'thuychi', '123456', 'chi@example.com', '0912345017', 'AD001', N'Đã xác nhận'),
+('GV018', N'Thầy Hùng Dũng', 'hungdung', '123456', 'dung@example.com', '0912345018', 'AD001', N'Đã xác nhận'),
+('GV019', N'Cô Bảo Trâm', 'baotram', '123456', 'tram@example.com', '0912345019', 'AD001', N'Đã xác nhận'),
+('GV020', N'Thầy Quang Minh', 'quangminh', '123456', 'minh@example.com', '0912345020', 'AD001', N'Đã xác nhận');
 
--- INSERT DỮ LIỆU MỚI CHO GIAOVIEN_MONHOC
+-- 5. Giáo Viên - Môn Học
 INSERT INTO GiaoVien_MonHoc (MaGV, MaMon) VALUES
-('GV001', 'VAN'), -- Cô Minh Anh dạy Văn
-('GV002', 'TOAN'), -- Thầy Quốc Hưng dạy Toán
-('GV003', 'ANH'), -- Cô Thu Hà dạy Anh
-('GV005', 'TIN'), -- Cô Thanh Tâm dạy Tin
-('GV005', 'TOAN'); -- Cô Thanh Tâm dạy cả Toán
-GO
+('GV001', 'TV'), ('GV001', 'DD'), ('GV001', 'HDTN'),
+('GV002', 'TOAN'), ('GV002', 'KH'),
+('GV003', 'ANH'),
+('GV004', 'TIN'), ('GV004', 'CN'),
+('GV005', 'TV'), ('GV005', 'LS_DL'),
+('GV006', 'TOAN'), ('GV006', 'KH'),
+('GV007', 'TV'), ('GV007', 'LS_DL'),
+('GV008', 'GDTC'),
+('GV009', 'AN'),
+('GV010', 'MT'),
+('GV011', 'TV'), ('GV011', 'DD'), ('GV011', 'HDTN'),
+('GV012', 'TOAN'), ('GV012', 'KH'),
+('GV013', 'TV'), ('GV013', 'LS_DL'),
+('GV014', 'TOAN'), ('GV014', 'KH'),
+('GV015', 'TV'), ('GV015', 'LS_DL'),
+('GV017', 'ANH'),
+('GV018', 'GDTC'),
+('GV019', 'TIN'), ('GV019', 'CN'),
+('GV020', 'TDT');
 
-UPDATE LopHoc SET MaGVCN = 'GV001' WHERE MaLop = '5A10';
-UPDATE LopHoc SET MaGVCN = 'GV002' WHERE MaLop = '5A11';
-UPDATE LopHoc SET MaGVCN = 'GV003' WHERE MaLop = '5A12';
+-- 6. Phân Công GVCN cho Lớp
+UPDATE LopHoc SET MaGVCN = 'GV001' WHERE MaLop = '1A1';
+UPDATE LopHoc SET MaGVCN = 'GV011' WHERE MaLop = '1A2';
+UPDATE LopHoc SET MaGVCN = 'GV011' WHERE MaLop = '1A3';
+UPDATE LopHoc SET MaGVCN = 'GV002' WHERE MaLop = '2A1';
+UPDATE LopHoc SET MaGVCN = 'GV012' WHERE MaLop = '2A2';
+UPDATE LopHoc SET MaGVCN = 'GV002' WHERE MaLop = '2A3';
+UPDATE LopHoc SET MaGVCN = 'GV005' WHERE MaLop = '3A1';
+UPDATE LopHoc SET MaGVCN = 'GV013' WHERE MaLop = '3A2';
+UPDATE LopHoc SET MaGVCN = 'GV005' WHERE MaLop = '3A3';
+UPDATE LopHoc SET MaGVCN = 'GV006' WHERE MaLop = '4A1';
+UPDATE LopHoc SET MaGVCN = 'GV014' WHERE MaLop = '4A2';
+UPDATE LopHoc SET MaGVCN = 'GV006' WHERE MaLop = '4A3';
+UPDATE LopHoc SET MaGVCN = 'GV007' WHERE MaLop = '5A1';
+UPDATE LopHoc SET MaGVCN = 'GV015' WHERE MaLop = '5A2';
+UPDATE LopHoc SET MaGVCN = 'GV007' WHERE MaLop = '5A3';
 
--- INSERT DỮ LIỆU MỚI CHO PHANCONGGIANGDAY (PHIÊN BẢN CUỐI CÙNG)
+-- 7. Phân Công Giảng Dạy
 INSERT INTO PhanCongGiangDay (MaGV, MaLop, MaMon) VALUES
--- Lớp 5A10
-('GV001', '5A10', 'VAN'),  -- Cô Minh Anh dạy Văn lớp 5A10
-('GV002', '5A10', 'TOAN'), -- Thầy Quốc Hưng dạy Toán lớp 5A10
-('GV003', '5A10', 'ANH'),  -- Cô Thu Hà dạy Anh lớp 5A10
-('GV005', '5A10', 'TIN'),  -- Cô Thanh Tâm dạy Tin lớp 5A10
--- Lớp 5A11
-('GV001', '5A11', 'VAN'),  -- Cô Minh Anh dạy Văn lớp 5A11
-('GV002', '5A11', 'TOAN'), -- Thầy Quốc Hưng dạy Toán lớp 5A11
--- ('GV005', '5A11', 'TIN') -- Cô Tâm KHÔNG dạy Tin lớp 5A11
--- Lớp 5A12
-('GV003', '5A12', 'ANH'),  -- Cô Thu Hà dạy Anh lớp 5A12
-('GV005', '5A12', 'TIN'),  -- Cô Thanh Tâm dạy Tin lớp 5A12
-('GV005', '5A12', 'TOAN'); -- Cô Thanh Tâm dạy Toán lớp 5A12 (Dạy 2 môn ở lớp này)
+('GV007', '5A1', 'TV'), ('GV014', '5A1', 'TOAN'), ('GV003', '5A1', 'ANH'), ('GV014', '5A1', 'KH'), ('GV007', '5A1', 'LS_DL'), ('GV004', '5A1', 'TIN'), ('GV008', '5A1', 'GDTC'), ('GV009', '5A1', 'AN'), ('GV010', '5A1', 'MT'), ('GV004', '5A1', 'CN'), ('GV001', '5A1', 'DD'), ('GV001', '5A1', 'HDTN'),
+('GV015', '5A2', 'TV'), ('GV006', '5A2', 'TOAN'), ('GV017', '5A2', 'ANH'), ('GV006', '5A2', 'KH'), ('GV015', '5A2', 'LS_DL'), ('GV019', '5A2', 'TIN'), ('GV018', '5A2', 'GDTC'), ('GV009', '5A2', 'AN'), ('GV010', '5A2', 'MT'), ('GV019', '5A2', 'CN'), ('GV005', '5A2', 'DD'), ('GV005', '5A2', 'HDTN'),
+('GV007', '5A3', 'TV'), ('GV014', '5A3', 'TOAN'), ('GV003', '5A3', 'ANH'), ('GV014', '5A3', 'KH'), ('GV007', '5A3', 'LS_DL'), ('GV004', '5A3', 'TIN'), ('GV008', '5A3', 'GDTC'), ('GV009', '5A3', 'AN'), ('GV010', '5A3', 'MT'), ('GV004', '5A3', 'CN'), ('GV001', '5A3', 'DD'), ('GV001', '5A3', 'HDTN'),
+('GV001', '1A1', 'TV'), ('GV002', '1A1', 'TOAN'), ('GV003', '1A1', 'ANH'), ('GV001', '1A1', 'DD'), ('GV009', '1A1', 'AN'), ('GV010', '1A1', 'MT'), ('GV008', '1A1', 'GDTC'), ('GV001', '1A1', 'HDTN'),
+('GV005', '3A1', 'TV'), ('GV012', '3A1', 'TOAN'), ('GV017', '3A1', 'ANH'), ('GV004', '3A1', 'TIN'), ('GV005', '3A1', 'DD'), ('GV009', '3A1', 'AN'), ('GV010', '3A1', 'MT'), ('GV018', '3A1', 'GDTC'), ('GV005', '3A1', 'HDTN');
 GO
 
--- THÊM NHIỀU HỌC SINH
+-- 8. Học Sinh (300 HỌC SINH)
+-- Lớp 1A1
 INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
-('HS001', '5A10', N'Nguyễn Văn Nam', N'Kinh', N'Nam', '0912345678', N'Hà Nội', '2015-09-10'),
-('HS002', '5A10', N'Trần Thị Lan', N'Kinh', N'Nữ', '0987654321', N'Hà Nội', '2015-04-15'),
-('HS003', '5A10', N'Lê Hoàng Anh', N'Kinh', N'Nam', '0977123456', N'Hà Nội', '2015-12-01'),
-('HS004', '5A10', N'Phạm Gia Hân', N'Kinh', N'Nữ', '0911223344', N'Hà Nội', '2015-02-22'),
-('HS005', '5A10', N'Đặng Minh Triết', N'Kinh', N'Nam', '0922334455', N'Hà Nội', '2015-07-18'),
-('HS006', '5A11', N'Phạm Thị Bích', N'Kinh', N'Nữ', '0911223344', N'Hải Phòng', '2015-01-20'),
-('HS007', '5A11', N'Đặng Văn Long', N'Kinh', N'Nam', '0922334455', N'Hà Nội', '2015-03-25'),
-('HS008', '5A11', N'Hoàng Thị Yến', N'Kinh', N'Nữ', '0933445566', N'Hà Nội', '2015-05-30'),
-('HS009', '5A11', N'Vũ Trung Kiên', N'Kinh', N'Nam', '0944556677', N'Quảng Ninh', '2015-10-11'),
-('HS010', '5A11', N'Bùi Phương Thảo', N'Kinh', N'Nữ', '0955667788', N'Hà Nội', '2015-11-05'),
-('HS011', '5A12', N'Lý Văn Cường', N'Tày', N'Nam', '0966778899', N'Lạng Sơn', '2015-01-15'),
-('HS012', '5A12', N'Trương Mỹ Duyên', N'Kinh', N'Nữ', '0977889900', N'Hà Nội', '2015-06-20'),
-('HS013', '5A12', N'Hà Văn Đức', N'Kinh', N'Nam', '0988990011', N'Hà Nội', '2015-08-08'),
-('HS014', '5A12', N'Ngô Bảo Châu', N'Kinh', N'Nữ', '0912121212', N'TP. HCM', '2015-04-01'),
-('HS015', '5A12', N'Dương Hữu Tài', N'Kinh', N'Nam', '0934343434', N'Đà Nẵng', '2015-03-03');
+('HS001', '1A1', N'Nguyễn Hoàng An', N'Kinh', N'Nam', '0912345001', N'Hà Nội', '2019-01-01'),
+('HS002', '1A1', N'Trần Bảo Bình', N'Kinh', N'Nữ', '0912345002', N'Hà Nội', '2019-02-02'),
+('HS003', '1A1', N'Lê Gia Cát', N'Kinh', N'Nam', '0912345003', N'Hà Nội', '2019-03-03'),
+('HS004', '1A1', N'Phạm Minh Dũng', N'Kinh', N'Nam', '0912345004', N'Hà Nội', '2019-04-04'),
+('HS005', '1A1', N'Đỗ Phương Giang', N'Kinh', N'Nữ', '0912345005', N'Hà Nội', '2019-05-05'),
+('HS006', '1A1', N'Vũ Gia Hân', N'Kinh', N'Nữ', '0912345006', N'Hà Nội', '2019-06-06'),
+('HS007', '1A1', N'Hoàng Tuấn Kiệt', N'Kinh', N'Nam', '0912345007', N'Hà Nội', '2019-07-07'),
+('HS008', '1A1', N'Bùi Khánh Linh', N'Kinh', N'Nữ', '0912345008', N'Hà Nội', '2019-08-08'),
+('HS009', '1A1', N'Đặng Quốc Minh', N'Kinh', N'Nam', '0912345009', N'Hà Nội', '2019-09-09'),
+('HS010', '1A1', N'Ngô Bảo Nam', N'Kinh', N'Nam', '0912345010', N'Hà Nội', '2019-10-10'),
+('HS011', '1A1', N'Hồ Thùy Oanh', N'Kinh', N'Nữ', '0912345011', N'Hà Nội', '2019-11-11'),
+('HS012', '1A1', N'Dương Minh Phúc', N'Kinh', N'Nam', '0912345012', N'Hà Nội', '2019-12-12'),
+('HS013', '1A1', N'Mai Tú Quyên', N'Kinh', N'Nữ', '0912345013', N'Hà Nội', '2019-01-13'),
+('HS014', '1A1', N'Phan Hoàng Quân', N'Kinh', N'Nam', '0912345014', N'Hà Nội', '2019-02-14'),
+('HS015', '1A1', N'Lý Gia Hân', N'Kinh', N'Nữ', '0912345015', N'Hà Nội', '2019-03-15'),
+('HS016', '1A1', N'Vương Minh Tâm', N'Kinh', N'Nam', '0912345016', N'Hà Nội', '2019-04-16'),
+('HS017', '1A1', N'Tô Phương Uyên', N'Kinh', N'Nữ', '0912345017', N'Hà Nội', '2019-05-17'),
+('HS018', '1A1', N'Trịnh Tuấn Vũ', N'Kinh', N'Nam', '0912345018', N'Hà Nội', '2019-06-18'),
+('HS019', '1A1', N'Cao Hoàng Yến', N'Kinh', N'Nữ', '0912345019', N'Hà Nội', '2019-07-19'),
+('HS020', '1A1', N'Giang Minh Triết', N'Kinh', N'Nam', '0912345020', N'Hà Nội', '2019-08-20');
+-- Lớp 1A2
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS021', '1A2', N'Nguyễn Văn A', N'Kinh', N'Nam', '0922345001', N'Hải Phòng', '2019-01-01'),
+('HS022', '1A2', N'Trần Thị B', N'Kinh', N'Nữ', '0922345002', N'Hải Phòng', '2019-02-02'),
+('HS023', '1A2', N'Lê Văn C', N'Kinh', N'Nam', '0922345003', N'Hải Phòng', '2019-03-03'),
+('HS024', '1A2', N'Phạm Thị D', N'Kinh', N'Nữ', '0922345004', N'Hải Phòng', '2019-04-04'),
+('HS025', '1A2', N'Đỗ Văn E', N'Kinh', N'Nam', '0922345005', N'Hải Phòng', '2019-05-05'),
+('HS026', '1A2', N'Vũ Thị F', N'Kinh', N'Nữ', '0922345006', N'Hải Phòng', '2019-06-06'),
+('HS027', '1A2', N'Hoàng Văn G', N'Kinh', N'Nam', '0922345007', N'Hải Phòng', '2019-07-07'),
+('HS028', '1A2', N'Bùi Thị H', N'Kinh', N'Nữ', '0922345008', N'Hải Phòng', '2019-08-08'),
+('HS029', '1A2', N'Đặng Văn I', N'Kinh', N'Nam', '0922345009', N'Hải Phòng', '2019-09-09'),
+('HS030', '1A2', N'Ngô Văn K', N'Kinh', N'Nam', '0922345010', N'Hải Phòng', '2019-10-10'),
+('HS031', '1A2', N'Hồ Thị L', N'Kinh', N'Nữ', '0922345011', N'Hải Phòng', '2019-11-11'),
+('HS032', '1A2', N'Dương Văn M', N'Kinh', N'Nam', '0922345012', N'Hải Phòng', '2019-12-12'),
+('HS033', '1A2', N'Mai Thị N', N'Kinh', N'Nữ', '0922345013', N'Hải Phòng', '2019-01-13'),
+('HS034', '1A2', N'Phan Văn P', N'Kinh', N'Nam', '0922345014', N'Hải Phòng', '2019-02-14'),
+('HS035', '1A2', N'Lý Thị Q', N'Kinh', N'Nữ', '0922345015', N'Hải Phòng', '2019-03-15'),
+('HS036', '1A2', N'Vương Văn R', N'Kinh', N'Nam', '0922345016', N'Hải Phòng', '2019-04-16'),
+('HS037', '1A2', N'Tô Thị S', N'Kinh', N'Nữ', '0922345017', N'Hải Phòng', '2019-05-17'),
+('HS038', '1A2', N'Trịnh Văn T', N'Kinh', N'Nam', '0922345018', N'Hải Phòng', '2019-06-18'),
+('HS039', '1A2', N'Cao Thị U', N'Kinh', N'Nữ', '0922345019', N'Hải Phòng', '2019-07-19'),
+('HS040', '1A2', N'Giang Văn V', N'Kinh', N'Nam', '0922345020', N'Hải Phòng', '2019-08-20');
+-- Lớp 1A3
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS041', '1A3', N'Nguyễn Ánh Dương', N'Kinh', N'Nam', '0932345001', N'Đà Nẵng', '2019-01-01'),
+('HS042', '1A3', N'Trần Ngọc Bích', N'Kinh', N'Nữ', '0932345002', N'Đà Nẵng', '2019-02-02'),
+('HS043', '1A3', N'Lê Minh Châu', N'Kinh', N'Nam', '0932345003', N'Đà Nẵng', '2019-03-03'),
+('HS044', '1A3', N'Phạm Hải Đăng', N'Kinh', N'Nam', '0932345004', N'Đà Nẵng', '2019-04-04'),
+('HS045', '1A3', N'Đỗ Hà Giang', N'Kinh', N'Nữ', '0932345005', N'Đà Nẵng', '2019-05-05'),
+('HS046', '1A3', N'Vũ Hoàng Hải', N'Kinh', N'Nam', '0932345006', N'Đà Nẵng', '2019-06-06'),
+('HS047', '1A3', N'Hoàng Khánh Huyền', N'Kinh', N'Nữ', '0932345007', N'Đà Nẵng', '2019-07-07'),
+('HS048', '1A3', N'Bùi Minh Khang', N'Kinh', N'Nam', '0932345008', N'Đà Nẵng', '2019-08-08'),
+('HS049', '1A3', N'Đặng Tuệ Lâm', N'Kinh', N'Nữ', '0932345009', N'Đà Nẵng', '2019-09-09'),
+('HS050', '1A3', N'Ngô Gia Long', N'Kinh', N'Nam', '0932345010', N'Đà Nẵng', '2019-10-10'),
+('HS051', '1A3', N'Hồ Ngọc Mai', N'Kinh', N'Nữ', '0932345011', N'Đà Nẵng', '2019-11-11'),
+('HS052', '1A3', N'Dương Quốc Phong', N'Kinh', N'Nam', '0932345012', N'Đà Nẵng', '2019-12-12'),
+('HS053', '1A3', N'Mai Bảo Quyên', N'Kinh', N'Nữ', '0932345013', N'Đà Nẵng', '2019-01-13'),
+('HS054', '1A3', N'Phan Minh Sơn', N'Kinh', N'Nam', '0932345014', N'Đà Nẵng', '2019-02-14'),
+('HS055', '1A3', N'Lý Thảo Trang', N'Kinh', N'Nữ', '0932345015', N'Đà Nẵng', '2019-03-15'),
+('HS056', '1A3', N'Vương Anh Tuấn', N'Kinh', N'Nam', '0932345016', N'Đà Nẵng', '2019-04-16'),
+('HS057', '1A3', N'Tô Diệp Vy', N'Kinh', N'Nữ', '0932345017', N'Đà Nẵng', '2019-05-17'),
+('HS058', '1A3', N'Trịnh Xuân Trường', N'Kinh', N'Nam', '0932345018', N'Đà Nẵng', '2019-06-18'),
+('HS059', '1A3', N'Cao Thùy Anh', N'Kinh', N'Nữ', '0932345019', N'Đà Nẵng', '2019-07-19'),
+('HS060', '1A3', N'Giang Tuấn Phong', N'Kinh', N'Nam', '0932345020', N'Đà Nẵng', '2019-08-20');
+-- Lớp 2A1
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS061', '2A1', N'Nguyễn Hoàng An', N'Kinh', N'Nam', '0912345001', N'Hà Nội', '2018-01-01'),
+('HS062', '2A1', N'Trần Bảo Bình', N'Kinh', N'Nữ', '0912345002', N'Hà Nội', '2018-02-02'),
+('HS063', '2A1', N'Lê Gia Cát', N'Kinh', N'Nam', '0912345003', N'Hà Nội', '2018-03-03'),
+('HS064', '2A1', N'Phạm Minh Dũng', N'Kinh', N'Nam', '0912345004', N'Hà Nội', '2018-04-04'),
+('HS065', '2A1', N'Đỗ Phương Giang', N'Kinh', N'Nữ', '0912345005', N'Hà Nội', '2018-05-05'),
+('HS066', '2A1', N'Vũ Gia Hân', N'Kinh', N'Nữ', '0912345006', N'Hà Nội', '2018-06-06'),
+('HS067', '2A1', N'Hoàng Tuấn Kiệt', N'Kinh', N'Nam', '0912345007', N'Hà Nội', '2018-07-07'),
+('HS068', '2A1', N'Bùi Khánh Linh', N'Kinh', N'Nữ', '0912345008', N'Hà Nội', '2018-08-08'),
+('HS069', '2A1', N'Đặng Quốc Minh', N'Kinh', N'Nam', '0912345009', N'Hà Nội', '2018-09-09'),
+('HS070', '2A1', N'Ngô Bảo Nam', N'Kinh', N'Nam', '0912345010', N'Hà Nội', '2018-10-10'),
+('HS071', '2A1', N'Hồ Thùy Oanh', N'Kinh', N'Nữ', '0912345011', N'Hà Nội', '2018-11-11'),
+('HS072', '2A1', N'Dương Minh Phúc', N'Kinh', N'Nam', '0912345012', N'Hà Nội', '2018-12-12'),
+('HS073', '2A1', N'Mai Tú Quyên', N'Kinh', N'Nữ', '0912345013', N'Hà Nội', '2018-01-13'),
+('HS074', '2A1', N'Phan Hoàng Quân', N'Kinh', N'Nam', '0912345014', N'Hà Nội', '2018-02-14'),
+('HS075', '2A1', N'Lý Gia Hân', N'Kinh', N'Nữ', '0912345015', N'Hà Nội', '2018-03-15'),
+('HS076', '2A1', N'Vương Minh Tâm', N'Kinh', N'Nam', '0912345016', N'Hà Nội', '2018-04-16'),
+('HS077', '2A1', N'Tô Phương Uyên', N'Kinh', N'Nữ', '0912345017', N'Hà Nội', '2018-05-17'),
+('HS078', '2A1', N'Trịnh Tuấn Vũ', N'Kinh', N'Nam', '0912345018', N'Hà Nội', '2018-06-18'),
+('HS079', '2A1', N'Cao Hoàng Yến', N'Kinh', N'Nữ', '0912345019', N'Hà Nội', '2018-07-19'),
+('HS080', '2A1', N'Giang Minh Triết', N'Kinh', N'Nam', '0912345020', N'Hà Nội', '2018-08-20');
+-- Lớp 2A2
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS081', '2A2', N'Nguyễn Văn A', N'Kinh', N'Nam', '0922345001', N'Hải Phòng', '2018-01-01'),
+('HS082', '2A2', N'Trần Thị B', N'Kinh', N'Nữ', '0922345002', N'Hải Phòng', '2018-02-02'),
+('HS083', '2A2', N'Lê Văn C', N'Kinh', N'Nam', '0922345003', N'Hải Phòng', '2018-03-03'),
+('HS084', '2A2', N'Phạm Thị D', N'Kinh', N'Nữ', '0922345004', N'Hải Phòng', '2018-04-04'),
+('HS085', '2A2', N'Đỗ Văn E', N'Kinh', N'Nam', '0922345005', N'Hải Phòng', '2018-05-05'),
+('HS086', '2A2', N'Vũ Thị F', N'Kinh', N'Nữ', '0922345006', N'Hải Phòng', '2018-06-06'),
+('HS087', '2A2', N'Hoàng Văn G', N'Kinh', N'Nam', '0922345007', N'Hải Phòng', '2018-07-07'),
+('HS088', '2A2', N'Bùi Thị H', N'Kinh', N'Nữ', '0922345008', N'Hải Phòng', '2018-08-08'),
+('HS089', '2A2', N'Đặng Văn I', N'Kinh', N'Nam', '0922345009', N'Hải Phòng', '2018-09-09'),
+('HS090', '2A2', N'Ngô Văn K', N'Kinh', N'Nam', '0922345010', N'Hải Phòng', '2018-10-10'),
+('HS091', '2A2', N'Hồ Thị L', N'Kinh', N'Nữ', '0922345011', N'Hải Phòng', '2018-11-11'),
+('HS092', '2A2', N'Dương Văn M', N'Kinh', N'Nam', '0922345012', N'Hải Phòng', '2018-12-12'),
+('HS093', '2A2', N'Mai Thị N', N'Kinh', N'Nữ', '0922345013', N'Hải Phòng', '2018-01-13'),
+('HS094', '2A2', N'Phan Văn P', N'Kinh', N'Nam', '0922345014', N'Hải Phòng', '2018-02-14'),
+('HS095', '2A2', N'Lý Thị Q', N'Kinh', N'Nữ', '0922345015', N'Hải Phòng', '2018-03-15'),
+('HS096', '2A2', N'Vương Văn R', N'Kinh', N'Nam', '0922345016', N'Hải Phòng', '2018-04-16'),
+('HS097', '2A2', N'Tô Thị S', N'Kinh', N'Nữ', '0922345017', N'Hải Phòng', '2018-05-17'),
+('HS098', '2A2', N'Trịnh Văn T', N'Kinh', N'Nam', '0922345018', N'Hải Phòng', '2018-06-18'),
+('HS099', '2A2', N'Cao Thị U', N'Kinh', N'Nữ', '0922345019', N'Hải Phòng', '2018-07-19'),
+('HS100', '2A2', N'Giang Văn V', N'Kinh', N'Nam', '0922345020', N'Hải Phòng', '2018-08-20');
+-- Lớp 2A3
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS101', '2A3', N'Nguyễn Ánh Dương', N'Kinh', N'Nam', '0932345001', N'Đà Nẵng', '2018-01-01'),
+('HS102', '2A3', N'Trần Ngọc Bích', N'Kinh', N'Nữ', '0932345002', N'Đà Nẵng', '2018-02-02'),
+('HS103', '2A3', N'Lê Minh Châu', N'Kinh', N'Nam', '0932345003', N'Đà Nẵng', '2018-03-03'),
+('HS104', '2A3', N'Phạm Hải Đăng', N'Kinh', N'Nam', '0932345004', N'Đà Nẵng', '2018-04-04'),
+('HS105', '2A3', N'Đỗ Hà Giang', N'Kinh', N'Nữ', '0932345005', N'Đà Nẵng', '2018-05-05'),
+('HS106', '2A3', N'Vũ Hoàng Hải', N'Kinh', N'Nam', '0932345006', N'Đà Nẵng', '2018-06-06'),
+('HS107', '2A3', N'Hoàng Khánh Huyền', N'Kinh', N'Nữ', '0932345007', N'Đà Nẵng', '2018-07-07'),
+('HS108', '2A3', N'Bùi Minh Khang', N'Kinh', N'Nam', '0932345008', N'Đà Nẵng', '2018-08-08'),
+('HS109', '2A3', N'Đặng Tuệ Lâm', N'Kinh', N'Nữ', '0932345009', N'Đà Nẵng', '2018-09-09'),
+('HS110', '2A3', N'Ngô Gia Long', N'Kinh', N'Nam', '0932345010', N'Đà Nẵng', '2018-10-10'),
+('HS111', '2A3', N'Hồ Ngọc Mai', N'Kinh', N'Nữ', '0932345011', N'Đà Nẵng', '2018-11-11'),
+('HS112', '2A3', N'Dương Quốc Phong', N'Kinh', N'Nam', '0932345012', N'Đà Nẵng', '2018-12-12'),
+('HS113', '2A3', N'Mai Bảo Quyên', N'Kinh', N'Nữ', '0932345013', N'Đà Nẵng', '2018-01-13'),
+('HS114', '2A3', N'Phan Minh Sơn', N'Kinh', N'Nam', '0932345014', N'Đà Nẵng', '2018-02-14'),
+('HS115', '2A3', N'Lý Thảo Trang', N'Kinh', N'Nữ', '0932345015', N'Đà Nẵng', '2018-03-15'),
+('HS116', '2A3', N'Vương Anh Tuấn', N'Kinh', N'Nam', '0932345016', N'Đà Nẵng', '2018-04-16'),
+('HS117', '2A3', N'Tô Diệp Vy', N'Kinh', N'Nữ', '0932345017', N'Đà Nẵng', '2018-05-17'),
+('HS118', '2A3', N'Trịnh Xuân Trường', N'Kinh', N'Nam', '0932345018', N'Đà Nẵng', '2018-06-18'),
+('HS119', '2A3', N'Cao Thùy Anh', N'Kinh', N'Nữ', '0932345019', N'Đà Nẵng', '2018-07-19'),
+('HS120', '2A3', N'Giang Tuấn Phong', N'Kinh', N'Nam', '0932345020', N'Đà Nẵng', '2018-08-20');
+-- Lớp 3A1
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS121', '3A1', N'Nguyễn Hoàng An', N'Kinh', N'Nam', '0912345001', N'Hà Nội', '2017-01-01'),
+('HS122', '3A1', N'Trần Bảo Bình', N'Kinh', N'Nữ', '0912345002', N'Hà Nội', '2017-02-02'),
+('HS123', '3A1', N'Lê Gia Cát', N'Kinh', N'Nam', '0912345003', N'Hà Nội', '2017-03-03'),
+('HS124', '3A1', N'Phạm Minh Dũng', N'Kinh', N'Nam', '0912345004', N'Hà Nội', '2017-04-04'),
+('HS125', '3A1', N'Đỗ Phương Giang', N'Kinh', N'Nữ', '0912345005', N'Hà Nội', '2017-05-05'),
+('HS126', '3A1', N'Vũ Gia Hân', N'Kinh', N'Nữ', '0912345006', N'Hà Nội', '2017-06-06'),
+('HS127', '3A1', N'Hoàng Tuấn Kiệt', N'Kinh', N'Nam', '0912345007', N'Hà Nội', '2017-07-07'),
+('HS128', '3A1', N'Bùi Khánh Linh', N'Kinh', N'Nữ', '0912345008', N'Hà Nội', '2017-08-08'),
+('HS129', '3A1', N'Đặng Quốc Minh', N'Kinh', N'Nam', '0912345009', N'Hà Nội', '2017-09-09'),
+('HS130', '3A1', N'Ngô Bảo Nam', N'Kinh', N'Nam', '0912345010', N'Hà Nội', '2017-10-10'),
+('HS131', '3A1', N'Hồ Thùy Oanh', N'Kinh', N'Nữ', '0912345011', N'Hà Nội', '2017-11-11'),
+('HS132', '3A1', N'Dương Minh Phúc', N'Kinh', N'Nam', '0912345012', N'Hà Nội', '2017-12-12'),
+('HS133', '3A1', N'Mai Tú Quyên', N'Kinh', N'Nữ', '0912345013', N'Hà Nội', '2017-01-13'),
+('HS134', '3A1', N'Phan Hoàng Quân', N'Kinh', N'Nam', '0912345014', N'Hà Nội', '2017-02-14'),
+('HS135', '3A1', N'Lý Gia Hân', N'Kinh', N'Nữ', '0912345015', N'Hà Nội', '2017-03-15'),
+('HS136', '3A1', N'Vương Minh Tâm', N'Kinh', N'Nam', '0912345016', N'Hà Nội', '2017-04-16'),
+('HS137', '3A1', N'Tô Phương Uyên', N'Kinh', N'Nữ', '0912345017', N'Hà Nội', '2017-05-17'),
+('HS138', '3A1', N'Trịnh Tuấn Vũ', N'Kinh', N'Nam', '0912345018', N'Hà Nội', '2017-06-18'),
+('HS139', '3A1', N'Cao Hoàng Yến', N'Kinh', N'Nữ', '0912345019', N'Hà Nội', '2017-07-19'),
+('HS140', '3A1', N'Giang Minh Triết', N'Kinh', N'Nam', '0912345020', N'Hà Nội', '2017-08-20');
+-- Lớp 3A2
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS141', '3A2', N'Nguyễn Văn A', N'Kinh', N'Nam', '0922345001', N'Hải Phòng', '2017-01-01'),
+('HS142', '3A2', N'Trần Thị B', N'Kinh', N'Nữ', '0922345002', N'Hải Phòng', '2017-02-02'),
+('HS143', '3A2', N'Lê Văn C', N'Kinh', N'Nam', '0922345003', N'Hải Phòng', '2017-03-03'),
+('HS144', '3A2', N'Phạm Thị D', N'Kinh', N'Nữ', '0922345004', N'Hải Phòng', '2017-04-04'),
+('HS145', '3A2', N'Đỗ Văn E', N'Kinh', N'Nam', '0922345005', N'Hải Phòng', '2017-05-05'),
+('HS146', '3A2', N'Vũ Thị F', N'Kinh', N'Nữ', '0922345006', N'Hải Phòng', '2017-06-06'),
+('HS147', '3A2', N'Hoàng Văn G', N'Kinh', N'Nam', '0922345007', N'Hải Phòng', '2017-07-07'),
+('HS148', '3A2', N'Bùi Thị H', N'Kinh', N'Nữ', '0922345008', N'Hải Phòng', '2017-08-08'),
+('HS149', '3A2', N'Đặng Văn I', N'Kinh', N'Nam', '0922345009', N'Hải Phòng', '2017-09-09'),
+('HS150', '3A2', N'Ngô Văn K', N'Kinh', N'Nam', '0922345010', N'Hải Phòng', '2017-10-10'),
+('HS151', '3A2', N'Hồ Thị L', N'Kinh', N'Nữ', '0922345011', N'Hải Phòng', '2017-11-11'),
+('HS152', '3A2', N'Dương Văn M', N'Kinh', N'Nam', '0922345012', N'Hải Phòng', '2017-12-12'),
+('HS153', '3A2', N'Mai Thị N', N'Kinh', N'Nữ', '0922345013', N'Hải Phòng', '2017-01-13'),
+('HS154', '3A2', N'Phan Văn P', N'Kinh', N'Nam', '0922345014', N'Hải Phòng', '2017-02-14'),
+('HS155', '3A2', N'Lý Thị Q', N'Kinh', N'Nữ', '0922345015', N'Hải Phòng', '2017-03-15'),
+('HS156', '3A2', N'Vương Văn R', N'Kinh', N'Nam', '0922345016', N'Hải Phòng', '2017-04-16'),
+('HS157', '3A2', N'Tô Thị S', N'Kinh', N'Nữ', '0922345017', N'Hải Phòng', '2017-05-17'),
+('HS158', '3A2', N'Trịnh Văn T', N'Kinh', N'Nam', '0922345018', N'Hải Phòng', '2017-06-18'),
+('HS159', '3A2', N'Cao Thị U', N'Kinh', N'Nữ', '0922345019', N'Hải Phòng', '2017-07-19'),
+('HS160', '3A2', N'Giang Văn V', N'Kinh', N'Nam', '0922345020', N'Hải Phòng', '2017-08-20');
+-- Lớp 3A3
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS161', '3A3', N'Nguyễn Ánh Dương', N'Kinh', N'Nam', '0932345001', N'Đà Nẵng', '2017-01-01'),
+('HS162', '3A3', N'Trần Ngọc Bích', N'Kinh', N'Nữ', '0932345002', N'Đà Nẵng', '2017-02-02'),
+('HS163', '3A3', N'Lê Minh Châu', N'Kinh', N'Nam', '0932345003', N'Đà Nẵng', '2017-03-03'),
+('HS164', '3A3', N'Phạm Hải Đăng', N'Kinh', N'Nam', '0932345004', N'Đà Nẵng', '2017-04-04'),
+('HS165', '3A3', N'Đỗ Hà Giang', N'Kinh', N'Nữ', '0932345005', N'Đà Nẵng', '2017-05-05'),
+('HS166', '3A3', N'Vũ Hoàng Hải', N'Kinh', N'Nam', '0932345006', N'Đà Nẵng', '2017-06-06'),
+('HS167', '3A3', N'Hoàng Khánh Huyền', N'Kinh', N'Nữ', '0932345007', N'Đà Nẵng', '2017-07-07'),
+('HS168', '3A3', N'Bùi Minh Khang', N'Kinh', N'Nam', '0932345008', N'Đà Nẵng', '2017-08-08'),
+('HS169', '3A3', N'Đặng Tuệ Lâm', N'Kinh', N'Nữ', '0932345009', N'Đà Nẵng', '2017-09-09'),
+('HS170', '3A3', N'Ngô Gia Long', N'Kinh', N'Nam', '0932345010', N'Đà Nẵng', '2017-10-10'),
+('HS171', '3A3', N'Hồ Ngọc Mai', N'Kinh', N'Nữ', '0932345011', N'Đà Nẵng', '2017-11-11'),
+('HS172', '3A3', N'Dương Quốc Phong', N'Kinh', N'Nam', '0932345012', N'Đà Nẵng', '2017-12-12'),
+('HS173', '3A3', N'Mai Bảo Quyên', N'Kinh', N'Nữ', '0932345013', N'Đà Nẵng', '2017-01-13'),
+('HS174', '3A3', N'Phan Minh Sơn', N'Kinh', N'Nam', '0932345014', N'Đà Nẵng', '2017-02-14'),
+('HS175', '3A3', N'Lý Thảo Trang', N'Kinh', N'Nữ', '0932345015', N'Đà Nẵng', '2017-03-15'),
+('HS176', '3A3', N'Vương Anh Tuấn', N'Kinh', N'Nam', '0932345016', N'Đà Nẵng', '2017-04-16'),
+('HS177', '3A3', N'Tô Diệp Vy', N'Kinh', N'Nữ', '0932345017', N'Đà Nẵng', '2017-05-17'),
+('HS178', '3A3', N'Trịnh Xuân Trường', N'Kinh', N'Nam', '0932345018', N'Đà Nẵng', '2017-06-18'),
+('HS179', '3A3', N'Cao Thùy Anh', N'Kinh', N'Nữ', '0932345019', N'Đà Nẵng', '2017-07-19'),
+('HS180', '3A3', N'Giang Tuấn Phong', N'Kinh', N'Nam', '0932345020', N'Đà Nẵng', '2017-08-20');
+-- Lớp 4A1
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS181', '4A1', N'Nguyễn Hoàng An', N'Kinh', N'Nam', '0912345001', N'Hà Nội', '2016-01-01'),
+('HS182', '4A1', N'Trần Bảo Bình', N'Kinh', N'Nữ', '0912345002', N'Hà Nội', '2016-02-02'),
+('HS183', '4A1', N'Lê Gia Cát', N'Kinh', N'Nam', '0912345003', N'Hà Nội', '2016-03-03'),
+('HS184', '4A1', N'Phạm Minh Dũng', N'Kinh', N'Nam', '0912345004', N'Hà Nội', '2016-04-04'),
+('HS185', '4A1', N'Đỗ Phương Giang', N'Kinh', N'Nữ', '0912345005', N'Hà Nội', '2016-05-05'),
+('HS186', '4A1', N'Vũ Gia Hân', N'Kinh', N'Nữ', '0912345006', N'Hà Nội', '2016-06-06'),
+('HS187', '4A1', N'Hoàng Tuấn Kiệt', N'Kinh', N'Nam', '0912345007', N'Hà Nội', '2016-07-07'),
+('HS188', '4A1', N'Bùi Khánh Linh', N'Kinh', N'Nữ', '0912345008', N'Hà Nội', '2016-08-08'),
+('HS189', '4A1', N'Đặng Quốc Minh', N'Kinh', N'Nam', '0912345009', N'Hà Nội', '2016-09-09'),
+('HS190', '4A1', N'Ngô Bảo Nam', N'Kinh', N'Nam', '0912345010', N'Hà Nội', '2016-10-10'),
+('HS191', '4A1', N'Hồ Thùy Oanh', N'Kinh', N'Nữ', '0912345011', N'Hà Nội', '2016-11-11'),
+('HS192', '4A1', N'Dương Minh Phúc', N'Kinh', N'Nam', '0912345012', N'Hà Nội', '2016-12-12'),
+('HS193', '4A1', N'Mai Tú Quyên', N'Kinh', N'Nữ', '0912345013', N'Hà Nội', '2016-01-13'),
+('HS194', '4A1', N'Phan Hoàng Quân', N'Kinh', N'Nam', '0912345014', N'Hà Nội', '2016-02-14'),
+('HS195', '4A1', N'Lý Gia Hân', N'Kinh', N'Nữ', '0912345015', N'Hà Nội', '2016-03-15'),
+('HS196', '4A1', N'Vương Minh Tâm', N'Kinh', N'Nam', '0912345016', N'Hà Nội', '2016-04-16'),
+('HS197', '4A1', N'Tô Phương Uyên', N'Kinh', N'Nữ', '0912345017', N'Hà Nội', '2016-05-17'),
+('HS198', '4A1', N'Trịnh Tuấn Vũ', N'Kinh', N'Nam', '0912345018', N'Hà Nội', '2016-06-18'),
+('HS199', '4A1', N'Cao Hoàng Yến', N'Kinh', N'Nữ', '0912345019', N'Hà Nội', '2016-07-19'),
+('HS200', '4A1', N'Giang Minh Triết', N'Kinh', N'Nam', '0912345020', N'Hà Nội', '2016-08-20');
+-- Lớp 4A2
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS201', '4A2', N'Nguyễn Văn A', N'Kinh', N'Nam', '0922345001', N'Hải Phòng', '2016-01-01'),
+('HS202', '4A2', N'Trần Thị B', N'Kinh', N'Nữ', '0922345002', N'Hải Phòng', '2016-02-02'),
+('HS203', '4A2', N'Lê Văn C', N'Kinh', N'Nam', '0922345003', N'Hải Phòng', '2016-03-03'),
+('HS204', '4A2', N'Phạm Thị D', N'Kinh', N'Nữ', '0922345004', N'Hải Phòng', '2016-04-04'),
+('HS205', '4A2', N'Đỗ Văn E', N'Kinh', N'Nam', '0922345005', N'Hải Phòng', '2016-05-05'),
+('HS206', '4A2', N'Vũ Thị F', N'Kinh', N'Nữ', '0922345006', N'Hải Phòng', '2016-06-06'),
+('HS207', '4A2', N'Hoàng Văn G', N'Kinh', N'Nam', '0922345007', N'Hải Phòng', '2016-07-07'),
+('HS208', '4A2', N'Bùi Thị H', N'Kinh', N'Nữ', '0922345008', N'Hải Phòng', '2016-08-08'),
+('HS209', '4A2', N'Đặng Văn I', N'Kinh', N'Nam', '0922345009', N'Hải Phòng', '2016-09-09'),
+('HS210', '4A2', N'Ngô Văn K', N'Kinh', N'Nam', '0922345010', N'Hải Phòng', '2016-10-10'),
+('HS211', '4A2', N'Hồ Thị L', N'Kinh', N'Nữ', '0922345011', N'Hải Phòng', '2016-11-11'),
+('HS212', '4A2', N'Dương Văn M', N'Kinh', N'Nam', '0922345012', N'Hải Phòng', '2016-12-12'),
+('HS213', '4A2', N'Mai Thị N', N'Kinh', N'Nữ', '0922345013', N'Hải Phòng', '2016-01-13'),
+('HS214', '4A2', N'Phan Văn P', N'Kinh', N'Nam', '0922345014', N'Hải Phòng', '2016-02-14'),
+('HS215', '4A2', N'Lý Thị Q', N'Kinh', N'Nữ', '0922345015', N'Hải Phòng', '2016-03-15'),
+('HS216', '4A2', N'Vương Văn R', N'Kinh', N'Nam', '0922345016', N'Hải Phòng', '2016-04-16'),
+('HS217', '4A2', N'Tô Thị S', N'Kinh', N'Nữ', '0922345017', N'Hải Phòng', '2016-05-17'),
+('HS218', '4A2', N'Trịnh Văn T', N'Kinh', N'Nam', '0922345018', N'Hải Phòng', '2016-06-18'),
+('HS219', '4A2', N'Cao Thị U', N'Kinh', N'Nữ', '0922345019', N'Hải Phòng', '2016-07-19'),
+('HS220', '4A2', N'Giang Văn V', N'Kinh', N'Nam', '0922345020', N'Hải Phòng', '2016-08-20');
+-- Lớp 4A3
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS221', '4A3', N'Nguyễn Ánh Dương', N'Kinh', N'Nam', '0932345001', N'Đà Nẵng', '2016-01-01'),
+('HS222', '4A3', N'Trần Ngọc Bích', N'Kinh', N'Nữ', '0932345002', N'Đà Nẵng', '2016-02-02'),
+('HS223', '4A3', N'Lê Minh Châu', N'Kinh', N'Nam', '0932345003', N'Đà Nẵng', '2016-03-03'),
+('HS224', '4A3', N'Phạm Hải Đăng', N'Kinh', N'Nam', '0932345004', N'Đà Nẵng', '2016-04-04'),
+('HS225', '4A3', N'Đỗ Hà Giang', N'Kinh', N'Nữ', '0932345005', N'Đà Nẵng', '2016-05-05'),
+('HS226', '4A3', N'Vũ Hoàng Hải', N'Kinh', N'Nam', '0932345006', N'Đà Nẵng', '2016-06-06'),
+('HS227', '4A3', N'Hoàng Khánh Huyền', N'Kinh', N'Nữ', '0932345007', N'Đà Nẵng', '2016-07-07'),
+('HS228', '4A3', N'Bùi Minh Khang', N'Kinh', N'Nam', '0932345008', N'Đà Nẵng', '2016-08-08'),
+('HS229', '4A3', N'Đặng Tuệ Lâm', N'Kinh', N'Nữ', '0932345009', N'Đà Nẵng', '2016-09-09'),
+('HS230', '4A3', N'Ngô Gia Long', N'Kinh', N'Nam', '0932345010', N'Đà Nẵng', '2016-10-10'),
+('HS231', '4A3', N'Hồ Ngọc Mai', N'Kinh', N'Nữ', '0932345011', N'Đà Nẵng', '2016-11-11'),
+('HS232', '4A3', N'Dương Quốc Phong', N'Kinh', N'Nam', '0932345012', N'Đà Nẵng', '2016-12-12'),
+('HS233', '4A3', N'Mai Bảo Quyên', N'Kinh', N'Nữ', '0932345013', N'Đà Nẵng', '2016-01-13'),
+('HS234', '4A3', N'Phan Minh Sơn', N'Kinh', N'Nam', '0932345014', N'Đà Nẵng', '2016-02-14'),
+('HS235', '4A3', N'Lý Thảo Trang', N'Kinh', N'Nữ', '0932345015', N'Đà Nẵng', '2016-03-15'),
+('HS236', '4A3', N'Vương Anh Tuấn', N'Kinh', N'Nam', '0932345016', N'Đà Nẵng', '2016-04-16'),
+('HS237', '4A3', N'Tô Diệp Vy', N'Kinh', N'Nữ', '0932345017', N'Đà Nẵng', '2016-05-17'),
+('HS238', '4A3', N'Trịnh Xuân Trường', N'Kinh', N'Nam', '0932345018', N'Đà Nẵng', '2016-06-18'),
+('HS239', '4A3', N'Cao Thùy Anh', N'Kinh', N'Nữ', '0932345019', N'Đà Nẵng', '2016-07-19'),
+('HS240', '4A3', N'Giang Tuấn Phong', N'Kinh', N'Nam', '0932345020', N'Đà Nẵng', '2016-08-20');
+-- Lớp 5A1
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS241', '5A1', N'Nguyễn Hoàng An', N'Kinh', N'Nam', '0912345001', N'Hà Nội', '2015-01-01'),
+('HS242', '5A1', N'Trần Bảo Bình', N'Kinh', N'Nữ', '0912345002', N'Hà Nội', '2015-02-02'),
+('HS243', '5A1', N'Lê Gia Cát', N'Kinh', N'Nam', '0912345003', N'Hà Nội', '2015-03-03'),
+('HS244', '5A1', N'Phạm Minh Dũng', N'Kinh', N'Nam', '0912345004', N'Hà Nội', '2015-04-04'),
+('HS245', '5A1', N'Đỗ Phương Giang', N'Kinh', N'Nữ', '0912345005', N'Hà Nội', '2015-05-05'),
+('HS246', '5A1', N'Vũ Gia Hân', N'Kinh', N'Nữ', '0912345006', N'Hà Nội', '2015-06-06'),
+('HS247', '5A1', N'Hoàng Tuấn Kiệt', N'Kinh', N'Nam', '0912345007', N'Hà Nội', '2015-07-07'),
+('HS248', '5A1', N'Bùi Khánh Linh', N'Kinh', N'Nữ', '0912345008', N'Hà Nội', '2015-08-08'),
+('HS249', '5A1', N'Đặng Quốc Minh', N'Kinh', N'Nam', '0912345009', N'Hà Nội', '2015-09-09'),
+('HS250', '5A1', N'Ngô Bảo Nam', N'Kinh', N'Nam', '0912345010', N'Hà Nội', '2015-10-10'),
+('HS251', '5A1', N'Hồ Thùy Oanh', N'Kinh', N'Nữ', '0912345011', N'Hà Nội', '2015-11-11'),
+('HS252', '5A1', N'Dương Minh Phúc', N'Kinh', N'Nam', '0912345012', N'Hà Nội', '2015-12-12'),
+('HS253', '5A1', N'Mai Tú Quyên', N'Kinh', N'Nữ', '0912345013', N'Hà Nội', '2015-01-13'),
+('HS254', '5A1', N'Phan Hoàng Quân', N'Kinh', N'Nam', '0912345014', N'Hà Nội', '2015-02-14'),
+('HS255', '5A1', N'Lý Gia Hân', N'Kinh', N'Nữ', '0912345015', N'Hà Nội', '2015-03-15'),
+('HS256', '5A1', N'Vương Minh Tâm', N'Kinh', N'Nam', '0912345016', N'Hà Nội', '2015-04-16'),
+('HS257', '5A1', N'Tô Phương Uyên', N'Kinh', N'Nữ', '0912345017', N'Hà Nội', '2015-05-17'),
+('HS258', '5A1', N'Trịnh Tuấn Vũ', N'Kinh', N'Nam', '0912345018', N'Hà Nội', '2015-06-18'),
+('HS259', '5A1', N'Cao Hoàng Yến', N'Kinh', N'Nữ', '0912345019', N'Hà Nội', '2015-07-19'),
+('HS260', '5A1', N'Giang Minh Triết', N'Kinh', N'Nam', '0912345020', N'Hà Nội', '2015-08-20');
+-- Lớp 5A2
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS261', '5A2', N'Nguyễn Văn A', N'Kinh', N'Nam', '0922345001', N'Hải Phòng', '2015-01-01'),
+('HS262', '5A2', N'Trần Thị B', N'Kinh', N'Nữ', '0922345002', N'Hải Phòng', '2015-02-02'),
+('HS263', '5A2', N'Lê Văn C', N'Kinh', N'Nam', '0922345003', N'Hải Phòng', '2015-03-03'),
+('HS264', '5A2', N'Phạm Thị D', N'Kinh', N'Nữ', '0922345004', N'Hải Phòng', '2015-04-04'),
+('HS265', '5A2', N'Đỗ Văn E', N'Kinh', N'Nam', '0922345005', N'Hải Phòng', '2015-05-05'),
+('HS266', '5A2', N'Vũ Thị F', N'Kinh', N'Nữ', '0922345006', N'Hải Phòng', '2015-06-06'),
+('HS267', '5A2', N'Hoàng Văn G', N'Kinh', N'Nam', '0922345007', N'Hải Phòng', '2015-07-07'),
+('HS268', '5A2', N'Bùi Thị H', N'Kinh', N'Nữ', '0922345008', N'Hải Phòng', '2015-08-08'),
+('HS269', '5A2', N'Đặng Văn I', N'Kinh', N'Nam', '0922345009', N'Hải Phòng', '2015-09-09'),
+('HS270', '5A2', N'Ngô Văn K', N'Kinh', N'Nam', '0922345010', N'Hải Phòng', '2015-10-10'),
+('HS271', '5A2', N'Hồ Thị L', N'Kinh', N'Nữ', '0922345011', N'Hải Phòng', '2015-11-11'),
+('HS272', '5A2', N'Dương Văn M', N'Kinh', N'Nam', '0922345012', N'Hải Phòng', '2015-12-12'),
+('HS273', '5A2', N'Mai Thị N', N'Kinh', N'Nữ', '0922345013', N'Hải Phòng', '2015-01-13'),
+('HS274', '5A2', N'Phan Văn P', N'Kinh', N'Nam', '0922345014', N'Hải Phòng', '2015-02-14'),
+('HS275', '5A2', N'Lý Thị Q', N'Kinh', N'Nữ', '0922345015', N'Hải Phòng', '2015-03-15'),
+('HS276', '5A2', N'Vương Văn R', N'Kinh', N'Nam', '0922345016', N'Hải Phòng', '2015-04-16'),
+('HS277', '5A2', N'Tô Thị S', N'Kinh', N'Nữ', '0922345017', N'Hải Phòng', '2015-05-17'),
+('HS278', '5A2', N'Trịnh Văn T', N'Kinh', N'Nam', '0922345018', N'Hải Phòng', '2015-06-18'),
+('HS279', '5A2', N'Cao Thị U', N'Kinh', N'Nữ', '0922345019', N'Hải Phòng', '2015-07-19'),
+('HS280', '5A2', N'Giang Văn V', N'Kinh', N'Nam', '0922345020', N'Hải Phòng', '2015-08-20');
+-- Lớp 5A3
+INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, NgaySinh) VALUES
+('HS281', '5A3', N'Nguyễn Ánh Dương', N'Kinh', N'Nam', '0932345001', N'Đà Nẵng', '2015-01-01'),
+('HS282', '5A3', N'Trần Ngọc Bích', N'Kinh', N'Nữ', '0932345002', N'Đà Nẵng', '2015-02-02'),
+('HS283', '5A3', N'Lê Minh Châu', N'Kinh', N'Nam', '0932345003', N'Đà Nẵng', '2015-03-03'),
+('HS284', '5A3', N'Phạm Hải Đăng', N'Kinh', N'Nam', '0932345004', N'Đà Nẵng', '2015-04-04'),
+('HS285', '5A3', N'Đỗ Hà Giang', N'Kinh', N'Nữ', '0932345005', N'Đà Nẵng', '2015-05-05'),
+('HS286', '5A3', N'Vũ Hoàng Hải', N'Kinh', N'Nam', '0932345006', N'Đà Nẵng', '2015-06-06'),
+('HS287', '5A3', N'Hoàng Khánh Huyền', N'Kinh', N'Nữ', '0932345007', N'Đà Nẵng', '2015-07-07'),
+('HS288', '5A3', N'Bùi Minh Khang', N'Kinh', N'Nam', '0932345008', N'Đà Nẵng', '2015-08-08'),
+('HS289', '5A3', N'Đặng Tuệ Lâm', N'Kinh', N'Nữ', '0932345009', N'Đà Nẵng', '2015-09-09'),
+('HS290', '5A3', N'Ngô Gia Long', N'Kinh', N'Nam', '0932345010', N'Đà Nẵng', '2015-10-10'),
+('HS291', '5A3', N'Hồ Ngọc Mai', N'Kinh', N'Nữ', '0932345011', N'Đà Nẵng', '2015-11-11'),
+('HS292', '5A3', N'Dương Quốc Phong', N'Kinh', N'Nam', '0932345012', N'Đà Nẵng', '2015-12-12'),
+('HS293', '5A3', N'Mai Bảo Quyên', N'Kinh', N'Nữ', '0932345013', N'Đà Nẵng', '2015-01-13'),
+('HS294', '5A3', N'Phan Minh Sơn', N'Kinh', N'Nam', '0932345014', N'Đà Nẵng', '2015-02-14'),
+('HS295', '5A3', N'Lý Thảo Trang', N'Kinh', N'Nữ', '0932345015', N'Đà Nẵng', '2015-03-15'),
+('HS296', '5A3', N'Vương Anh Tuấn', N'Kinh', N'Nam', '0932345016', N'Đà Nẵng', '2015-04-16'),
+('HS297', '5A3', N'Tô Diệp Vy', N'Kinh', N'Nữ', '0932345017', N'Đà Nẵng', '2015-05-17'),
+('HS298', '5A3', N'Trịnh Xuân Trường', N'Kinh', N'Nam', '0932345018', N'Đà Nẵng', '2015-06-18'),
+('HS299', '5A3', N'Cao Thùy Anh', N'Kinh', N'Nữ', '0932345019', N'Đà Nẵng', '2015-07-19'),
+('HS300', '5A3', N'Giang Tuấn Phong', N'Kinh', N'Nam', '0932345020', N'Đà Nẵng', '2015-08-20');
+GO
 
+-- 9. Thời Khóa Biểu
 INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, GhiChu, MaGV, MaLop) VALUES
-('TKB001', '2025-10-06', 1, 'VAN', N'Ôn tập chương 1', 'GV001', '5A10'),
-('TKB002', '2025-10-06', 2, 'TOAN', N'Luyện tập cộng trừ phân số', 'GV002', '5A10'),
-('TKB003', '2025-10-07', 1, 'ANH', N'Học từ vựng chủ đề gia đình', 'GV003', '5A10'),
-('TKB004', '2025-10-07', 2, 'TOAN', N'Bài tập ứng dụng thực tế', 'GV002', '5A10'),
-('TKB005', '2025-10-08', 3, 'VAN', N'Đọc hiểu văn bản', 'GV001', '5A10'),
-('TKB006', '2025-10-08', 4, 'ANH', N'Luyện nghe hội thoại', 'GV003', '5A10'),
-('TKB007', '2025-10-09', 1, 'TOAN', N'Giải toán có lời văn', 'GV002', '5A10'),
-('TKB008', '2025-10-09', 5, 'VAN', N'Tập làm văn miêu tả', 'GV001', '5A10'),
-('TKB009', '2025-10-10', 2, 'ANH', N'Kiểm tra 15 phút', 'GV003', '5A10'),
-('TKB010', '2025-10-10', 3, 'TOAN', N'Ôn tập chương 2', 'GV002', '5A10'),
-('TKB011', '2025-10-06', 3, 'VAN', N'Giới thiệu tác phẩm mới', 'GV001', '5A11'),
-('TKB012', '2025-10-07', 4, 'TOAN', N'Hình học', 'GV002', '5A11'),
-('TKB013', '2025-10-07', 3, 'TIN', N'Luyện gõ 10 ngón', 'GV005', '5A10'),
-('TKB014', '2025-10-08', 1, 'TIN', N'Làm quen Powerpoint', 'GV005', '5A12'), -- Đổi sang 5A12
-('TKB015', '2025-10-09', 2, 'TIN', N'Bài tập Excel cơ bản', 'GV005', '5A12'),
-('TKB016', '2025-10-09', 3, 'TOAN', N'Đại số', 'GV005', '5A12'); -- Cô Tâm dạy Toán lớp 5A12
+('TKB001', '2025-10-06', 1, 'TV', N'Ôn tập chương 1', 'GV007', '5A1'),
+('TKB002', '2025-10-06', 2, 'TOAN', N'Luyện tập cộng trừ phân số', 'GV014', '5A1'),
+('TKB003', '2025-10-07', 1, 'ANH', N'Học từ vựng chủ đề gia đình', 'GV003', '5A1'),
+('TKB004', '2025-10-07', 2, 'TOAN', N'Bài tập ứng dụng thực tế', 'GV014', '5A1'),
+('TKB005', '2025-10-08', 3, 'TIN', N'Luyện gõ 10 ngón', 'GV004', '5A1'),
+('TKB006', '2025-10-06', 1, 'TV', N'Học vần', 'GV001', '1A1'),
+('TKB007', '2025-10-06', 2, 'TOAN', N'Học số đếm 1-10', 'GV002', '1A1');
 
+-- 10. Minigame
 INSERT INTO Minigame (MaMNG, Ten, DuLieu) VALUES
 ('MNG01', N'Quiz nhanh', NULL), ('MNG02', N'Gọi tên ngẫu nhiên', NULL), ('MNG03', N'Flashcard', NULL),
 ('MNG04', N'Ghép chữ', NULL), ('MNG05', N'Nghe - chọn hình', NULL), ('MNG06', N'Sắp xếp câu', NULL),
 ('MNG07', N'Điền từ', NULL), ('MNG08', N'Lật thẻ', NULL), ('MNG09', N'Random số', NULL), ('MNG10', N'Pass a ball', NULL);
+
+-- 11. DỮ LIỆU MẪU MỚI: ThoiHanDiem
+-- Khối 1
+INSERT INTO ThoiHanDiem (MaCotDiem, TenHienThi, Khoi, HocKy, NgayMoDiem, NgayKhoaDiem, KhoaThuCong)
+VALUES
+('Thang1_Ki1', N'Điểm Tháng 1 (Kỳ 1)', N'Khối 1', 1, '2024-09-01', '2024-09-30', 0),
+('Thang2_Ki1', N'Điểm Tháng 2 (Kỳ 1)', N'Khối 1', 1, '2024-10-01', '2024-10-31', 0),
+('Thang3_Ki1', N'Điểm Tháng 3 (Kỳ 1)', N'Khối 1', 1, '2024-11-01', '2024-11-30', 0),
+('GiuaKi1', N'Điểm Giữa Kỳ 1', N'Khối 1', 1, '2024-11-05', '2024-11-20', 0),
+('CuoiKi1', N'Điểm Cuối Kỳ 1', N'Khối 1', 1, '2024-12-15', '2025-01-15', 0),
+('Thang1_Ki2', N'Điểm Tháng 1 (Kỳ 2)', N'Khối 1', 2, '2025-01-20', '2025-02-28', 0),
+('Thang2_Ki2', N'Điểm Tháng 2 (Kỳ 2)', N'Khối 1', 2, '2025-03-01', '2025-03-31', 0),
+('Thang3_Ki2', N'Điểm Tháng 3 (Kỳ 2)', N'Khối 1', 2, '2025-04-01', '2025-04-30', 0),
+('GiuaKi2', N'Điểm Giữa Kỳ 2', N'Khối 1', 2, '2025-04-05', '2025-04-20', 0),
+('CuoiKi2', N'Điểm Cuối Kỳ 2', N'Khối 1', 2, '2025-05-15', '2025-06-15', 0);
+-- Khối 2
+INSERT INTO ThoiHanDiem (MaCotDiem, TenHienThi, Khoi, HocKy, NgayMoDiem, NgayKhoaDiem, KhoaThuCong)
+VALUES
+('Thang1_Ki1', N'Điểm Tháng 1 (Kỳ 1)', N'Khối 2', 1, '2024-09-01', '2024-09-30', 0),
+('Thang2_Ki1', N'Điểm Tháng 2 (Kỳ 1)', N'Khối 2', 1, '2024-10-01', '2024-10-31', 0),
+('Thang3_Ki1', N'Điểm Tháng 3 (Kỳ 1)', N'Khối 2', 1, '2024-11-01', '2024-11-30', 0),
+('GiuaKi1', N'Điểm Giữa Kỳ 1', N'Khối 2', 1, '2024-11-05', '2024-11-20', 0),
+('CuoiKi1', N'Điểm Cuối Kỳ 1', N'Khối 2', 1, '2024-12-15', '2025-01-15', 0),
+('Thang1_Ki2', N'Điểm Tháng 1 (Kỳ 2)', N'Khối 2', 2, '2025-01-20', '2025-02-28', 0),
+('Thang2_Ki2', N'Điểm Tháng 2 (Kỳ 2)', N'Khối 2', 2, '2025-03-01', '2025-03-31', 0),
+('Thang3_Ki2', N'Điểm Tháng 3 (Kỳ 2)', N'Khối 2', 2, '2025-04-01', '2025-04-30', 0),
+('GiuaKi2', N'Điểm Giữa Kỳ 2', N'Khối 2', 2, '2025-04-05', '2025-04-20', 0),
+('CuoiKi2', N'Điểm Cuối Kỳ 2', N'Khối 2', 2, '2025-05-15', '2025-06-15', 0);
+-- Khối 3
+INSERT INTO ThoiHanDiem (MaCotDiem, TenHienThi, Khoi, HocKy, NgayMoDiem, NgayKhoaDiem, KhoaThuCong)
+VALUES
+('Thang1_Ki1', N'Điểm Tháng 1 (Kỳ 1)', N'Khối 3', 1, '2024-09-01', '2024-09-30', 0),
+('Thang2_Ki1', N'Điểm Tháng 2 (Kỳ 1)', N'Khối 3', 1, '2024-10-01', '2024-10-31', 0),
+('Thang3_Ki1', N'Điểm Tháng 3 (Kỳ 1)', N'Khối 3', 1, '2024-11-01', '2024-11-30', 0),
+('GiuaKi1', N'Điểm Giữa Kỳ 1', N'Khối 3', 1, '2024-11-01', '2024-11-15', 0),
+('CuoiKi1', N'Điểm Cuối Kỳ 1', N'Khối 3', 1, '2024-12-15', '2025-01-15', 0),
+('Thang1_Ki2', N'Điểm Tháng 1 (Kỳ 2)', N'Khối 3', 2, '2025-01-20', '2025-02-28', 0),
+('Thang2_Ki2', N'Điểm Tháng 2 (Kỳ 2)', N'Khối 3', 2, '2025-03-01', '2025-03-31', 0),
+('Thang3_Ki2', N'Điểm Tháng 3 (Kỳ 2)', N'Khối 3', 2, '2025-04-01', '2025-04-30', 0),
+('GiuaKi2', N'Điểm Giữa Kỳ 2', N'Khối 3', 2, '2025-04-01', '2025-04-15', 0),
+('CuoiKi2', N'Điểm Cuối Kỳ 2', N'Khối 3', 2, '2025-05-15', '2025-06-15', 0);
+-- Khối 4
+INSERT INTO ThoiHanDiem (MaCotDiem, TenHienThi, Khoi, HocKy, NgayMoDiem, NgayKhoaDiem, KhoaThuCong)
+VALUES
+('Thang1_Ki1', N'Điểm Tháng 1 (Kỳ 1)', N'Khối 4', 1, '2024-09-01', '2024-09-30', 0),
+('Thang2_Ki1', N'Điểm Tháng 2 (Kỳ 1)', N'Khối 4', 1, '2024-10-01', '2024-10-31', 0),
+('Thang3_Ki1', N'Điểm Tháng 3 (Kỳ 1)', N'Khối 4', 1, '2024-11-01', '2024-11-30', 0),
+('GiuaKi1', N'Điểm Giữa Kỳ 1', N'Khối 4', 1, '2024-11-01', '2024-11-15', 0),
+('CuoiKi1', N'Điểm Cuối Kỳ 1', N'Khối 4', 1, '2024-12-15', '2025-01-15', 0),
+('Thang1_Ki2', N'Điểm Tháng 1 (Kỳ 2)', N'Khối 4', 2, '2025-01-20', '2025-02-28', 0),
+('Thang2_Ki2', N'Điểm Tháng 2 (Kỳ 2)', N'Khối 4', 2, '2025-03-01', '2025-03-31', 0),
+('Thang3_Ki2', N'Điểm Tháng 3 (Kỳ 2)', N'Khối 4', 2, '2025-04-01', '2025-04-30', 0),
+('GiuaKi2', N'Điểm Giữa Kỳ 2', N'Khối 4', 2, '2025-04-01', '2025-04-15', 0),
+('CuoiKi2', N'Điểm Cuối Kỳ 2', N'Khối 4', 2, '2025-05-15', '2025-06-15', 0);
+-- Khối 5
+INSERT INTO ThoiHanDiem (MaCotDiem, TenHienThi, Khoi, HocKy, NgayMoDiem, NgayKhoaDiem, KhoaThuCong)
+VALUES
+('Thang1_Ki1', N'Điểm Tháng 1 (Kỳ 1)', N'Khối 5', 1, '2024-09-01', '2024-09-30', 0),
+('Thang2_Ki1', N'Điểm Tháng 2 (Kỳ 1)', N'Khối 5', 1, '2024-10-01', '2024-10-31', 0),
+('Thang3_Ki1', N'Điểm Tháng 3 (Kỳ 1)', N'Khối 5', 1, '2024-11-01', '2024-11-30', 0),
+('GiuaKi1', N'Điểm Giữa Kỳ 1', N'Khối 5', 1, '2024-10-20', '2024-11-10', 0),
+('CuoiKi1', N'Điểm Cuối Kỳ 1', N'Khối 5', 1, '2024-12-10', '2025-01-10', 0),
+('Thang1_Ki2', N'Điểm Tháng 1 (Kỳ 2)', N'Khối 5', 2, '2025-01-20', '2025-02-28', 0),
+('Thang2_Ki2', N'Điểm Tháng 2 (Kỳ 2)', N'Khối 5', 2, '2025-03-01', '2025-03-31', 0),
+('Thang3_Ki2', N'Điểm Tháng 3 (Kỳ 2)', N'Khối 5', 2, '2025-04-01', '2025-04-30', 0),
+('GiuaKi2', N'Điểm Giữa Kỳ 2', N'Khối 5', 2, '2025-03-20', '2025-04-10', 0),
+('CuoiKi2', N'Điểm Cuối Kỳ 2', N'Khối 5', 2, '2025-05-10', '2025-06-10', 0);
+GO
 
 PRINT 'ĐÃ CHÈN TẤT CẢ DỮ LIỆU MẪU.';
 GO
@@ -284,10 +733,16 @@ CREATE PROCEDURE sp_TaoKetQuaHocTapMacDinh
 AS
 BEGIN
     SET NOCOUNT ON;
+
     DECLARE @loai TABLE (Loai NVARCHAR(20));
-    INSERT INTO @loai VALUES
-    (N'Thang1_Ki1'),(N'Thang2_Ki1'),(N'GiuaKi1'),(N'CuoiKi1'),
-    (N'Thang1_Ki2'),(N'Thang2_Ki2'),(N'GiuaKi2'),(N'CuoiKi2');
+    INSERT INTO @loai (Loai)
+    SELECT DISTINCT MaCotDiem FROM ThoiHanDiem;
+
+    IF NOT EXISTS (SELECT 1 FROM @loai)
+    BEGIN
+        PRINT N'Không có loại điểm nào trong ThoiHanDiem. Bỏ qua khởi tạo KetQuaHocTap.';
+        RETURN;
+    END
 
     INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, Loai)
     SELECT LEFT(NEWID(), 8), m.MaMon, hs.MaHS, GETDATE(), l.Loai
@@ -301,14 +756,21 @@ BEGIN
 END;
 GO
 
+
 CREATE TRIGGER trg_TaoKetQuaHocTapHocSinhMoi ON HocSinh AFTER INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
+    
     DECLARE @loai TABLE (Loai NVARCHAR(20));
-    INSERT INTO @loai VALUES
-    (N'Thang1_Ki1'),(N'Thang2_Ki1'),(N'GiuaKi1'),(N'CuoiKi1'),
-    (N'Thang1_Ki2'),(N'Thang2_Ki2'),(N'GiuaKi2'),(N'CuoiKi2');
+    INSERT INTO @loai (Loai)
+    SELECT DISTINCT MaCotDiem FROM ThoiHanDiem;
+
+    IF NOT EXISTS (SELECT 1 FROM @loai)
+    BEGIN
+        PRINT N'Không có loại điểm nào trong ThoiHanDiem. Bỏ qua Trigger trg_TaoKetQuaHocTapHocSinhMoi.';
+        RETURN;
+    END
 
     INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, Loai)
     SELECT LEFT(NEWID(), 8), m.MaMon, i.MaHS, GETDATE(), l.Loai
@@ -382,37 +844,36 @@ GO
 --------------------------------------------------
 -- KHỞI TẠO DỮ LIỆU BAN ĐẦU
 --------------------------------------------------
-EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A10';
-EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A11';
-EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A12';
+PRINT N'Đang khởi tạo điểm danh mặc định cho 15 lớp...';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '1A1';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '1A2';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '1A3';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '2A1';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '2A2';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '2A3';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '3A1';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '3A2';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '3A3';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '4A1';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '4A2';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '4A3';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A1';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A2';
+EXEC sp_TaoDiemDanhMacDinh @MaLop = '5A3';
+PRINT N'Đang khởi tạo kết quả học tập mặc định cho 300 học sinh...';
 EXEC sp_TaoKetQuaHocTapMacDinh;
 GO
 
--- Cập nhật điểm mẫu (CHO NHIỀU HỌC SINH)
-UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS001' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 7.0 WHERE MaHS = 'HS001' AND MaMon = 'VAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS001' AND MaMon = 'ANH' AND Loai = 'CuoiKi1';
-UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS001' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
-UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS001' AND MaMon = 'TIN' AND Loai = 'GiuaKi1';
-
-UPDATE KetQuaHocTap SET Diem = 6.5 WHERE MaHS = 'HS002' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 5.0 WHERE MaHS = 'HS002' AND MaMon = 'VAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 4.0 WHERE MaHS = 'HS002' AND MaMon = 'ANH' AND Loai = 'CuoiKi1';
-UPDATE KetQuaHocTap SET Diem = 2.0 WHERE MaHS = 'HS002' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
-
-UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS003' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 10.0 WHERE MaHS = 'HS003' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
-
-UPDATE KetQuaHocTap SET Diem = 4.5 WHERE MaHS = 'HS006' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS006' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
-UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS006' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
-
-UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS007' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS007' AND MaMon = 'VAN' AND Loai = 'CuoiKi1';
-
-UPDATE KetQuaHocTap SET Diem = 7.0 WHERE MaHS = 'HS011' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 6.5 WHERE MaHS = 'HS011' AND MaMon = 'ANH' AND Loai = 'GiuaKi1';
-UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS012' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+-- Cập nhật điểm mẫu
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS241' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 7.0 WHERE MaHS = 'HS241' AND MaMon = 'TV' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'ANH' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS242' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'TIN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS001' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS001' AND MaMon = 'TV' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 7.5 WHERE MaHS = 'HS061' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS121' AND MaMon = 'TIN' AND Loai = 'GiuaKi1';
 GO
 
 --================================================================
@@ -437,16 +898,20 @@ GO
 CREATE TYPE ut_TKBImport AS TABLE(
     Ngay DATE,
     Tiet INT,
-    TenMon NVARCHAR(50),
+    TenMon NVARCHAR(100),
     TenLop NVARCHAR(50),
     GhiChu NVARCHAR(200) NULL,
     MauSac VARCHAR(20) NULL
 );
 GO
+CREATE TYPE ut_MaMonList AS TABLE(
+    MaMon VARCHAR(10) PRIMARY KEY
+);
+GO
 PRINT 'ĐÃ TẠO CÁC TABLE TYPES.';
-
+GO
 --================================================================
--- BƯỚC 5: TẠO TẤT CẢ CÁC STORED PROCEDURE ĐÃ FIX
+-- BƯỚC 5: TẠO TẤT CẢ CÁC STORED PROCEDURE
 --================================================================
 go
 -- #region Đăng nhập
@@ -524,22 +989,10 @@ CREATE PROCEDURE sp_GetHocSinhByLop
     @malop VARCHAR(10)
 AS
 BEGIN
-    SELECT MaHS, HoTen, GioiTinh, NgaySinh, DiaChi, DanToc, SDTPhuHuynh 
-    FROM HocSinh 
-    WHERE MaLop = @malop 
-    ORDER BY HoTen;
-END;
-ALTER PROCEDURE sp_GetHocSinhByLop
-    @malop VARCHAR(10)
-AS
-BEGIN
     SET NOCOUNT ON;
     
     SELECT 
-        -- Tự động tạo cột STT, sắp xếp theo Họ Tên
         ROW_NUMBER() OVER (ORDER BY HoTen) AS STT, 
-        
-        -- Các cột cũ
         MaHS, 
         HoTen, 
         GioiTinh, 
@@ -549,9 +1002,8 @@ BEGIN
         SDTPhuHuynh 
     FROM HocSinh 
     WHERE MaLop = @malop 
-    ORDER BY HoTen; -- Vẫn giữ ORDER BY ở cuối để đảm bảo thứ tự
+    ORDER BY HoTen;
 END;
-GO
 GO
 CREATE PROCEDURE sp_GetHocSinhProfile
     @maHS VARCHAR(10)
@@ -663,38 +1115,126 @@ GO
 -- #endregion
 
 -- #region Kết quả học tập
-CREATE PROCEDURE sp_InsertKetQuaHocTap
+
+create PROCEDURE sp_InsertKetQuaHocTap
     @MaHS VARCHAR(10),
     @MaMon VARCHAR(10),
     @Diem FLOAT,
     @NhanXet NVARCHAR(200)
 AS
 BEGIN
-    INSERT INTO KetQuaHocTap(MaKQ, MaMon, MaHS, NgayNhap, Diem, NhanXet) 
-    VALUES(LEFT(NEWID(), 8), @MaMon, @MaHS, GETDATE(), @Diem, @NhanXet);
+    INSERT INTO KetQuaHocTap(MaKQ, MaMon, MaHS, NgayNhap, Diem, NhanXet, Loai) 
+    VALUES(LEFT(NEWID(), 8), @MaMon, @MaHS, GETDATE(), @Diem, @NhanXet, N'GiuaKi1');
 END;
 GO
-CREATE PROCEDURE sp_UpsertKetQuaHocTap
-    @MaHS VARCHAR(10),
-    @MaMon VARCHAR(10),
-    @Loai NVARCHAR(20),
-    @Diem FLOAT
+
+ALTER PROCEDURE sp_UpsertKetQuaHocTap
+    @MaHS VARCHAR(30),
+    @MaMon VARCHAR(20),
+    @Loai VARCHAR(30),
+    @Diem FLOAT = NULL,
+    @NhanXet NVARCHAR(200) = NULL, -- ĐÃ THÊM
+    @GhiChu NVARCHAR(200) = NULL   -- ĐÃ THÊM
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF EXISTS (SELECT 1 FROM KetQuaHocTap WHERE MaHS=@MaHS AND MaMon=@MaMon AND Loai=@Loai)
+
+    -- BƯỚC 1A: TÌM KHỐI CỦA HỌC SINH
+    DECLARE @KhoiCuaHS NVARCHAR(20);
+    SELECT @KhoiCuaHS = lh.Khoi 
+    FROM HocSinh hs 
+    JOIN LopHoc lh ON hs.MaLop = lh.MaLop 
+    WHERE hs.MaHS = @MaHS;
+
+    IF @KhoiCuaHS IS NULL
     BEGIN
-        UPDATE KetQuaHocTap 
-        SET Diem=@Diem 
-        WHERE MaHS=@MaHS AND MaMon=@MaMon AND Loai=@Loai;
+        RAISERROR (N'Lỗi: Không tìm thấy học sinh [%s] hoặc học sinh chưa được xếp lớp.', 16, 1, @MaHS);
+        RETURN;
     END
-    ELSE
+
+    -- BƯỚC 1B: KIỂM TRA THỜI HẠN NHẬP ĐIỂM (Chỉ kiểm tra nếu @Diem có giá trị)
+    IF @Diem IS NOT NULL
     BEGIN
-        INSERT INTO KetQuaHocTap(MaKQ, MaHS, MaMon, Loai, Diem) 
-        VALUES(LEFT(NEWID(), 8), @MaHS, @MaMon, @Loai, @Diem);
-    END
-END;
+        DECLARE @DaKhoa BIT = 0;
+        DECLARE @TenCotDiem NVARCHAR(100);
+        DECLARE @HomNay DATE = CAST(GETDATE() AS DATE); 
+        DECLARE @HocKyCuaLoaiDiem INT;
+
+        BEGIN TRY
+            SELECT 
+                @TenCotDiem = ISNULL(TenHienThi, @Loai),
+                @HocKyCuaLoaiDiem = HocKy,
+                @DaKhoa = CASE 
+                    WHEN KhoaThuCong = 1 THEN 1 
+                    WHEN @HomNay > CAST(NgayKhoaDiem AS DATE) THEN 1 
+                    WHEN @HomNay < CAST(NgayMoDiem AS DATE) THEN 1  
+                    ELSE 0
+                END
+            FROM 
+                ThoiHanDiem
+            WHERE 
+                MaCotDiem = @Loai
+                AND Khoi = @KhoiCuaHS;
+
+            IF @TenCotDiem IS NULL
+            BEGIN
+                RAISERROR (N'Lỗi: Cột điểm [%s] cho khối [%s] không được định nghĩa trong Bảng Thời Hạn Điểm. Vui lòng liên hệ Admin.', 
+                           16, 1, @Loai, @KhoiCuaHS);
+                RETURN;
+            END
+
+            IF @DaKhoa = 1
+            BEGIN
+                RAISERROR (N'Lỗi: Cột điểm [%s] (Khối %s) đã bị khóa hoặc chưa đến hạn nhập điểm. Không thể lưu.', 
+                           16, 1, @TenCotDiem, @KhoiCuaHS);
+                RETURN;
+            END
+        END TRY
+        BEGIN CATCH
+            DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+            RAISERROR (@ErrorMessage, 16, 1);
+            RETURN;
+        END CATCH
+    END -- Hết kiểm tra khóa điểm
+
+    -- BƯỚC 2: THỰC HIỆN UPSERT
+    BEGIN TRY
+        IF EXISTS (SELECT 1 
+                   FROM KetQuaHocTap 
+                   WHERE MaHS = @MaHS 
+                     AND MaMon = @MaMon 
+                     AND Loai = @Loai)
+        BEGIN
+            UPDATE KetQuaHocTap
+            SET 
+                -- Cập nhật có điều kiện: chỉ cập nhật nếu giá trị được truyền vào KHÔNG NULL
+                Diem = CASE WHEN @Diem IS NOT NULL THEN @Diem ELSE Diem END,
+                NhanXet = CASE WHEN @NhanXet IS NOT NULL THEN @NhanXet ELSE NhanXet END,
+                GhiChu = CASE WHEN @GhiChu IS NOT NULL THEN @GhiChu ELSE GhiChu END,
+                NgayNhap = GETDATE()
+            WHERE 
+                MaHS = @MaHS 
+                AND MaMon = @MaMon 
+                AND Loai = @Loai;
+        END
+        ELSE
+        BEGIN
+            -- Chỉ chèn nếu có ít nhất 1 giá trị
+            IF @Diem IS NOT NULL OR @NhanXet IS NOT NULL OR @GhiChu IS NOT NULL
+            BEGIN
+                INSERT INTO KetQuaHocTap (MaKQ, MaHS, MaMon, Loai, Diem, NhanXet, GhiChu, NgayNhap)
+                VALUES (LEFT(NEWID(), 8), @MaHS, @MaMon, @Loai, @Diem, @NhanXet, @GhiChu, GETDATE());
+            END
+        END
+    END TRY
+    BEGIN CATCH
+        DECLARE @UpsertErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        RAISERROR (N'Lỗi khi lưu điểm: %s', 16, 1, @UpsertErrorMessage);
+        RETURN;
+    END CATCH
+END
 GO
+
 CREATE PROCEDURE sp_GetKetQuaHocTapByLop
     @malop VARCHAR(10)
 AS
@@ -713,6 +1253,23 @@ CREATE PROCEDURE sp_GetBangDiemPivot
     @maMon VARCHAR(10)
 AS
 BEGIN
+    DECLARE @khoi NVARCHAR(20);
+    SELECT @khoi = Khoi FROM LopHoc WHERE MaLop = @malop;
+
+    DECLARE @Thang1Loai NVARCHAR(20), @Thang2Loai NVARCHAR(20), @Thang3Loai NVARCHAR(20), @GiuaKiLoai NVARCHAR(20), @CuoiKiLoai NVARCHAR(20);
+
+    SELECT @Thang1Loai = MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND HocKy = @ki AND MaCotDiem LIKE 'Thang1%';
+    SELECT @Thang2Loai = MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND HocKy = @ki AND MaCotDiem LIKE 'Thang2%';
+    SELECT @Thang3Loai = MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND HocKy = @ki AND MaCotDiem LIKE 'Thang3%';
+    SELECT @GiuaKiLoai = MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND HocKy = @ki AND MaCotDiem LIKE 'GiuaKi%';
+    SELECT @CuoiKiLoai = MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND HocKy = @ki AND MaCotDiem LIKE 'CuoiKi%';
+
+    SET @Thang1Loai = ISNULL(@Thang1Loai, 'Thang1_Ki' + CAST(@ki AS VARCHAR));
+    SET @Thang2Loai = ISNULL(@Thang2Loai, 'Thang2_Ki' + CAST(@ki AS VARCHAR));
+    SET @Thang3Loai = ISNULL(@Thang3Loai, 'Thang3_Ki' + CAST(@ki AS VARCHAR));
+    SET @GiuaKiLoai = ISNULL(@GiuaKiLoai, 'GiuaKi' + CAST(@ki AS VARCHAR));
+    SET @CuoiKiLoai = ISNULL(@CuoiKiLoai, 'CuoiKi' + CAST(@ki AS VARCHAR));
+    
     DECLARE @loaiFilter NVARCHAR(10) = N'%Ki' + CAST(@ki AS VARCHAR) + N'%';
     DECLARE @sql NVARCHAR(MAX);
 
@@ -721,11 +1278,11 @@ BEGIN
         hs.MaHS, 
         hs.HoTen,
         lh.TenLop,
-        MAX(CASE WHEN kq.Loai = ''Thang1_Ki' + CAST(@ki AS VARCHAR) + ''' THEN kq.Diem END) AS Thang1,
-        MAX(CASE WHEN kq.Loai = ''Thang2_Ki' + CAST(@ki AS VARCHAR) + ''' THEN kq.Diem END) AS Thang2,
-        MAX(CASE WHEN kq.Loai = ''Thang3_Ki' + CAST(@ki AS VARCHAR) + ''' THEN kq.Diem END) AS Thang3,
-        MAX(CASE WHEN kq.Loai = ''GiuaKi' + CAST(@ki AS VARCHAR) + ''' THEN kq.Diem END) AS GiuaKi,
-        MAX(CASE WHEN kq.Loai = ''CuoiKi' + CAST(@ki AS VARCHAR) + ''' THEN kq.Diem END) AS CuoiKi,
+        MAX(CASE WHEN kq.Loai = @Thang1Loai THEN kq.Diem END) AS Thang1,
+        MAX(CASE WHEN kq.Loai = @Thang2Loai THEN kq.Diem END) AS Thang2,
+        MAX(CASE WHEN kq.Loai = @Thang3Loai THEN kq.Diem END) AS Thang3,
+        MAX(CASE WHEN kq.Loai = @GiuaKiLoai THEN kq.Diem END) AS GiuaKi,
+        MAX(CASE WHEN kq.Loai = @CuoiKiLoai THEN kq.Diem END) AS CuoiKi,
         MAX(CASE WHEN kq.Loai LIKE @loaiFilter THEN kq.NhanXet END) AS NhanXet,
         MAX(CASE WHEN kq.Loai LIKE @loaiFilter THEN kq.GhiChu END) AS GhiChu
     FROM HocSinh hs
@@ -736,8 +1293,8 @@ BEGIN
     ORDER BY hs.HoTen';
 
     EXEC sp_executesql @sql, 
-        N'@malop VARCHAR(10), @maMon VARCHAR(10), @loaiFilter NVARCHAR(10)', 
-        @malop, @maMon, @loaiFilter;
+        N'@malop VARCHAR(10), @maMon VARCHAR(10), @loaiFilter NVARCHAR(10), @Thang1Loai NVARCHAR(20), @Thang2Loai NVARCHAR(20), @Thang3Loai NVARCHAR(20), @GiuaKiLoai NVARCHAR(20), @CuoiKiLoai NVARCHAR(20)', 
+        @malop, @maMon, @loaiFilter, @Thang1Loai, @Thang2Loai, @Thang3Loai, @GiuaKiLoai, @CuoiKiLoai;
 END;
 GO
 -- #endregion
@@ -766,12 +1323,12 @@ BEGIN
 
     IF @currentPass IS NULL OR @currentPass != @oldPass
     BEGIN
-        SELECT 0; -- Thất bại (mật khẩu cũ sai)
+        SELECT 0;
         RETURN;
     END
 
     UPDATE GiaoVien SET Password=@newPass WHERE Username=@u OR Ten =@u;
-    SELECT 1; -- Thành công
+    SELECT 1;
 END;
 GO
 CREATE PROCEDURE sp_GetAdminProfile
@@ -800,12 +1357,12 @@ BEGIN
 
     IF @currentPass IS NULL OR @currentPass != @oldPass
     BEGIN
-        SELECT 0; -- Thất bại
+        SELECT 0;
         RETURN;
     END
 
     UPDATE Admin SET Password=@newPass WHERE Username=@u;
-    SELECT 1; -- Thành công
+    SELECT 1;
 END;
 GO
 -- #endregion
@@ -1123,19 +1680,18 @@ GO
 -- #endregion
 
 -- #region Báo cáo
-CREATE PROCEDURE sp_GetLopByGiaoVien -- ĐÃ FIX (Dùng bảng PCGD mới)
+CREATE PROCEDURE sp_GetLopByGiaoVien
     @maGV VARCHAR(10)
 AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Lấy các lớp GV này được phân công giảng dạy (từ bảng mới)
     SELECT DISTINCT l.MaLop, l.TenLop 
     FROM LopHoc l
     JOIN PhanCongGiangDay pc ON l.MaLop = pc.MaLop
     WHERE pc.MaGV = @maGV
     
-    UNION -- Cộng với các lớp GV này làm chủ nhiệm
+    UNION 
     
     SELECT MaLop, TenLop 
     FROM LopHoc
@@ -1156,16 +1712,28 @@ BEGIN
     DECLARE @loaiFilter NVARCHAR(10);
     DECLARE @monCount INT;
 
-    SELECT @monHocCols = STUFF((SELECT DISTINCT ',' + QUOTENAME(TenMon) 
-                                FROM MonHoc ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
-    
-    SELECT @monHocColsSelect = STUFF((SELECT DISTINCT ',ROUND(ISNULL(' + QUOTENAME(TenMon) + ', 0), 2) AS ' + QUOTENAME(TenMon)
-                                    FROM MonHoc ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
-    
-    SELECT @tongMon = STUFF((SELECT DISTINCT ' + ISNULL(' + QUOTENAME(TenMon) + ', 0)'
-                            FROM MonHoc ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,3,'');
+    DECLARE @khoi NVARCHAR(20);
+    SELECT @khoi = Khoi FROM LopHoc WHERE MaLop = @maLop;
 
-    SELECT @monCount = COUNT(*) FROM MonHoc;
+    SELECT @monHocCols = STUFF((SELECT DISTINCT ',' + QUOTENAME(mh.TenMon) 
+                                FROM PhanCongGiangDay pcg
+                                JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+                                WHERE pcg.MaLop = @maLop
+                                ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
+    
+    SELECT @monHocColsSelect = STUFF((SELECT DISTINCT ',ROUND(ISNULL(' + QUOTENAME(mh.TenMon) + ', 0), 2) AS ' + QUOTENAME(mh.TenMon)
+                                    FROM PhanCongGiangDay pcg
+                                    JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+                                    WHERE pcg.MaLop = @maLop
+                                    ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
+    
+    SELECT @tongMon = STUFF((SELECT DISTINCT ' + ISNULL(' + QUOTENAME(mh.TenMon) + ', 0)'
+                            FROM PhanCongGiangDay pcg
+                            JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+                            WHERE pcg.MaLop = @maLop
+                            ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,3,'');
+
+    SELECT @monCount = COUNT(DISTINCT MaMon) FROM PhanCongGiangDay WHERE MaLop = @maLop;
     
     IF @monCount = 0 OR @monHocCols IS NULL
     BEGIN
@@ -1173,10 +1741,10 @@ BEGIN
         RETURN;
     END;
     
-    SET @loaiFilter = CASE WHEN @hocKy = 3 THEN N'%Ki%' ELSE N'%Ki' + CAST(@hocKy AS VARCHAR) + N'%' END;
+    SET @loaiFilter = CASE WHEN @hocKy = 3 THEN N'%' ELSE CAST(@hocKy AS NVARCHAR) END;
 
     SET @sql = N'
-    WITH DiemTB AS (
+    ;WITH DiemTB AS (
         SELECT 
             hs.MaHS,
             hs.HoTen,
@@ -1185,11 +1753,16 @@ BEGIN
             AVG(kq.Diem) AS DiemTB
         FROM HocSinh hs
         INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
-        CROSS JOIN MonHoc mh
+        INNER JOIN PhanCongGiangDay pcg ON hs.MaLop = pcg.MaLop
+        INNER JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
         LEFT JOIN KetQuaHocTap kq 
             ON hs.MaHS = kq.MaHS 
             AND mh.MaMon = kq.MaMon 
-            AND kq.Loai LIKE @loaiFilter
+            AND kq.Loai IN (
+                SELECT MaCotDiem 
+                FROM ThoiHanDiem 
+                WHERE Khoi = @khoi AND CAST(HocKy AS NVARCHAR) LIKE @loaiFilter
+            )
         WHERE hs.MaLop = @maLop
         GROUP BY hs.MaHS, hs.HoTen, lh.TenLop, mh.TenMon
     ),
@@ -1207,7 +1780,7 @@ BEGIN
     FROM PivotData
     ORDER BY HoTen;';
 
-    EXEC sp_executesql @sql, N'@maLop VARCHAR(10), @loaiFilter NVARCHAR(10)', @maLop, @loaiFilter;
+    EXEC sp_executesql @sql, N'@maLop VARCHAR(10), @khoi NVARCHAR(20), @loaiFilter NVARCHAR(10)', @maLop, @khoi, @loaiFilter;
 END;
 GO
 CREATE PROCEDURE sp_GetHoSoHocSinh
@@ -1221,12 +1794,16 @@ BEGIN
     ORDER BY HoTen;
 END;
 GO
-CREATE PROCEDURE sp_GetThongKeKhoi
+alter PROCEDURE sp_GetThongKeKhoi
     @khoi NVARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @khoiFilter NVARCHAR(25) = @khoi;
+
+    DECLARE @loaiList TABLE (Loai NVARCHAR(20));
+    INSERT INTO @loaiList (Loai)
+    SELECT MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoiFilter;
 
     WITH StudentCounts AS (
         SELECT
@@ -1247,7 +1824,9 @@ BEGIN
         FROM LopHoc l
         LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
         LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
-        WHERE l.Khoi = @khoiFilter AND kq.Diem IS NOT NULL
+        WHERE l.Khoi = @khoiFilter 
+          AND kq.Diem IS NOT NULL
+          AND kq.Loai IN (SELECT Loai FROM @loaiList)
         GROUP BY l.MaLop
     )
     SELECT
@@ -1262,7 +1841,22 @@ BEGIN
 END;
 GO
 -- #endregion
-
+go
+CREATE PROCEDURE sp_UpdateHocSinhLop
+    @MaHS VARCHAR(10),
+    @MaLopMoi VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Ghi chú: Nếu @MaLopMoi là NULL, học sinh sẽ bị "ra khỏi trường" (không thuộc lớp nào)
+    -- Nếu bạn muốn ngăn điều này, hãy thêm kiểm tra IF @MaLopMoi IS NOT NULL
+    
+    UPDATE HocSinh
+    SET MaLop = @MaLopMoi
+    WHERE MaHS = @MaHS;
+END;
+GO
 -- #region Hỗ trợ Giảng dạy
 CREATE PROCEDURE sp_AddGhiChuTKB
     @MaGV VARCHAR(10),
@@ -1299,7 +1893,14 @@ CREATE PROCEDURE sp_AddGhiChuChoHocSinh
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Loai NVARCHAR(20) = N'CuoiKi2'; 
+    
+    DECLARE @Loai NVARCHAR(20);
+    SELECT @Loai = thd.MaCotDiem
+    FROM ThoiHanDiem thd
+    JOIN HocSinh hs ON thd.Khoi = (SELECT Khoi FROM LopHoc WHERE MaLop = hs.MaLop)
+    WHERE hs.MaHS = @MaHS AND thd.MaCotDiem LIKE 'CuoiKi2%';
+
+    IF @Loai IS NULL SET @Loai = 'CuoiKi2';
 
     IF EXISTS (SELECT 1 FROM KetQuaHocTap WHERE MaHS = @MaHS AND MaMon = @MaMon AND Loai = @Loai)
     BEGIN
@@ -1342,7 +1943,7 @@ CREATE PROCEDURE sp_GetScoresForAnalysis
     @hocKy INT
 AS
 BEGIN
-    DECLARE @kyFilter NVARCHAR(10) = N'%Ki' + CAST(@hocKy AS VARCHAR);
+    DECLARE @kyFilter NVARCHAR(10) = N'%' + CAST(@hocKy AS VARCHAR);
     DECLARE @sql NVARCHAR(MAX);
 
     SET @sql = N'
@@ -1353,8 +1954,9 @@ BEGIN
     JOIN HocSinh hs ON kq.MaHS = hs.MaHS
     JOIN LopHoc lh ON hs.MaLop = lh.MaLop
     JOIN MonHoc mh ON kq.MaMon = mh.MaMon
+    JOIN ThoiHanDiem thd ON kq.Loai = thd.MaCotDiem AND lh.Khoi = thd.Khoi
     WHERE kq.Diem IS NOT NULL
-    AND kq.Loai LIKE @kyFilter';
+    AND thd.HocKy = @hocKy';
 
     IF @phamVi = 'LopGV'
     BEGIN
@@ -1371,8 +1973,8 @@ BEGIN
     END
 
     EXEC sp_executesql @sql, 
-        N'@kyFilter NVARCHAR(10), @chiTiet NVARCHAR(50), @maMon VARCHAR(10)', 
-        @kyFilter, @chiTiet, @maMon;
+        N'@hocKy INT, @chiTiet NVARCHAR(50), @maMon VARCHAR(10)', 
+        @hocKy, @chiTiet, @maMon;
 END;
 GO
 CREATE PROCEDURE sp_CreateTeacherRequest
@@ -1394,7 +1996,7 @@ BEGIN
     DECLARE @newId INT;
     SELECT @newId = ISNULL(MAX(CAST(SUBSTRING(MaGV, 3, LEN(MaGV)) AS INT)), 0) + 1 FROM GiaoVien;
     
-    DECLARE @newMaGV VARCHAR(10) = 'GV' + RIGHT('000' + CAST(@newId AS VARCHAR), 3);
+    DECLARE @newMaGV VARCHAR(10) = 'GV' + RIGHT('00' + CAST(@newId AS VARCHAR), 3);
 
     INSERT INTO GiaoVien (MaGV, Ten, Username, Password, Email, SDT, MaAdmin, TrangThai) 
     VALUES (@newMaGV, @Ten, @Username, @Password, @Email, @SDT, 'AD001', N'Chưa xác nhận');
@@ -1445,33 +2047,37 @@ BEGIN
     DECLARE @CurrentDate DATE = GETDATE();
     DECLARE @CurrentMonth INT = MONTH(@CurrentDate);
     DECLARE @CurrentYear INT = YEAR(@CurrentDate);
-    DECLARE @NamHoc INT;
+    DECLARE @NamHocStr VARCHAR(10);
+    
+    SELECT @NamHocStr = NamHoc FROM LopHoc WHERE MaLop = @maLop;
+    
+    DECLARE @NamHocStartYear INT;
+    SET @NamHocStartYear = CAST(LEFT(@NamHocStr, 4) AS INT) - 1;
 
-    IF @CurrentMonth >= 8 
+    IF @NamHocStr IS NULL
     BEGIN
-        SET @NamHoc = @CurrentYear + 1;
-    END
-    ELSE 
-    BEGIN
-        SET @NamHoc = @CurrentYear;
+        IF @CurrentMonth >= 8 
+            SET @NamHocStartYear = @CurrentYear;
+        ELSE 
+            SET @NamHocStartYear = @CurrentYear - 1;
     END;
     
     DECLARE @StartDate DATE, @EndDate DATE;
 
     IF @hocKy = 1 
     BEGIN
-        SET @StartDate = DATEFROMPARTS(@NamHoc - 1, 8, 1);
-        SET @EndDate = DATEFROMPARTS(@NamHoc - 1, 12, 31);
+        SET @StartDate = DATEFROMPARTS(@NamHocStartYear, 8, 1);
+        SET @EndDate = DATEFROMPARTS(@NamHocStartYear, 12, 31);
     END
     ELSE IF @hocKy = 2 
     BEGIN
-        SET @StartDate = DATEFROMPARTS(@NamHoc, 1, 1);
-        SET @EndDate = DATEFROMPARTS(@NamHoc, 5, 31);
+        SET @StartDate = DATEFROMPARTS(@NamHocStartYear + 1, 1, 1);
+        SET @EndDate = DATEFROMPARTS(@NamHocStartYear + 1, 5, 31);
     END
-    ELSE 
+    ELSE
     BEGIN
-        SET @StartDate = DATEFROMPARTS(@NamHoc - 1, 8, 1);
-        SET @EndDate = DATEFROMPARTS(@NamHoc, 5, 31);
+        SET @StartDate = DATEFROMPARTS(@NamHocStartYear, 8, 1);
+        SET @EndDate = DATEFROMPARTS(@NamHocStartYear + 1, 5, 31);
     END;
 
     SELECT 
@@ -1496,7 +2102,6 @@ CREATE PROCEDURE sp_GetMonHocByGiaoVienAndLop
     @maLop VARCHAR(10)
 AS
 BEGIN
-    -- Lấy các môn GV được phân công DẠY LỚP ĐÓ
     SELECT DISTINCT m.MaMon, m.TenMon 
     FROM PhanCongGiangDay pc
     JOIN MonHoc m ON pc.MaMon = m.MaMon
@@ -1534,13 +2139,14 @@ BEGIN
     SELECT 
         l.MaLop, l.TenLop, l.Khoi, l.NamHoc, 
         ISNULL(gv.Ten, N'Chưa có') AS TenGVCN,
+        l.MaGVCN,
         (SELECT COUNT(*) FROM HocSinh WHERE MaLop = l.MaLop) AS SiSo
     FROM LopHoc l
     LEFT JOIN GiaoVien gv ON l.MaGVCN = gv.MaGV
     WHERE l.MaLop = @MaLop;
 END;
 GO
-CREATE PROCEDURE sp_GetPhanCongGiangDayByLop -- ĐÃ FIX (Dùng bảng PCGD mới)
+CREATE PROCEDURE sp_GetPhanCongGiangDayByLop
     @MaLop VARCHAR(10)
 AS
 BEGIN
@@ -1557,7 +2163,7 @@ BEGIN
     ORDER BY m.TenMon;
 END;
 GO
-CREATE PROCEDURE sp_UpdatePhanCong -- ĐÃ FIX (Dùng bảng PCGD mới)
+CREATE PROCEDURE sp_UpdatePhanCong
     @MaLop VARCHAR(10),
     @MaMon VARCHAR(10),
     @NewMaGV VARCHAR(10)
@@ -1574,7 +2180,7 @@ BEGIN
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM GiaoVien_MonHoc WHERE MaGV = @NewMaGV AND MaMon = @MaMon)
             BEGIN
-                DECLARE @TenGV NVARCHAR(100), @TenMon NVARCHAR(50);
+                DECLARE @TenGV NVARCHAR(100), @TenMon NVARCHAR(100);
                 SELECT @TenGV = Ten FROM GiaoVien WHERE MaGV = @NewMaGV;
                 SELECT @TenMon = TenMon FROM MonHoc WHERE MaMon = @MaMon;
                 
@@ -1720,5 +2326,512 @@ BEGIN
 END;
 GO
 -- #endregion
+
+-- SP MỚI (QUẢN LÝ GIÁO VIÊN)
+CREATE PROCEDURE sp_GetMonHocByGiaoVien
+    @MaGV VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT MaMon FROM GiaoVien_MonHoc WHERE MaGV = @MaGV;
+END;
+GO
+
+CREATE PROCEDURE sp_UpdateGiaoVien_MonHoc
+    @MaGV VARCHAR(10),
+    @MonHocList ut_MaMonList READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        DELETE FROM GiaoVien_MonHoc WHERE MaGV = @MaGV;
+
+        INSERT INTO GiaoVien_MonHoc (MaGV, MaMon)
+        SELECT @MaGV, MaMon FROM @MonHocList
+        WHERE MaMon IS NOT NULL AND MaMon != '';
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        ;THROW; 
+    END CATCH
+END;
+GO
+
+-- SP MỚI (QUẢN LÝ TRƯỜNG HỌC)
+CREATE PROCEDURE sp_InsertMonHoc
+    @TenMon NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @NewMaMon VARCHAR(10);
+    SET @NewMaMon = UPPER(SUBSTRING(REPLACE(REPLACE(REPLACE(@TenMon, ' ', ''), '(', ''), ')', ''), 1, 10));
+
+    IF EXISTS (SELECT 1 FROM MonHoc WHERE MaMon = @NewMaMon OR TenMon = @TenMon)
+    BEGIN
+        RAISERROR(N'Mã môn hoặc Tên môn này đã tồn tại.', 16, 1);
+        RETURN;
+    END
+    INSERT INTO MonHoc (MaMon, TenMon) VALUES (@NewMaMon, @TenMon);
+END;
+GO
+
+CREATE PROCEDURE sp_UpdateMonHoc
+    @MaMon VARCHAR(10),
+    @TenMon NVARCHAR(100)
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM MonHoc WHERE TenMon = @TenMon AND MaMon != @MaMon)
+    BEGIN
+        RAISERROR(N'Tên môn này đã tồn tại ở một mã môn khác.', 16, 1);
+        RETURN;
+    END
+    UPDATE MonHoc SET TenMon = @TenMon WHERE MaMon = @MaMon;
+END;
+GO
+
+CREATE PROCEDURE sp_DeleteMonHoc
+    @MaMon VARCHAR(10)
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM GiaoVien_MonHoc WHERE MaMon = @MaMon) OR
+       EXISTS (SELECT 1 FROM PhanCongGiangDay WHERE MaMon = @MaMon) OR
+       EXISTS (SELECT 1 FROM KetQuaHocTap WHERE MaMon = @MaMon) OR
+       EXISTS (SELECT 1 FROM ThoiKhoaBieu WHERE MaMon = @MaMon)
+    BEGIN
+        RAISERROR(N'Không thể xóa. Môn học này đang được sử dụng trong bảng phân công, kết quả học tập hoặc TKB.', 16, 1);
+        RETURN;
+    END
+    DELETE FROM MonHoc WHERE MaMon = @MaMon;
+END;
+GO
+
+CREATE PROCEDURE sp_GetThoiHanDiem
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        MaCotDiem, 
+        TenHienThi, 
+        Khoi,
+        HocKy,
+        NgayMoDiem, 
+        NgayKhoaDiem, 
+        KhoaThuCong,
+        CASE 
+            WHEN (GETDATE() NOT BETWEEN NgayMoDiem AND NgayKhoaDiem) OR (KhoaThuCong = 1) THEN 1 
+            ELSE 0 
+        END AS DaKhoa
+    FROM ThoiHanDiem
+    ORDER BY Khoi, HocKy, NgayMoDiem;
+END;
+GO
+
+CREATE PROCEDURE sp_UpdateThoiHanDiem
+    @MaCotDiem VARCHAR(20),
+    @Khoi NVARCHAR(20),
+    @HocKy INT,
+    @NgayMoDiem DATE,
+    @NgayKhoaDiem DATE,
+    @KhoaThuCong BIT
+AS
+BEGIN
+    UPDATE ThoiHanDiem
+    SET 
+        NgayMoDiem = @NgayMoDiem,
+        NgayKhoaDiem = @NgayKhoaDiem,
+        KhoaThuCong = @KhoaThuCong
+    WHERE MaCotDiem = @MaCotDiem
+      AND Khoi = @Khoi
+      AND HocKy = @HocKy;
+END;
+GO
+
+CREATE PROCEDURE sp_ProcessStudentPromotion
+    @MaLopCu VARCHAR(10),
+    @MaLopMoi_LenLop VARCHAR(10),
+    @MaLopMoi_OLaiLop VARCHAR(10),
+    @IsLop5_TotNghiep BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @KhoiCu NVARCHAR(20);
+    SELECT @KhoiCu = Khoi FROM LopHoc WHERE MaLop = @MaLopCu;
+    
+    CREATE TABLE #TempDiemTB (
+        MaHS VARCHAR(10) PRIMARY KEY,
+        DTB_CaNam FLOAT
+    );
+
+    DECLARE @monHocCols NVARCHAR(MAX), 
+            @tongMon NVARCHAR(MAX),
+            @sql NVARCHAR(MAX);
+    DECLARE @monCount INT;
+
+    SELECT @monHocCols = STUFF((SELECT DISTINCT ',' + QUOTENAME(mh.TenMon) 
+                                FROM PhanCongGiangDay pcg
+                                JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+                                WHERE pcg.MaLop = @MaLopCu
+                                FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
+    SELECT @tongMon = STUFF((SELECT DISTINCT ' + ISNULL(' + QUOTENAME(mh.TenMon) + ', 0)'
+                            FROM PhanCongGiangDay pcg
+                            JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+                            WHERE pcg.MaLop = @MaLopCu
+                            FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,3,'');
+    SELECT @monCount = COUNT(DISTINCT MaMon) FROM PhanCongGiangDay WHERE MaLop = @MaLopCu;
+
+    IF @monCount = 0 
+    BEGIN
+        PRINT N'Lớp cũ không có môn học nào được phân công. Không thể tính điểm.';
+        SELECT 0 AS SoHSLenLop, 0 AS SoHSOLaiLop, 0 AS SoHSTotNghiep;
+        IF OBJECT_ID('tempdb..#TempDiemTB') IS NOT NULL DROP TABLE #TempDiemTB;
+        RETURN;
+    END; 
+
+    SET @sql = N'
+    ;WITH DiemTB AS (
+        SELECT 
+            hs.MaHS,
+            mh.TenMon,
+            AVG(kq.Diem) AS DiemTB
+        FROM HocSinh hs
+        INNER JOIN PhanCongGiangDay pcg ON hs.MaLop = pcg.MaLop
+        INNER JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+        LEFT JOIN KetQuaHocTap kq 
+            ON hs.MaHS = kq.MaHS 
+            AND mh.MaMon = kq.MaMon 
+            AND kq.Loai IN (
+                SELECT MaCotDiem 
+                FROM ThoiHanDiem 
+                WHERE Khoi = @KhoiCu
+            )
+        WHERE hs.MaLop = @MaLopCu
+        GROUP BY hs.MaHS, mh.TenMon
+    ),
+    PivotData AS (
+        SELECT MaHS, ' + @monHocCols + N'
+        FROM DiemTB
+        PIVOT (AVG(DiemTB) FOR TenMon IN (' + @monHocCols + N')) AS PivotTable
+    )
+    INSERT INTO #TempDiemTB (MaHS, DTB_CaNam)
+    SELECT MaHS, 
+           ROUND((' + @tongMon + N') / NULLIF(' + CAST(@monCount AS VARCHAR) + N', 0), 2)
+    FROM PivotData;';
+
+    EXEC sp_executesql @sql, N'@MaLopCu VARCHAR(10), @KhoiCu NVARCHAR(20)', @MaLopCu, @KhoiCu;
+
+    CREATE TABLE #PhanLoai (MaHS VARCHAR(10), HanhDong INT);
+
+    INSERT INTO #PhanLoai (MaHS, HanhDong)
+    SELECT 
+        hs.MaHS,
+        CASE WHEN ISNULL(td.DTB_CaNam, 0) >= 5.0 THEN 1 ELSE 0 END
+    FROM HocSinh hs
+    LEFT JOIN #TempDiemTB td ON hs.MaHS = td.MaHS
+    WHERE hs.MaLop = @MaLopCu;
+
+    DECLARE @SoHocSinhLenLop INT = 0;
+    DECLARE @SoHocSinhOLaiLop INT = 0;
+    DECLARE @SoHocSinhTotNghiep INT = 0;
+
+    UPDATE HocSinh
+    SET MaLop = @MaLopMoi_OLaiLop
+    WHERE MaHS IN (SELECT MaHS FROM #PhanLoai WHERE HanhDong = 0);
+    SET @SoHocSinhOLaiLop = @@ROWCOUNT;
+
+    IF @IsLop5_TotNghiep = 0
+    BEGIN
+        UPDATE HocSinh
+        SET MaLop = @MaLopMoi_LenLop
+        WHERE MaHS IN (SELECT MaHS FROM #PhanLoai WHERE HanhDong = 1);
+        SET @SoHocSinhLenLop = @@ROWCOUNT;
+    END
+    ELSE
+    BEGIN
+        UPDATE HocSinh
+        SET MaLop = NULL
+        WHERE MaHS IN (SELECT MaHS FROM #PhanLoai WHERE HanhDong = 1);
+        SET @SoHocSinhTotNghiep = @@ROWCOUNT;
+    END
+
+    SELECT @SoHocSinhLenLop AS SoHSLenLop, 
+           @SoHocSinhOLaiLop AS SoHSOLaiLop, 
+           @SoHocSinhTotNghiep AS SoHSTotNghiep;
+
+    DROP TABLE #TempDiemTB;
+    DROP TABLE #PhanLoai;
+END;
+GO
+GO
+PRINT N'Tạo Table Type [ut_MaHSList] để chuyển lớp';
+GO
+-- Tạo một kiểu dữ liệu bảng để truyền danh sách Mã Học Sinh
+CREATE TYPE ut_MaHSList AS TABLE(
+    MaHS VARCHAR(10) PRIMARY KEY
+);
+GO
+PRINT N'Tạo SP mới [sp_UpdateHocSinhLop_Multi]';
+GO
+-- Tạo SP mới để chuyển nhiều học sinh
+CREATE PROCEDURE sp_UpdateHocSinhLop_Multi
+    @MaHSList ut_MaHSList READONLY,
+    @MaLopMoi VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE HocSinh
+    SET MaLop = @MaLopMoi
+    WHERE MaHS IN (SELECT MaHS FROM @MaHSList);
+    
+    -- Trả về số lượng học sinh đã được chuyển
+    SELECT @@ROWCOUNT AS SoHocSinhDaChuyen;
+END;
+GO
+GO
+PRINT N'Tạo SP [sp_Admin_GetBaoCaoChuyenCan]';
+GO
+CREATE PROCEDURE sp_Admin_GetBaoCaoChuyenCan
+    @Khoi NVARCHAR(20) = NULL, -- Ví dụ: 'Khối 1', NULL cho tất cả
+    @MaLop VARCHAR(10) = NULL, -- Ưu tiên hơn Khoi nếu được cung cấp
+    @HocKy INT -- 1: HK1, 2: HK2, 3 (hoặc khác): Cả năm
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @StartDate DATE, @EndDate DATE;
+    DECLARE @NamHocStr VARCHAR(10);
+    DECLARE @NamHocStartYear INT;
+
+    -- Xác định năm học (ưu tiên năm học của lớp nếu có)
+    IF @MaLop IS NOT NULL
+        SELECT @NamHocStr = NamHoc FROM LopHoc WHERE MaLop = @MaLop;
+
+    IF @NamHocStr IS NULL -- Hoặc nếu không có lớp cụ thể, lấy năm học hiện tại
+    BEGIN
+        DECLARE @CurrentMonth INT = MONTH(GETDATE());
+        DECLARE @CurrentYear INT = YEAR(GETDATE());
+        IF @CurrentMonth >= 8 
+            SET @NamHocStartYear = @CurrentYear;
+        ELSE 
+            SET @NamHocStartYear = @CurrentYear - 1;
+    END
+    ELSE
+    BEGIN
+         -- Lấy năm bắt đầu từ chuỗi NamHoc (vd: '2025' -> 2024)
+         SET @NamHocStartYear = CAST(@NamHocStr AS INT) - 1;
+    END;
+
+    -- Xác định ngày bắt đầu và kết thúc dựa trên học kỳ
+    IF @HocKy = 1 
+    BEGIN
+        SET @StartDate = DATEFROMPARTS(@NamHocStartYear, 8, 1); -- Tháng 8 năm bắt đầu
+        SET @EndDate = DATEFROMPARTS(@NamHocStartYear, 12, 31); -- Tháng 12 năm bắt đầu
+    END
+    ELSE IF @HocKy = 2 
+    BEGIN
+        SET @StartDate = DATEFROMPARTS(@NamHocStartYear + 1, 1, 1); -- Tháng 1 năm sau
+        SET @EndDate = DATEFROMPARTS(@NamHocStartYear + 1, 5, 31); -- Tháng 5 năm sau
+    END
+    ELSE -- Cả năm
+    BEGIN
+        SET @StartDate = DATEFROMPARTS(@NamHocStartYear, 8, 1);
+        SET @EndDate = DATEFROMPARTS(@NamHocStartYear + 1, 5, 31);
+    END;
+
+    -- Truy vấn dữ liệu
+    SELECT 
+        hs.MaHS, 
+        hs.HoTen,
+        lh.TenLop, -- Thêm tên lớp cho Admin
+        COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) as SoBuoiCoMat,
+        COUNT(CASE WHEN dd.TrangThai = N'Vắng' THEN 1 END) as SoBuoiVang, -- Vắng không phép
+        COUNT(CASE WHEN dd.TrangThai LIKE N'%Có phép%' THEN 1 END) as SoBuoiVangCoPhep,
+        COUNT(dd.MaDD) as TongSoBuoi,
+        CAST(
+            (COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) * 100.0) / NULLIF(COUNT(dd.MaDD), 0) 
+            AS DECIMAL(5,0)
+        ) as TyLeChuyenCan
+    FROM HocSinh hs
+    INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+    LEFT JOIN DiemDanh dd ON hs.MaHS = dd.MaHS AND CAST(dd.NgayDD AS DATE) BETWEEN @StartDate AND @EndDate
+    WHERE 
+        (@MaLop IS NOT NULL AND hs.MaLop = @MaLop) -- Lọc theo lớp cụ thể
+        OR 
+        (@MaLop IS NULL AND @Khoi IS NOT NULL AND lh.Khoi = @Khoi) -- Lọc theo khối nếu không có lớp
+        OR
+        (@MaLop IS NULL AND @Khoi IS NULL) -- Không lọc gì cả (toàn trường)
+    GROUP BY hs.MaHS, hs.HoTen, lh.TenLop
+    ORDER BY lh.TenLop, hs.HoTen;
+END;
+GO
+GO
+PRINT N'Tạo SP [sp_Admin_GetBangDiemHocKy]';
+GO
+CREATE PROCEDURE sp_Admin_GetBangDiemHocKy
+    @Khoi NVARCHAR(20) = NULL,
+    @MaLop VARCHAR(10) = NULL,
+    @HocKy INT -- 1, 2, hoặc 3 (Cả năm)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @loaiFilter NVARCHAR(20);
+    DECLARE @khoiFilter NVARCHAR(20) = @Khoi; -- Lưu lại để dùng trong CTE
+
+    -- Xác định các loại điểm cần lấy dựa trên học kỳ
+    IF @HocKy = 1 SET @loaiFilter = N'%Ki1';
+    ELSE IF @HocKy = 2 SET @loaiFilter = N'%Ki2';
+    ELSE SET @loaiFilter = N'%Ki%'; -- Lấy cả 2 kỳ
+
+    -- Nếu MaLop được cung cấp, lấy Khoi từ MaLop đó để lọc đúng ThoiHanDiem
+    IF @MaLop IS NOT NULL
+    BEGIN
+        SELECT @khoiFilter = Khoi FROM LopHoc WHERE MaLop = @MaLop;
+    END
+
+    ;WITH RelevantScores AS (
+        SELECT 
+            kq.MaHS,
+            kq.MaMon,
+            kq.Diem
+        FROM KetQuaHocTap kq
+        INNER JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+        INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+        WHERE kq.Diem IS NOT NULL
+          AND kq.Loai IN (SELECT MaCotDiem 
+                          FROM ThoiHanDiem thd
+                          WHERE thd.MaCotDiem LIKE @loaiFilter 
+                            -- Lọc theo khối cụ thể nếu có, nếu không thì lấy tất cả
+                            AND (@khoiFilter IS NULL OR thd.Khoi = @khoiFilter)) 
+          AND (
+                (@MaLop IS NOT NULL AND hs.MaLop = @MaLop)
+                OR (@MaLop IS NULL AND @Khoi IS NOT NULL AND lh.Khoi = @Khoi)
+                OR (@MaLop IS NULL AND @Khoi IS NULL)
+              )
+    ),
+    AvgMon AS (
+        SELECT
+            MaHS,
+            MaMon,
+            AVG(Diem) AS DiemTBMon
+        FROM RelevantScores
+        GROUP BY MaHS, MaMon
+    ),
+    AvgCaNhan AS (
+         SELECT 
+             MaHS,
+             AVG(DiemTBMon) AS DiemTBCaNhan
+         FROM AvgMon
+         GROUP BY MaHS
+    )
+    SELECT 
+        hs.MaHS, 
+        hs.HoTen, 
+        lh.TenLop,
+        ISNULL(acn.DiemTBCaNhan, 0) AS [Trung bình chung] -- Đổi tên cột để khớp C#
+    FROM HocSinh hs
+    INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+    LEFT JOIN AvgCaNhan acn ON hs.MaHS = acn.MaHS
+    WHERE 
+        (@MaLop IS NOT NULL AND hs.MaLop = @MaLop)
+        OR 
+        (@MaLop IS NULL AND @Khoi IS NOT NULL AND lh.Khoi = @Khoi)
+        OR
+        (@MaLop IS NULL AND @Khoi IS NULL)
+    ORDER BY lh.TenLop, hs.HoTen;
+
+END;
+GO
+GO
+PRINT N'Tạo SP [sp_Admin_GetHoSoHocSinh]';
+GO
+CREATE PROCEDURE sp_Admin_GetHoSoHocSinh
+    @Khoi NVARCHAR(20) = NULL,
+    @MaLop VARCHAR(10) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        hs.MaHS, 
+        hs.HoTen, 
+        lh.TenLop, -- Thêm tên lớp
+        hs.GioiTinh, 
+        hs.NgaySinh, 
+        hs.DanToc, 
+        hs.DiaChi, 
+        hs.SDTPhuHuynh
+    FROM HocSinh hs
+    INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+    WHERE 
+        (@MaLop IS NOT NULL AND hs.MaLop = @MaLop)
+        OR 
+        (@MaLop IS NULL AND @Khoi IS NOT NULL AND lh.Khoi = @Khoi)
+        OR
+        (@MaLop IS NULL AND @Khoi IS NULL)
+    ORDER BY lh.TenLop, hs.HoTen;
+END;
+GO
+GO
+PRINT N'Sửa đổi SP [sp_GetThongKeKhoi] để hỗ trợ Admin';
+GO
+Create PROCEDURE sp_GetThongKeKhoi_Admin
+    @khoi NVARCHAR(20) = NULL -- Cho phép NULL để lấy toàn trường
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @khoiFilter NVARCHAR(25) = @khoi; -- Giữ nguyên để tương thích
+
+    -- Xác định các loại điểm cần tính TB (lấy tất cả nếu không có khối cụ thể)
+    DECLARE @loaiList TABLE (Loai NVARCHAR(20));
+    INSERT INTO @loaiList (Loai)
+    SELECT MaCotDiem 
+    FROM ThoiHanDiem 
+    WHERE (@khoiFilter IS NULL OR Khoi = @khoiFilter);
+
+    -- Tính toán sĩ số và giới tính
+    WITH StudentCounts AS (
+        SELECT
+            l.Khoi, -- Thêm cột Khối
+            l.MaLop,
+            l.TenLop,
+            COUNT(hs.MaHS) AS SoHocSinh,
+            SUM(CASE WHEN hs.GioiTinh = N'Nam' THEN 1 ELSE 0 END) AS SoNam,
+            SUM(CASE WHEN hs.GioiTinh = N'Nữ' THEN 1 ELSE 0 END) AS SoNu
+        FROM LopHoc l
+        LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
+        WHERE (@khoiFilter IS NULL OR l.Khoi = @khoiFilter) -- Lọc theo khối nếu có
+        GROUP BY l.Khoi, l.MaLop, l.TenLop
+    ),
+    -- Tính điểm trung bình
+    AvgScores AS (
+        SELECT
+            l.MaLop,
+            ROUND(AVG(kq.Diem), 2) AS DiemTrungBinh
+        FROM LopHoc l
+        LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
+        LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
+        WHERE (@khoiFilter IS NULL OR l.Khoi = @khoiFilter) 
+          AND kq.Diem IS NOT NULL
+          AND kq.Loai IN (SELECT Loai FROM @loaiList) -- Chỉ tính điểm trong danh sách loại hợp lệ
+        GROUP BY l.MaLop
+    )
+    -- Kết hợp kết quả
+    SELECT
+        sc.Khoi, -- Trả về cột Khối
+        sc.TenLop,
+        sc.SoHocSinh,
+        ISNULL(av.DiemTrungBinh, 0) AS DiemTrungBinh,
+        sc.SoNam,
+        sc.SoNu
+    FROM StudentCounts sc
+    LEFT JOIN AvgScores av ON sc.MaLop = av.MaLop
+    ORDER BY sc.Khoi, sc.TenLop; -- Sắp xếp theo Khối rồi đến Tên lớp
+END;
+GO
 PRINT 'TẤT CẢ STORED PROCEDURES ĐÃ ĐƯỢC TẠO.';
 PRINT 'QUÁ TRÌNH TÁI TẠO HOÀN TẤT!';

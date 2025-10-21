@@ -30,6 +30,7 @@
             this.pnlStudentActions = new System.Windows.Forms.FlowLayoutPanel();
             this.btnThemHS = new System.Windows.Forms.Button();
             this.btnXoaHS = new System.Windows.Forms.Button();
+            this.btnChuyenLop = new System.Windows.Forms.Button();
             this.btnLuuHS = new System.Windows.Forms.Button();
             this.btnImportHS = new System.Windows.Forms.Button();
             this.tabPhanCong = new System.Windows.Forms.TabPage();
@@ -47,6 +48,10 @@
             this.btnAssignGvcn = new System.Windows.Forms.Button();
             this.cboGvcn = new System.Windows.Forms.ComboBox();
             this.lblAssignGvcn = new System.Windows.Forms.Label();
+
+            // ### MỚI: Khai báo Panel chuyển lớp ###
+            this.pnlChuyenLop = new System.Windows.Forms.Panel();
+
             this.layoutRoot.SuspendLayout();
             this.pnlLeft.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvLopHoc)).BeginInit();
@@ -144,6 +149,8 @@
             // 
             // pnlRight
             // 
+            // ### MỚI: Thêm pnlChuyenLop vào pnlRight. Order rất quan trọng (Dock.Right đi trước) ###
+            this.pnlRight.Controls.Add(this.pnlChuyenLop);
             this.pnlRight.Controls.Add(this.tabControlDetails);
             this.pnlRight.Controls.Add(this.pnlClassInfoCard);
             this.pnlRight.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -190,6 +197,7 @@
             // 
             this.pnlStudentActions.Controls.Add(this.btnThemHS);
             this.pnlStudentActions.Controls.Add(this.btnXoaHS);
+            this.pnlStudentActions.Controls.Add(this.btnChuyenLop);
             this.pnlStudentActions.Controls.Add(this.btnLuuHS);
             this.pnlStudentActions.Controls.Add(this.btnImportHS);
             this.pnlStudentActions.Dock = System.Windows.Forms.DockStyle.Bottom;
@@ -217,11 +225,20 @@
             this.btnXoaHS.UseVisualStyleBackColor = true;
             this.btnXoaHS.Click += new System.EventHandler(this.btnXoaHS_Click);
             // 
+            // btnChuyenLop
+            // 
+            this.btnChuyenLop.Location = new System.Drawing.Point(235, 3);
+            this.btnChuyenLop.Name = "btnChuyenLop";
+            this.btnChuyenLop.Size = new System.Drawing.Size(154, 40);
+            this.btnChuyenLop.TabIndex = 5;
+            this.btnChuyenLop.Text = "Chuyển Lớp";
+            this.btnChuyenLop.UseVisualStyleBackColor = true;
+            // 
             // btnLuuHS
             // 
-            this.btnLuuHS.Location = new System.Drawing.Point(235, 3);
+            this.btnLuuHS.Location = new System.Drawing.Point(395, 3);
             this.btnLuuHS.Name = "btnLuuHS";
-            this.btnLuuHS.Size = new System.Drawing.Size(150, 40);
+            this.btnLuuHS.Size = new System.Drawing.Size(173, 40);
             this.btnLuuHS.TabIndex = 3;
             this.btnLuuHS.Text = "💾 Lưu thay đổi";
             this.btnLuuHS.UseVisualStyleBackColor = true;
@@ -229,7 +246,7 @@
             // 
             // btnImportHS
             // 
-            this.btnImportHS.Location = new System.Drawing.Point(391, 3);
+            this.btnImportHS.Location = new System.Drawing.Point(3, 49);
             this.btnImportHS.Name = "btnImportHS";
             this.btnImportHS.Size = new System.Drawing.Size(120, 40);
             this.btnImportHS.TabIndex = 4;
@@ -332,7 +349,7 @@
             this.infoLayout.Name = "infoLayout";
             this.infoLayout.RowCount = 1;
             this.infoLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.infoLayout.Size = new System.Drawing.Size(634, 30);
+            this.infoLayout.Size = new System.Drawing.Size(630, 30);
             this.infoLayout.TabIndex = 5;
             // 
             // lblNamHoc
@@ -341,7 +358,7 @@
             this.lblNamHoc.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
             this.lblNamHoc.Location = new System.Drawing.Point(3, 0);
             this.lblNamHoc.Name = "lblNamHoc";
-            this.lblNamHoc.Size = new System.Drawing.Size(226, 30);
+            this.lblNamHoc.Size = new System.Drawing.Size(225, 30);
             this.lblNamHoc.TabIndex = 0;
             this.lblNamHoc.Text = "🗓️ Năm học: -";
             this.lblNamHoc.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -350,9 +367,9 @@
             // 
             this.lblGVCN.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.lblGVCN.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
-            this.lblGVCN.Location = new System.Drawing.Point(235, 0);
+            this.lblGVCN.Location = new System.Drawing.Point(234, 0);
             this.lblGVCN.Name = "lblGVCN";
-            this.lblGVCN.Size = new System.Drawing.Size(226, 30);
+            this.lblGVCN.Size = new System.Drawing.Size(225, 30);
             this.lblGVCN.TabIndex = 1;
             this.lblGVCN.Text = "👤 GVCN: -";
             this.lblGVCN.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -361,7 +378,7 @@
             // 
             this.lblSiSo.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.lblSiSo.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
-            this.lblSiSo.Location = new System.Drawing.Point(467, 0);
+            this.lblSiSo.Location = new System.Drawing.Point(465, 0);
             this.lblSiSo.Name = "lblSiSo";
             this.lblSiSo.Size = new System.Drawing.Size(137, 30);
             this.lblSiSo.TabIndex = 2;
@@ -377,7 +394,7 @@
             this.pnlAssignGvcn.Controls.Add(this.lblAssignGvcn);
             this.pnlAssignGvcn.Location = new System.Drawing.Point(3, 95);
             this.pnlAssignGvcn.Name = "pnlAssignGvcn";
-            this.pnlAssignGvcn.Size = new System.Drawing.Size(628, 50);
+            this.pnlAssignGvcn.Size = new System.Drawing.Size(624, 50);
             this.pnlAssignGvcn.TabIndex = 4;
             // 
             // btnAssignGvcn
@@ -406,9 +423,21 @@
             this.lblAssignGvcn.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.lblAssignGvcn.Location = new System.Drawing.Point(3, 12);
             this.lblAssignGvcn.Name = "lblAssignGvcn";
-            this.lblAssignGvcn.Size = new System.Drawing.Size(131, 23);
+            this.lblAssignGvcn.Size = new System.Drawing.Size(62, 23);
             this.lblAssignGvcn.TabIndex = 0;
-            this.lblAssignGvcn.Text = "Chưa có GVCN:";
+            this.lblAssignGvcn.Text = "GVCN:";
+            // 
+            // *** ### MỚI: Định nghĩa thuộc tính cho pnlChuyenLop ### ***
+            // 
+            this.pnlChuyenLop.BackColor = System.Drawing.Color.White;
+            this.pnlChuyenLop.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pnlChuyenLop.Dock = System.Windows.Forms.DockStyle.Right;
+            this.pnlChuyenLop.Location = new System.Drawing.Point(354, 195); // Vị trí Dock.Right (so với pnlRight)
+            this.pnlChuyenLop.Name = "pnlChuyenLop";
+            this.pnlChuyenLop.Padding = new System.Windows.Forms.Padding(10);
+            this.pnlChuyenLop.Size = new System.Drawing.Size(300, 419); // Chiếm 300px và đầy chiều cao
+            this.pnlChuyenLop.TabIndex = 2; // Đặt nó lên trên tabControl
+            this.pnlChuyenLop.Visible = false; // QUAN TRỌNG: Ẩn ban đầu
             // 
             // UC_QuanLyLopHocSinh
             // 
@@ -423,7 +452,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.dgvLopHoc)).EndInit();
             this.pnlFilter.ResumeLayout(false);
             this.pnlFilter.PerformLayout();
-            this.pnlRight.ResumeLayout(false);
+            this.pnlRight.ResumeLayout(false); // Thêm pnlChuyenLop ở đây
             this.tabControlDetails.ResumeLayout(false);
             this.tabHocSinh.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgvHocSinh)).EndInit();
@@ -473,5 +502,9 @@
         private System.Windows.Forms.Button btnImportHS;
         private System.Windows.Forms.FlowLayoutPanel pnlAssignmentActions;
         private System.Windows.Forms.Button btnImportPhanCong;
+        private System.Windows.Forms.Button btnChuyenLop;
+
+        // ### MỚI: Khai báo biến thành viên cho panel ###
+        private System.Windows.Forms.Panel pnlChuyenLop;
     }
 }

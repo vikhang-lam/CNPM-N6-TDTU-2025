@@ -353,6 +353,12 @@
     <Compile Include="UC_Baocao.Designer.cs">
       <DependentUpon>UC_Baocao.cs</DependentUpon>
     </Compile>
+    <Compile Include="UC_BaoCao_Admin.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UC_BaoCao_Admin.Designer.cs">
+      <DependentUpon>UC_BaoCao_Admin.cs</DependentUpon>
+    </Compile>
     <Compile Include="UC_Home.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -389,9 +395,7 @@
     <Compile Include="UC_QuanLyLop.Designer.cs">
       <DependentUpon>UC_QuanLyLop.cs</DependentUpon>
     </Compile>
-    <Compile Include="UC_QuanLyLopHocSinh.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
+    <Compile Include="UC_QuanLyLopHocSinh.cs" />
     <Compile Include="UC_QuanLyLopHocSinh.Designer.cs">
       <DependentUpon>UC_QuanLyLopHocSinh.cs</DependentUpon>
     </Compile>
@@ -400,6 +404,12 @@
     </Compile>
     <Compile Include="UC_QuanLyTaiLieu.Designer.cs">
       <DependentUpon>UC_QuanLyTaiLieu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UC_QuanLyTruongHoc.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UC_QuanLyTruongHoc.Designer.cs">
+      <DependentUpon>UC_QuanLyTruongHoc.cs</DependentUpon>
     </Compile>
     <Compile Include="UC_ThoiKhoaBieu.cs">
       <SubType>UserControl</SubType>

@@ -13,7 +13,6 @@ namespace N6
     {
         private string _username;
         private string _maLop;
-        // private string _currentMaMon; // ### SỬA ###: Đã xóa, không còn dùng biến toàn cục này
         private string _maGV;
         public string SelectedMaLop { get { return _maLop; } }
 
@@ -40,19 +39,19 @@ namespace N6
         private Bitmap latestFrame;
         private readonly object _frameLock = new object();
 
-        // ### NEW: Controls cho menu trượt ###
-        private Button btnToggleMenu; // Nút để mở/đóng menu
+        private Button btnToggleMenu;
         private Timer animationTimer;
         private bool isMenuOpen = false;
         private const int menuWidth = 200;
 
-        // ### REDESIGNED: Controls cho Quỹ Lớp ###
         private DataGridView dgvQuyLop;
-        private Label lblTongThu_Value, lblTongChi_Value, lblTonQuy_Value; // Labels for values
+        private Label lblTongThu_Value, lblTongChi_Value, lblTonQuy_Value;
         private Button btnThemKhoanQuy;
 
-        // ### MỚI ###: ComboBox chọn môn học để nhập điểm
         private ComboBox cbMonHocChon;
+
+        // ### MỚI ###: Cache để lưu trữ trạng thái khóa của các cột điểm
+        private Dictionary<string, bool> _lockStatusCache;
 
 
         public UC_QuanLyLop(string username)
@@ -60,10 +59,11 @@ namespace N6
             InitializeComponent();
             _username = username ?? string.Empty;
             _maGV = DatabaseHelper.GetMaGVByUsername(_username);
-            // _currentMaMon = DatabaseHelper.GetMonByTeacher(username); // ### SỬA ###: Đã xóa dòng này
 
             InitializeDynamicControls();
 
+            // ### MỚI ###: Khởi tạo cache
+            _lockStatusCache = new Dictionary<string, bool>();
 
             btnQuayLaiChonLop.Click += (s, e) => ShowLopChonUI();
             rbDiemDanh.CheckedChanged += TabButton_CheckedChanged;
@@ -277,23 +277,21 @@ namespace N6
             if (dgv == null || dgv.Columns.Count == 0) return;
             try
             {
-                // ### THÊM MỚI ĐOẠN NÀY ###
                 if (dgv.Columns.Contains("STT"))
                 {
                     var col = dgv.Columns["STT"];
                     col.HeaderText = "STT";
-                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; // Tự động co dãn
-                    col.DisplayIndex = 0; // Đảm bảo nó là cột đầu tiên
-                    col.ReadOnly = true; // Không cho sửa
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                    col.DisplayIndex = 0;
+                    col.ReadOnly = true;
                 }
-                // #########################
 
                 if (dgv.Columns.Contains("MaHS")) dgv.Columns["MaHS"].Visible = false;
                 if (dgv.Columns.Contains("HoTen"))
                 {
                     dgv.Columns["HoTen"].HeaderText = "Họ và Tên";
                     if (dgv.Columns.Contains("STT"))
-                        dgv.Columns["HoTen"].DisplayIndex = 1; // Đẩy Họ Tên ra sau STT
+                        dgv.Columns["HoTen"].DisplayIndex = 1;
                 }
 
                 if (dgv.Columns.Contains("GioiTinh")) dgv.Columns["GioiTinh"].HeaderText = "Giới Tính";
@@ -826,6 +824,29 @@ namespace N6
 
         #region Regular Teacher Views (DiemDanh, KetQua, HocSinh)
 
+        // ### MỚI ###: Tải cache trạng thái khóa
+        private void LoadLockStatusCache()
+        {
+            _lockStatusCache = new Dictionary<string, bool>();
+            try
+            {
+                DataTable dt = DatabaseHelper.GetThoiHanDiem();
+                foreach (DataRow row in dt.Rows)
+                {
+                    string maCotDiem = row["MaCotDiem"].ToString();
+                    bool daKhoa = Convert.ToBoolean(row["DaKhoa"]);
+                    if (!_lockStatusCache.ContainsKey(maCotDiem))
+                    {
+                        _lockStatusCache.Add(maCotDiem, daKhoa);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi tải trạng thái khóa điểm: " + ex.Message);
+            }
+        }
+
         private void ShowDiemDanh(bool selectQRTab = false)
         {
             SaveAllCurrentEdits();
@@ -1177,6 +1198,9 @@ namespace N6
             panelContent.Controls.Clear();
             if (string.IsNullOrEmpty(_maLop)) { MessageBox.Show("Vui lòng chọn một lớp trước."); return; }
 
+            // ### MỚI ###: Tải cache trạng thái khóa MỖI KHI vào tab
+            LoadLockStatusCache();
+
             // Lấy danh sách môn GV này dạy ở lớp này
             DataTable dtMonHoc = DatabaseHelper.GetMonHocByGiaoVienAndLop(_maGV, _maLop);
             if (dtMonHoc == null || dtMonHoc.Rows.Count == 0)
@@ -1263,6 +1287,7 @@ namespace N6
             LoadKetQuaGrids();
         }
 
+        // ### SỬA ###: Đã thêm code để gọi hàm ApplyColumnLocks
         private void SetupResultGrid(DataGridView dgv, DataTable dt, int ki, string maMon)
         {
             if (dgv == null) return;
@@ -1277,16 +1302,84 @@ namespace N6
             dgv.DataSource = dt;
             if (dt != null && dt.Columns.Contains("HoTen") && dgv.Columns.Contains("HoTen")) dgv.Columns["HoTen"].ReadOnly = true;
             if (dt != null && dt.Columns.Contains("MaHS") && dgv.Columns.Contains("MaHS")) dgv.Columns["MaHS"].Visible = false;
+
+            // ### MỚI ###: Áp dụng style khóa/mở cho các cột
+            ApplyColumnLocks(dgv, ki);
+
             dgv.Tag = Tuple.Create(ki, maMon); // ### SỬA ###: Lưu maMon được chọn
             dgv.CurrentCellDirtyStateChanged += ResultGrid_CurrentCellDirtyStateChanged;
             dgv.CellEndEdit += ResultGrid_CellEndEdit;
         }
+
+        // ### MỚI ###: Hàm áp dụng ReadOnly và Style cho các cột bị khóa
+        // ### MỚI ###: Hàm áp dụng ReadOnly và Style cho các cột bị khóa
+        // ### MỚI ###: Hàm áp dụng ReadOnly và Style cho các cột bị khóa
+        private void ApplyColumnLocks(DataGridView dgv, int ki)
+        {
+            if (_lockStatusCache == null) return; // Cache chưa được tải
+
+            var defaultStyle = dgv.DefaultCellStyle;
+            var lockedStyle = new DataGridViewCellStyle
+            {
+                BackColor = Color.FromArgb(230, 230, 230), // Xám nhạt
+                ForeColor = Color.FromArgb(120, 120, 120), // Xám đậm
+                SelectionBackColor = Color.FromArgb(230, 230, 230),
+                SelectionForeColor = Color.FromArgb(120, 120, 120)
+            };
+
+            foreach (DataGridViewColumn col in dgv.Columns)
+            {
+                string colName = col.DataPropertyName; // Ví dụ: "NhanXet", "GiuaKi", "HoTen"
+                string maCotDiem = MapColumnToLoai(colName, ki); // Ví dụ: "CuoiKi1", "GiuaKi1", null
+
+                if (maCotDiem == null) continue; // Không phải cột điểm (vd: HoTen)
+
+                // ### SỬA LỖI LOGIC LẦN 2 ###
+                // Luôn cho phép sửa Nhận xét, Ghi chú.
+                // Kiểm tra tên cột gốc (colName) thay vì maCotDiem.
+                if (colName.Equals("NhanXet", StringComparison.OrdinalIgnoreCase) ||
+                    colName.Equals("GhiChu", StringComparison.OrdinalIgnoreCase))
+                {
+                    // ĐÁNH DẤU LÀ CÓ THỂ SỬA
+                    col.ReadOnly = false;
+                    col.DefaultCellStyle = defaultStyle;
+                    col.HeaderText = col.HeaderText.Replace(" 🔒", "");
+                    continue; // Bỏ qua kiểm tra khóa điểm cho các cột này
+                }
+
+                // Kiểm tra cache xem cột điểm này có bị khóa không
+                if (_lockStatusCache.TryGetValue(maCotDiem, out bool isLocked) && isLocked)
+                {
+                    // ### BỊ KHÓA ###
+                    col.ReadOnly = true;
+                    col.DefaultCellStyle = lockedStyle;
+                    col.HeaderText = col.HeaderText.Replace(" 🔒", "") + " 🔒"; // Thêm icon khóa
+                }
+                else
+                {
+                    // ### ĐƯỢC MỞ ###
+                    col.ReadOnly = false;
+                    col.DefaultCellStyle = defaultStyle;
+                    col.HeaderText = col.HeaderText.Replace(" 🔒", ""); // Xóa icon khóa
+                }
+            }
+        }
+
 
         private void ResultGrid_CurrentCellDirtyStateChanged(object s, EventArgs e) { var g = s as DataGridView; if (g != null && g.IsCurrentCellDirty) g.CommitEdit(DataGridViewDataErrorContexts.Commit); }
         private void ResultGrid_CellEndEdit(object s, DataGridViewCellEventArgs e) { var g = s as DataGridView; if (g == null || e.RowIndex < 0) return; SaveKetQuaRow(g, e.RowIndex, e.ColumnIndex); }
 
         private void SaveKetQuaRow(DataGridView dgv, int row, int col)
         {
+            // ### MỚI ###: Thêm kiểm tra ReadOnly trước khi lưu
+            if (dgv.Columns[col].ReadOnly)
+            {
+                MessageBox.Show("Cột điểm này đã bị khóa. Không thể lưu.", "Đã Khóa", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                // Tải lại dữ liệu để trả về giá trị cũ
+                LoadKetQuaGrids();
+                return;
+            }
+
             if (dgv.Tag == null) return;
             var ctx = dgv.Tag as Tuple<int, string>;
             if (ctx == null) return;
@@ -1295,14 +1388,33 @@ namespace N6
             var r = dgv.Rows[row];
             string maHS = r.Cells["MaHS"]?.Value?.ToString();
             if (string.IsNullOrEmpty(maHS)) return;
+
             string colName = dgv.Columns[col].DataPropertyName;
-            string loai = MapColumnToLoai(colName, ki);
+            string loai = MapColumnToLoai(colName, ki); // Đã sửa ở hàm MapColumnToLoai
             if (string.IsNullOrEmpty(loai)) return;
+
             object val = r.Cells[col].Value;
-            float? diem = null;
-            if (val != null && val != DBNull.Value && float.TryParse(val.ToString(), out float p))
-                diem = p;
-            DatabaseHelper.UpdateKetQuaHocTap(maHS, maMon, loai, diem);
+
+            // ### SỬA: Phân luồng logic lưu cho Điểm vs Văn bản ###
+            if (colName.Equals("NhanXet", StringComparison.OrdinalIgnoreCase))
+            {
+                string nhanXet = val?.ToString() ?? "";
+                DatabaseHelper.UpdateKetQuaHocTap_Text(maHS, maMon, loai, nhanXet, true); // Gọi hàm mới
+            }
+            else if (colName.Equals("GhiChu", StringComparison.OrdinalIgnoreCase))
+            {
+                string ghiChu = val?.ToString() ?? "";
+                DatabaseHelper.UpdateKetQuaHocTap_Text(maHS, maMon, loai, ghiChu, false); // Gọi hàm mới
+            }
+            else
+            {
+                // Đây là cột điểm
+                float? diem = null;
+                if (val != null && val != DBNull.Value && float.TryParse(val.ToString(), out float p))
+                    diem = p;
+
+                DatabaseHelper.UpdateKetQuaHocTap(maHS, maMon, loai, diem); // Gọi hàm lưu điểm (đã sửa)
+            }
         }
 
         private string MapColumnToLoai(string c, int ki)
@@ -1314,8 +1426,12 @@ namespace N6
             if (c.Equals("Thang3", StringComparison.OrdinalIgnoreCase)) return $"Thang3_Ki{ki}";
             if (c.Equals("GiuaKi", StringComparison.OrdinalIgnoreCase)) return $"GiuaKi{ki}";
             if (c.Equals("CuoiKi", StringComparison.OrdinalIgnoreCase)) return $"CuoiKi{ki}";
-            if (c.Equals("NhanXet", StringComparison.OrdinalIgnoreCase)) return "NhanXet";
-            if (c.Equals("GhiChu", StringComparison.OrdinalIgnoreCase)) return "GhiChu";
+
+            // ### SỬA LỖI LOGIC ###
+            // NhanXet và GhiChu là các trường thuộc Loai 'CuoiKi' (dựa trên logic SP pivot)
+            if (c.Equals("NhanXet", StringComparison.OrdinalIgnoreCase)) return $"CuoiKi{ki}";
+            if (c.Equals("GhiChu", StringComparison.OrdinalIgnoreCase)) return $"CuoiKi{ki}";
+
             return null;
         }
 

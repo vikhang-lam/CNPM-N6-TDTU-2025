@@ -18,6 +18,12 @@
         private System.Windows.Forms.FlowLayoutPanel pnlDuyet;
         private System.Windows.Forms.Label lblSelectedGV;
         private System.Windows.Forms.Button btnLamMoi;
+        private System.Windows.Forms.TabPage tabDaXacNhan;
+        private System.Windows.Forms.TabPage tabChoDuyet;
+        private System.Windows.Forms.TabPage tabTatCa;
+        private System.Windows.Forms.TabControl tabControl1;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.CheckedListBox clbMonHoc;
 
         protected override void Dispose(bool disposing)
         {
@@ -42,6 +48,8 @@
             this.lblEmail = new System.Windows.Forms.Label();
             this.lblSDT = new System.Windows.Forms.Label();
             this.pnlEdit = new System.Windows.Forms.Panel();
+            this.label4 = new System.Windows.Forms.Label();
+            this.clbMonHoc = new System.Windows.Forms.CheckedListBox();
             this.lblSelectedGV = new System.Windows.Forms.Label();
             this.pnlDuyet = new System.Windows.Forms.FlowLayoutPanel();
             this.btnLamMoi = new System.Windows.Forms.Button();
@@ -95,7 +103,7 @@
             this.dgvGV.RowHeadersWidth = 51;
             this.dgvGV.RowTemplate.Height = 36;
             this.dgvGV.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dgvGV.Size = new System.Drawing.Size(940, 428);
+            this.dgvGV.Size = new System.Drawing.Size(940, 278);
             this.dgvGV.TabIndex = 0;
             this.dgvGV.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgvGV_CellClick);
             // 
@@ -136,7 +144,7 @@
             this.btnSua.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSua.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnSua.ForeColor = System.Drawing.Color.White;
-            this.btnSua.Location = new System.Drawing.Point(20, 100);
+            this.btnSua.Location = new System.Drawing.Point(24, 250);
             this.btnSua.Name = "btnSua";
             this.btnSua.Size = new System.Drawing.Size(140, 42);
             this.btnSua.TabIndex = 6;
@@ -151,7 +159,7 @@
             this.btnXoa.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnXoa.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnXoa.ForeColor = System.Drawing.Color.White;
-            this.btnXoa.Location = new System.Drawing.Point(170, 100);
+            this.btnXoa.Location = new System.Drawing.Point(170, 250);
             this.btnXoa.Name = "btnXoa";
             this.btnXoa.Size = new System.Drawing.Size(140, 42);
             this.btnXoa.TabIndex = 7;
@@ -214,6 +222,8 @@
             // 
             this.pnlEdit.BackColor = System.Drawing.Color.WhiteSmoke;
             this.pnlEdit.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pnlEdit.Controls.Add(this.label4);
+            this.pnlEdit.Controls.Add(this.clbMonHoc);
             this.pnlEdit.Controls.Add(this.lblSelectedGV);
             this.pnlEdit.Controls.Add(this.pnlDuyet);
             this.pnlEdit.Controls.Add(this.lblTen);
@@ -225,10 +235,28 @@
             this.pnlEdit.Controls.Add(this.btnSua);
             this.pnlEdit.Controls.Add(this.btnXoa);
             this.pnlEdit.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.pnlEdit.Location = new System.Drawing.Point(0, 460);
+            this.pnlEdit.Location = new System.Drawing.Point(0, 310);
             this.pnlEdit.Name = "pnlEdit";
-            this.pnlEdit.Size = new System.Drawing.Size(940, 160);
+            this.pnlEdit.Size = new System.Drawing.Size(940, 310);
             this.pnlEdit.TabIndex = 1;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label4.Location = new System.Drawing.Point(21, 100);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(162, 23);
+            this.label4.TabIndex = 6;
+            this.label4.Text = "Môn học giảng dạy:";
+            // 
+            // clbMonHoc
+            // 
+            this.clbMonHoc.FormattingEnabled = true;
+            this.clbMonHoc.Location = new System.Drawing.Point(24, 126);
+            this.clbMonHoc.Name = "clbMonHoc";
+            this.clbMonHoc.Size = new System.Drawing.Size(286, 106);
+            this.clbMonHoc.TabIndex = 7;
             // 
             // lblSelectedGV
             // 
@@ -246,7 +274,7 @@
             this.pnlDuyet.Controls.Add(this.btnXacNhan);
             this.pnlDuyet.Controls.Add(this.btnHuy);
             this.pnlDuyet.Controls.Add(this.btnLamMoi);
-            this.pnlDuyet.Location = new System.Drawing.Point(20, 100);
+            this.pnlDuyet.Location = new System.Drawing.Point(330, 110);
             this.pnlDuyet.Name = "pnlDuyet";
             this.pnlDuyet.Size = new System.Drawing.Size(469, 50);
             this.pnlDuyet.TabIndex = 8;
@@ -268,10 +296,10 @@
             // 
             // tabDaXacNhan
             // 
-            this.tabDaXacNhan.Location = new System.Drawing.Point(4, 32);
+            this.tabDaXacNhan.Location = new System.Drawing.Point(0, 0);
             this.tabDaXacNhan.Name = "tabDaXacNhan";
-            this.tabDaXacNhan.Size = new System.Drawing.Size(932, 0);
-            this.tabDaXacNhan.TabIndex = 2;
+            this.tabDaXacNhan.Size = new System.Drawing.Size(200, 100);
+            this.tabDaXacNhan.TabIndex = 0;
             // 
             // tabChoDuyet
             // 
@@ -280,8 +308,7 @@
             this.tabChoDuyet.Size = new System.Drawing.Size(932, 0);
             this.tabChoDuyet.TabIndex = 1;
             this.tabChoDuyet.Text = " Yêu cầu chờ duyệt ";
-
-            
+            this.tabChoDuyet.UseVisualStyleBackColor = true;
             // 
             // tabTatCa
             // 
@@ -290,6 +317,7 @@
             this.tabTatCa.Size = new System.Drawing.Size(932, 0);
             this.tabTatCa.TabIndex = 0;
             this.tabTatCa.Text = " Tất cả Giáo viên ";
+            this.tabTatCa.UseVisualStyleBackColor = true;
             // 
             // tabControl1
             // 
@@ -322,10 +350,5 @@
             this.ResumeLayout(false);
 
         }
-
-        private System.Windows.Forms.TabPage tabDaXacNhan;
-        private System.Windows.Forms.TabPage tabChoDuyet;
-        private System.Windows.Forms.TabPage tabTatCa;
-        private System.Windows.Forms.TabControl tabControl1;
     }
 }

@@ -1,20 +1,74 @@
 ﻿using System;
 using System.Data;
 using System.Drawing;
+using System.Linq; // Thêm
+using System.Collections.Generic; // Thêm
 using System.Windows.Forms;
 
 namespace N6
 {
     public partial class UC_QuanLyGiaoVien : UserControl
     {
+        // Biến để lưu trữ toàn bộ môn học
+        private DataTable allMonHoc;
+
         public UC_QuanLyGiaoVien()
         {
             InitializeComponent();
             this.tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
-
             this.tabControl1.DrawItem += new DrawItemEventHandler(this.tabControl1_DrawItem);
+
+            LoadAllMonHoc(); // <-- GỌI HÀM MỚI
+
             LoadDataForCurrentTab();
             UpdatePanelVisibility();
+        }
+
+        // HÀM MỚI: Tải tất cả môn học vào CheckedListBox
+        private void LoadAllMonHoc()
+        {
+            try
+            {
+                // Lấy tất cả môn học từ DB
+                allMonHoc = DatabaseHelper.GetAllMonHoc();
+
+                // Giả sử bạn đã thêm control tên là clbMonHoc vào designer
+                clbMonHoc.DataSource = allMonHoc;
+                clbMonHoc.DisplayMember = "TenMon";
+                clbMonHoc.ValueMember = "MaMon";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi nghiêm trọng khi tải danh sách môn học: " + ex.Message);
+            }
+        }
+
+        // HÀM MỚI: Check các ô dựa trên giáo viên được chọn
+        private void LoadMonHocForGiaoVien(string maGV)
+        {
+            // Lấy danh sách MaMon của GV này
+            DataTable dtTeacherSubjects = DatabaseHelper.GetMonHocByGiaoVien(maGV);
+
+            // Dùng HashSet để tra cứu nhanh hơn
+            var teacherMaMonList = new HashSet<string>(
+                dtTeacherSubjects.AsEnumerable().Select(r => r.Field<string>("MaMon"))
+            );
+
+            // Tắt tạm thời control để tránh việc check/uncheck bị giật
+            clbMonHoc.Enabled = false;
+
+            // Lặp qua tất cả các item trong CheckedListBox
+            for (int i = 0; i < clbMonHoc.Items.Count; i++)
+            {
+                DataRowView drv = (DataRowView)clbMonHoc.Items[i];
+                string maMon = drv["MaMon"].ToString();
+
+                // Set trạng thái checked
+                clbMonHoc.SetItemChecked(i, teacherMaMonList.Contains(maMon));
+            }
+
+            // Bật lại control
+            clbMonHoc.Enabled = true;
         }
 
         private void LoadDataForCurrentTab()
@@ -54,13 +108,14 @@ namespace N6
             if (dgvGV.Columns["Email"] != null) dgvGV.Columns["Email"].HeaderText = "Email";
             if (dgvGV.Columns["SDT"] != null) dgvGV.Columns["SDT"].HeaderText = "Số Điện Thoại";
             if (dgvGV.Columns["TrangThai"] != null) dgvGV.Columns["TrangThai"].HeaderText = "Trạng Thái";
+            if (dgvGV.Columns["CacMonDay"] != null) dgvGV.Columns["CacMonDay"].HeaderText = "Môn Dạy";
         }
 
         private void UpdatePanelVisibility()
         {
             bool isChoDuyetTab = tabControl1.SelectedTab == tabChoDuyet;
             pnlDuyet.Visible = isChoDuyetTab;
-            btnSua.Visible = !isChoDuyetTab;
+            btnSua.Visible = true;
             btnXoa.Visible = !isChoDuyetTab;
 
             if (dgvGV.CurrentRow == null)
@@ -110,6 +165,14 @@ namespace N6
             txtSDT.Clear();
             lblSelectedGV.Text = "Chưa chọn giáo viên";
             dgvGV.ClearSelection();
+
+            // Thêm logic để uncheck tất cả các môn học
+            clbMonHoc.Enabled = false; // Tắt tạm thời
+            for (int i = 0; i < clbMonHoc.Items.Count; i++)
+            {
+                clbMonHoc.SetItemChecked(i, false);
+            }
+            clbMonHoc.Enabled = true; // Bật lại
         }
 
         private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
@@ -124,10 +187,15 @@ namespace N6
             if (e.RowIndex >= 0)
             {
                 var row = dgvGV.Rows[e.RowIndex];
+                string maGV = row.Cells["MaGV"].Value.ToString(); // Lấy MaGV
+
                 txtTen.Text = row.Cells["Ten"].Value?.ToString();
                 txtEmail.Text = row.Cells["Email"].Value?.ToString();
                 txtSDT.Text = row.Cells["SDT"].Value?.ToString();
-                lblSelectedGV.Text = $"Đang chọn: {row.Cells["Ten"].Value?.ToString()} (Mã: {row.Cells["MaGV"].Value?.ToString()})";
+                lblSelectedGV.Text = $"Đang chọn: {row.Cells["Ten"].Value?.ToString()} (Mã: {maGV})";
+
+                // GỌI HÀM MỚI
+                LoadMonHocForGiaoVien(maGV);
             }
         }
 
@@ -186,9 +254,36 @@ namespace N6
                 return;
             }
 
-            DatabaseHelper.UpdateGiaoVien(maGV, ten, email, sdt);
-            MessageBox.Show("Cập nhật thông tin giáo viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            LoadDataForCurrentTab();
+            try
+            {
+                // 1. Cập nhật thông tin cơ bản (tên, email, sdt)
+                DatabaseHelper.UpdateGiaoVien(maGV, ten, email, sdt);
+
+                // 2. Cập nhật danh sách môn học
+
+                // Tạo DataTable để chứa danh sách MaMon
+                DataTable dtMaMonList = new DataTable();
+                dtMaMonList.Columns.Add("MaMon", typeof(string));
+
+                // Lặp qua các mục ĐƯỢC CHỌN trong clbMonHoc
+                foreach (var item in clbMonHoc.CheckedItems)
+                {
+                    DataRowView drv = (DataRowView)item;
+                    dtMaMonList.Rows.Add(drv["MaMon"].ToString());
+                }
+
+                // Gọi SP cập nhật
+                DatabaseHelper.UpdateGiaoVien_MonHoc(maGV, dtMaMonList);
+
+                MessageBox.Show("Cập nhật thông tin giáo viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                // Tải lại grid để thấy cột "Môn Dạy" được cập nhật
+                LoadDataForCurrentTab();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi cập nhật thông tin: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnXoa_Click(object sender, EventArgs e)

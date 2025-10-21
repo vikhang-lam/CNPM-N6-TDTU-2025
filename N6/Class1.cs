@@ -277,12 +277,78 @@ public static class DatabaseHelper
 
     public static void UpdateKetQuaHocTap(string maHS, string maMon, string loai, float? diem)
     {
-        var pMaHS = new SqlParameter("@MaHS", maHS);
-        var pMaMon = new SqlParameter("@MaMon", maMon);
-        var pLoai = new SqlParameter("@Loai", loai);
-        var pDiem = new SqlParameter("@Diem", (object)diem ?? DBNull.Value);
+        try
+        {
+            var pMaHS = new SqlParameter("@MaHS", maHS);
+            var pMaMon = new SqlParameter("@MaMon", maMon);
+            var pLoai = new SqlParameter("@Loai", loai);
+            var pDiem = new SqlParameter("@Diem", (object)diem ?? DBNull.Value);
 
-        ExecuteNonQueryStoredProcedure("sp_UpsertKetQuaHocTap", pMaHS, pMaMon, pLoai, pDiem);
+            // ### SỬA: Thêm tham số NULL cho NhanXet và GhiChu ###
+            var pNhanXet = new SqlParameter("@NhanXet", DBNull.Value);
+            var pGhiChu = new SqlParameter("@GhiChu", DBNull.Value);
+
+            ExecuteNonQueryStoredProcedure("sp_UpsertKetQuaHocTap", pMaHS, pMaMon, pLoai, pDiem, pNhanXet, pGhiChu);
+        }
+        catch (System.Data.SqlClient.SqlException ex)
+        {
+            // Bắt lỗi RAISERROR từ SQL (lỗi 50000)
+            if (ex.Number == 50000)
+            {
+                // Hiển thị thông báo lỗi thân thiện cho giáo viên
+                MessageBox.Show(ex.Message, "Thông Báo Khóa Điểm", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else
+            {
+                // Ném các lỗi SQL khác
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Bắt các lỗi C# khác
+            MessageBox.Show("Đã xảy ra lỗi khi lưu điểm: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+    // ### MỚI: Hàm riêng để lưu Nhận Xét / Ghi Chú ###
+    public static void UpdateKetQuaHocTap_Text(string maHS, string maMon, string loai, string textValue, bool isNhanXet)
+    {
+        try
+        {
+            var pMaHS = new SqlParameter("@MaHS", maHS);
+            var pMaMon = new SqlParameter("@MaMon", maMon);
+            var pLoai = new SqlParameter("@Loai", loai);
+            var pDiem = new SqlParameter("@Diem", DBNull.Value); // Không cập nhật điểm
+
+            SqlParameter pNhanXet, pGhiChu;
+            if (isNhanXet)
+            {
+                pNhanXet = new SqlParameter("@NhanXet", (object)textValue ?? DBNull.Value);
+                pGhiChu = new SqlParameter("@GhiChu", DBNull.Value);
+            }
+            else
+            {
+                pNhanXet = new SqlParameter("@NhanXet", DBNull.Value);
+                pGhiChu = new SqlParameter("@GhiChu", (object)textValue ?? DBNull.Value);
+            }
+
+            ExecuteNonQueryStoredProcedure("sp_UpsertKetQuaHocTap", pMaHS, pMaMon, pLoai, pDiem, pNhanXet, pGhiChu);
+        }
+        catch (System.Data.SqlClient.SqlException ex)
+        {
+            if (ex.Number == 50000)
+            {
+                MessageBox.Show(ex.Message, "Thông Báo Khóa Điểm", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else
+            {
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Đã xảy ra lỗi khi lưu nhận xét: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     public static DataTable GetKetQuaHocTapByLop(string maLop)
@@ -375,7 +441,34 @@ public static class DatabaseHelper
 
         ExecuteNonQueryStoredProcedure("sp_InsertTaiLieu", pMaGV, pTen, pMoTa, pKieu, pTrangThai);
     }
+    public static void UpdateHocSinhLop(string maHS, string maLopMoi)
+    {
+        var pMaHS = new SqlParameter("@MaHS", maHS);
+        var pMaLopMoi = new SqlParameter("@MaLopMoi", (object)maLopMoi ?? DBNull.Value);
+        ExecuteNonQueryStoredProcedure("sp_UpdateHocSinhLop", pMaHS, pMaLopMoi);
+    }
+    public static int UpdateHocSinhLop_Multi(System.Collections.Generic.List<string> maHocSinhList, string maLopMoi)
+    {
+        // 1. Chuyển List<string> thành DataTable
+        DataTable dt = new DataTable();
+        dt.Columns.Add("MaHS", typeof(string));
+        foreach (string maHS in maHocSinhList)
+        {
+            dt.Rows.Add(maHS);
+        }
 
+        // 2. Chuẩn bị tham số
+        var pMaHSList = new SqlParameter("@MaHSList", SqlDbType.Structured)
+        {
+            TypeName = "ut_MaHSList",
+            Value = dt
+        };
+        var pMaLopMoi = new SqlParameter("@MaLopMoi", (object)maLopMoi ?? DBNull.Value);
+
+        // 3. Gọi SP và trả về số lượng hàng bị ảnh hưởng
+        object result = ExecuteScalarStoredProcedure("sp_UpdateHocSinhLop_Multi", pMaHSList, pMaLopMoi);
+        return (result != null && result != DBNull.Value) ? Convert.ToInt32(result) : 0;
+    }
     public static DataTable GetTaiLieuShared()
     {
         return ExecuteStoredProcedure("sp_GetTaiLieuShared");
@@ -984,5 +1077,196 @@ public static class DatabaseHelper
         var pMaQL = new SqlParameter("@MaQL", maQL);
         ExecuteNonQueryStoredProcedure("sp_DeleteQuyLop", pMaQL);
     }
+    #endregion
+    public static DataTable GetMonHocByGiaoVien(string maGV)
+    {
+        var pMaGV = new SqlParameter("@MaGV", maGV);
+        return ExecuteStoredProcedure("sp_GetMonHocByGiaoVien", pMaGV);
+    }
+    public static void UpdateGiaoVien_MonHoc(string maGV, DataTable dtMaMon)
+    {
+        var pMaGV = new SqlParameter("@MaGV", maGV);
+        var pMonHocList = new SqlParameter("@MonHocList", SqlDbType.Structured)
+        {
+            TypeName = "ut_MaMonList",
+            Value = dtMaMon
+        };
+        ExecuteNonQueryStoredProcedure("sp_UpdateGiaoVien_MonHoc", pMaGV, pMonHocList);
+    }
+    #region Quản lý Trường học (MonHoc, ThoiHanDiem, LenLop)
+
+    /// <summary>
+    /// Thêm một môn học mới. SP tự tạo MaMon dựa trên TenMon.
+    /// </summary>
+    public static void InsertMonHoc(string tenMon)
+    {
+        try
+        {
+            var pTenMon = new SqlParameter("@TenMon", tenMon);
+            ExecuteNonQueryStoredProcedure("sp_InsertMonHoc", pTenMon);
+        }
+        catch (SqlException ex)
+        {
+            // Bắt lỗi RAISERROR từ SP
+            if (ex.Number == 50000) throw new Exception(ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Cập nhật tên của một môn học.
+    /// </summary>
+    public static void UpdateMonHoc(string maMon, string tenMon)
+    {
+        try
+        {
+            var pMaMon = new SqlParameter("@MaMon", maMon);
+            var pTenMon = new SqlParameter("@TenMon", tenMon);
+            ExecuteNonQueryStoredProcedure("sp_UpdateMonHoc", pMaMon, pTenMon);
+        }
+        catch (SqlException ex)
+        {
+            if (ex.Number == 50000) throw new Exception(ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Xóa một môn học (chỉ khi không được sử dụng).
+    /// </summary>
+    public static void DeleteMonHoc(string maMon)
+    {
+        try
+        {
+            var pMaMon = new SqlParameter("@MaMon", maMon);
+            ExecuteNonQueryStoredProcedure("sp_DeleteMonHoc", pMaMon);
+        }
+        catch (SqlException ex)
+        {
+            if (ex.Number == 50000) throw new Exception(ex.Message);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Lấy danh sách cài đặt thời hạn nhập điểm (bao gồm cột 'DaKhoa' tự tính toán).
+    /// </summary>
+    public static DataTable GetThoiHanDiem()
+    {
+        return ExecuteStoredProcedure("sp_GetThoiHanDiem");
+    }
+
+    /// <summary>
+    /// Cập nhật một hàng trong bảng ThoiHanDiem.
+    /// </summary>
+    public static void UpdateThoiHanDiem(string maCotDiem, string khoi, int hocKy, DateTime ngayMo, DateTime ngayKhoa, bool khoaThuCong)
+    {
+        var pMaCotDiem = new SqlParameter("@MaCotDiem", maCotDiem);
+        var pKhoi = new SqlParameter("@Khoi", khoi);
+        var pHocKy = new SqlParameter("@HocKy", hocKy);
+        var pNgayMo = new SqlParameter("@NgayMoDiem", ngayMo);
+        var pNgayKhoa = new SqlParameter("@NgayKhoaDiem", ngayKhoa);
+        var pKhoaThuCong = new SqlParameter("@KhoaThuCong", khoaThuCong);
+
+        ExecuteNonQueryStoredProcedure("sp_UpdateThoiHanDiem", pMaCotDiem, pKhoi, pHocKy, pNgayMo, pNgayKhoa, pKhoaThuCong);
+    }
+
+    /// <summary>
+    /// Thực thi SP nghiệp vụ cuối năm: tính điểm TB và chuyển học sinh sang lớp mới.
+    /// Trả về 1 DataTable chứa 1 dòng kết quả (SoHSLenLop, SoHSOLaiLop, SoHSTotNghiep).
+    /// </summary>
+    public static DataTable ProcessStudentPromotion(string maLopCu, string maLopMoi_LenLop, string maLopMoi_OLaiLop, bool isLop5)
+    {
+        var pMaLopCu = new SqlParameter("@MaLopCu", maLopCu);
+
+        var pMaLopMoi_LenLop = new SqlParameter("@MaLopMoi_LenLop",
+            string.IsNullOrEmpty(maLopMoi_LenLop) ? (object)DBNull.Value : maLopMoi_LenLop);
+
+        var pMaLopMoi_OLaiLop = new SqlParameter("@MaLopMoi_OLaiLop",
+            string.IsNullOrEmpty(maLopMoi_OLaiLop) ? (object)DBNull.Value : maLopMoi_OLaiLop);
+
+        var pIsLop5 = new SqlParameter("@IsLop5_TotNghiep", isLop5);
+
+        // SP này trả về một bảng (DataTable) chứa 1 dòng kết quả
+        return ExecuteStoredProcedure("sp_ProcessStudentPromotion",
+            pMaLopCu, pMaLopMoi_LenLop, pMaLopMoi_OLaiLop, pIsLop5);
+    }
+    #region Báo cáo (Admin)
+
+    /// <summary>
+    /// ADMIN: Lấy báo cáo chuyên cần theo Khối, Lớp (hoặc toàn trường) và Học kỳ.
+    /// </summary>
+    /// <param name="khoi">Khối cần xem (vd: "Khối 1"), hoặc null cho tất cả.</param>
+    /// <param name="maLop">Mã lớp cụ thể, hoặc null.</param>
+    /// <param name="hocKy">1: HK1, 2: HK2, 3: Cả năm.</param>
+    public static DataTable GetBaoCaoChuyenCan_Admin(string khoi, string maLop, int hocKy)
+    {
+        // Xử lý giá trị null hoặc "Tất cả" từ ComboBox
+        var pKhoi = new SqlParameter("@Khoi", (object)khoi ?? DBNull.Value);
+        if (khoi == "Tất cả các khối") pKhoi.Value = DBNull.Value;
+
+        var pMaLop = new SqlParameter("@MaLop", (object)maLop ?? DBNull.Value);
+        if (maLop == "ALL" || maLop == "ALL_KHOI") pMaLop.Value = DBNull.Value;
+
+        var pHocKy = new SqlParameter("@HocKy", hocKy);
+
+        // Gọi SP mới hoặc đã sửa đổi
+        return ExecuteStoredProcedure("sp_Admin_GetBaoCaoChuyenCan", pKhoi, pMaLop, pHocKy);
+    }
+
+    /// <summary>
+    /// ADMIN: Lấy bảng điểm tổng hợp các môn theo Khối, Lớp (hoặc toàn trường) và Học kỳ.
+    /// </summary>
+    /// <param name="khoi">Khối cần xem, hoặc null.</param>
+    /// <param name="maLop">Mã lớp cụ thể, hoặc null.</param>
+    /// <param name="hocKy">1, 2, hoặc 3 (Cả năm).</param>
+    public static DataTable GetBangDiemHocKy_Admin(string khoi, string maLop, int hocKy)
+    {
+        var pKhoi = new SqlParameter("@Khoi", (object)khoi ?? DBNull.Value);
+        if (khoi == "Tất cả các khối") pKhoi.Value = DBNull.Value;
+
+        var pMaLop = new SqlParameter("@MaLop", (object)maLop ?? DBNull.Value);
+        if (maLop == "ALL" || maLop == "ALL_KHOI") pMaLop.Value = DBNull.Value;
+
+        var pHocKy = new SqlParameter("@HocKy", hocKy);
+
+        // Gọi SP mới
+        return ExecuteStoredProcedure("sp_Admin_GetBangDiemHocKy", pKhoi, pMaLop, pHocKy);
+    }
+
+    // Lưu ý: Không cần hàm GetBangDiemPivot_Admin vì SP gốc sp_GetBangDiemPivot
+    // đã hoạt động dựa trên MaLop, Admin có thể dùng trực tiếp sau khi chọn lớp.
+
+    /// <summary>
+    /// ADMIN: Lấy hồ sơ học sinh theo Khối, Lớp (hoặc toàn trường).
+    /// </summary>
+    /// <param name="khoi">Khối cần xem, hoặc null.</param>
+    /// <param name="maLop">Mã lớp cụ thể, hoặc null.</param>
+    public static DataTable GetHoSoHocSinh_Admin(string khoi, string maLop)
+    {
+        var pKhoi = new SqlParameter("@Khoi", (object)khoi ?? DBNull.Value);
+        if (khoi == "Tất cả các khối") pKhoi.Value = DBNull.Value;
+
+        var pMaLop = new SqlParameter("@MaLop", (object)maLop ?? DBNull.Value);
+        if (maLop == "ALL" || maLop == "ALL_KHOI") pMaLop.Value = DBNull.Value;
+
+        // Gọi SP mới
+        return ExecuteStoredProcedure("sp_Admin_GetHoSoHocSinh", pKhoi, pMaLop);
+    }
+
+    /// <summary>
+    /// ADMIN: Lấy thống kê tổng hợp theo Khối (hoặc toàn trường).
+    /// </summary>
+    /// <param name="khoi">Khối cần xem, hoặc null cho toàn trường.</param>
+    public static DataTable GetThongKeKhoi_Admin(string khoi)
+    {
+        var pKhoi = new SqlParameter("@khoi", (object)khoi ?? DBNull.Value);
+        if (khoi == "Tất cả các khối") pKhoi.Value = DBNull.Value; // Đảm bảo null được gửi nếu chọn "Tất cả"
+
+        // Gọi SP đã được sửa đổi (sp_GetThongKeKhoi giờ chấp nhận NULL)
+        return ExecuteStoredProcedure("sp_GetThongKeKhoi_Admin", pKhoi);
+    }
+
+    #endregion
     #endregion
 }
