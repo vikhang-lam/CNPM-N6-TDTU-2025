@@ -432,13 +432,11 @@ namespace N6
             {
                 LoadReportData();
             }
-            else
-            {
-                ClearReportData(); // Clear if filters are incomplete
-            }
+            
         }
 
         // ### ADMIN CHANGE: Adapted LoadReportData for Admin (needs SP adjustments potentially) ###
+        // ### ĐÃ SỬA ĐỔI THEO GIẢI PHÁP MỚI ###
         private void LoadReportData()
         {
             string reportType = GetSelectedReportType();
@@ -447,32 +445,50 @@ namespace N6
             DataTable dtReport = null;
             try
             {
-                // 1. Lấy giá trị từ các bộ lọc
+                // 1. Lấy giá trị từ các bộ lọc (như cũ)
                 string selectedKhoi = cboKhoi.SelectedItem?.ToString();
-                string selectedMaLop = cboLop.SelectedValue?.ToString();
+                string selectedMaLopValue = cboLop.SelectedValue?.ToString(); // vd: "1A1", "ALL", "ALL_KHOI"
                 int selectedHocKyIndex = cboHocKy.SelectedIndex; // 0=HK1, 1=HK2, 2=Cả năm
                 int hocKyParam = selectedHocKyIndex + 1; // Tham số cho SP: 1, 2, 3
                 string selectedMaMon = cboMonDay.SelectedValue?.ToString();
 
-                // 2. Chuẩn hóa giá trị tham số (Xử lý "Tất cả...")
+                // 2. Chuẩn hóa giá trị tham số (như cũ)
                 string khoiParam = (selectedKhoi == "Tất cả các khối") ? null : selectedKhoi;
-                string maLopParam = (selectedMaLop == "ALL" || selectedMaLop == "ALL_KHOI") ? null : selectedMaLop;
-                string maMonParam = (selectedMaMon == "ALL") ? null : selectedMaMon;
+                string maLopParam_Admin = (selectedMaLopValue == "ALL" || selectedMaLopValue == "ALL_KHOI") ? null : selectedMaLopValue;
+                string maMonParam_Pivot = (selectedMaMon == "ALL") ? null : selectedMaMon;
 
-                // 3. Gọi SP tương ứng dựa trên loại báo cáo
+                // 3. (MỚI) Biến kiểm tra xem có phải chọn LỚP CỤ THỂ không
+                bool isSpecificClass = !string.IsNullOrEmpty(selectedMaLopValue)
+                                       && selectedMaLopValue != "ALL"
+                                       && selectedMaLopValue != "ALL_KHOI";
+
+                // (Lưu ý: maLopParam_Admin có thể là "1A1" hoặc null)
+                // (Nếu isSpecificClass = true, thì maLopParam_Admin chắc chắn là mã lớp, vd "1A1")
+
+                // 4. Gọi SP tương ứng dựa trên loại báo cáo VÀ lựa chọn Lớp/Khối
                 switch (reportType)
                 {
                     case "Báo cáo chuyên cần":
-                        dtReport = DatabaseHelper.GetBaoCaoChuyenCan_Admin(khoiParam, maLopParam, hocKyParam);
+                        if (isSpecificClass)
+                        {
+                            // Dùng hàm cũ (cho GV) khi chọn lớp cụ thể
+                            dtReport = DatabaseHelper.GetBaoCaoChuyenCan(maLopParam_Admin, hocKyParam);
+                        }
+                        else
+                        {
+                            // Dùng hàm Admin khi chọn "Tất cả các lớp" / "Tất cả các khối"
+                            dtReport = DatabaseHelper.GetBaoCaoChuyenCan_Admin(khoiParam, maLopParam_Admin, hocKyParam);
+                        }
                         break;
 
                     case "Bảng điểm học kỳ":
-                        if (!string.IsNullOrEmpty(maMonParam))
+                        if (!string.IsNullOrEmpty(maMonParam_Pivot))
                         {
-                            // Nếu chọn MỘT môn cụ thể (và phải chọn lớp cụ thể)
-                            if (!string.IsNullOrEmpty(maLopParam))
+                            // --- Bảng điểm PIVOT (chi tiết 1 môn) ---
+                            // Yêu cầu phải chọn lớp cụ thể
+                            if (isSpecificClass)
                             {
-                                dtReport = DatabaseHelper.GetBangDiemPivot(maLopParam, hocKyParam, maMonParam);
+                                dtReport = DatabaseHelper.GetBangDiemPivot(maLopParam_Admin, hocKyParam, maMonParam_Pivot);
                                 CalculateAndAddAverageColumn(dtReport); // Tính TB môn
                             }
                             else
@@ -484,22 +500,41 @@ namespace N6
                         }
                         else
                         {
-                            // Nếu chọn "Tất cả các môn" hoặc không cần chọn môn
-                            dtReport = DatabaseHelper.GetBangDiemHocKy_Admin(khoiParam, maLopParam, hocKyParam);
-                            // SP này đã trả về cột "Trung bình chung", không cần tính lại ở C#
+                            // --- Bảng điểm TỔNG HỢP (nhiều môn) ---
+                            if (isSpecificClass)
+                            {
+                                // Dùng hàm cũ (cho GV) khi chọn lớp cụ thể
+                                dtReport = DatabaseHelper.GetBangDiemHocKy(maLopParam_Admin, hocKyParam);
+                            }
+                            else
+                            {
+                                // Dùng hàm Admin khi chọn "Tất cả các lớp" / "Tất cả các khối"
+                                dtReport = DatabaseHelper.GetBangDiemHocKy_Admin(khoiParam, maLopParam_Admin, hocKyParam);
+                            }
                         }
                         break;
 
                     case "Hồ sơ học sinh":
-                        dtReport = DatabaseHelper.GetHoSoHocSinh_Admin(khoiParam, maLopParam);
+                        if (isSpecificClass)
+                        {
+                            // Dùng hàm cũ (cho GV) khi chọn lớp cụ thể
+                            dtReport = DatabaseHelper.GetHoSoHocSinh(maLopParam_Admin);
+                        }
+                        else
+                        {
+                            // Dùng hàm Admin khi chọn "Tất cả các lớp" / "Tất cả các khối"
+                            dtReport = DatabaseHelper.GetHoSoHocSinh_Admin(khoiParam, maLopParam_Admin);
+                        }
                         break;
 
                     case "Thống kê tổng hợp khối":
+                        // Trường hợp này luôn ẩn cboLop, nên isSpecificClass luôn là false
+                        // Luôn dùng hàm Admin, không cần thay đổi
                         dtReport = DatabaseHelper.GetThongKeKhoi_Admin(khoiParam); // SP này xử lý null cho toàn trường
                         break;
                 }
 
-                // 4. Hiển thị dữ liệu
+                // 5. Hiển thị dữ liệu (như cũ)
                 DisplayReportData(dtReport, reportType);
             }
             catch (Exception ex)

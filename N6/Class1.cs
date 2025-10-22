@@ -1199,18 +1199,13 @@ public static class DatabaseHelper
     /// <param name="khoi">Khối cần xem (vd: "Khối 1"), hoặc null cho tất cả.</param>
     /// <param name="maLop">Mã lớp cụ thể, hoặc null.</param>
     /// <param name="hocKy">1: HK1, 2: HK2, 3: Cả năm.</param>
+    // Sửa lại:
     public static DataTable GetBaoCaoChuyenCan_Admin(string khoi, string maLop, int hocKy)
     {
-        // Xử lý giá trị null hoặc "Tất cả" từ ComboBox
         var pKhoi = new SqlParameter("@Khoi", (object)khoi ?? DBNull.Value);
-        if (khoi == "Tất cả các khối") pKhoi.Value = DBNull.Value;
-
         var pMaLop = new SqlParameter("@MaLop", (object)maLop ?? DBNull.Value);
-        if (maLop == "ALL" || maLop == "ALL_KHOI") pMaLop.Value = DBNull.Value;
-
         var pHocKy = new SqlParameter("@HocKy", hocKy);
 
-        // Gọi SP mới hoặc đã sửa đổi
         return ExecuteStoredProcedure("sp_Admin_GetBaoCaoChuyenCan", pKhoi, pMaLop, pHocKy);
     }
 
@@ -1220,17 +1215,13 @@ public static class DatabaseHelper
     /// <param name="khoi">Khối cần xem, hoặc null.</param>
     /// <param name="maLop">Mã lớp cụ thể, hoặc null.</param>
     /// <param name="hocKy">1, 2, hoặc 3 (Cả năm).</param>
+    // Sửa lại:
     public static DataTable GetBangDiemHocKy_Admin(string khoi, string maLop, int hocKy)
     {
         var pKhoi = new SqlParameter("@Khoi", (object)khoi ?? DBNull.Value);
-        if (khoi == "Tất cả các khối") pKhoi.Value = DBNull.Value;
-
         var pMaLop = new SqlParameter("@MaLop", (object)maLop ?? DBNull.Value);
-        if (maLop == "ALL" || maLop == "ALL_KHOI") pMaLop.Value = DBNull.Value;
-
         var pHocKy = new SqlParameter("@HocKy", hocKy);
 
-        // Gọi SP mới
         return ExecuteStoredProcedure("sp_Admin_GetBangDiemHocKy", pKhoi, pMaLop, pHocKy);
     }
 
@@ -1242,15 +1233,12 @@ public static class DatabaseHelper
     /// </summary>
     /// <param name="khoi">Khối cần xem, hoặc null.</param>
     /// <param name="maLop">Mã lớp cụ thể, hoặc null.</param>
+    // Sửa lại:
     public static DataTable GetHoSoHocSinh_Admin(string khoi, string maLop)
     {
         var pKhoi = new SqlParameter("@Khoi", (object)khoi ?? DBNull.Value);
-        if (khoi == "Tất cả các khối") pKhoi.Value = DBNull.Value;
-
         var pMaLop = new SqlParameter("@MaLop", (object)maLop ?? DBNull.Value);
-        if (maLop == "ALL" || maLop == "ALL_KHOI") pMaLop.Value = DBNull.Value;
 
-        // Gọi SP mới
         return ExecuteStoredProcedure("sp_Admin_GetHoSoHocSinh", pKhoi, pMaLop);
     }
 
@@ -1258,12 +1246,10 @@ public static class DatabaseHelper
     /// ADMIN: Lấy thống kê tổng hợp theo Khối (hoặc toàn trường).
     /// </summary>
     /// <param name="khoi">Khối cần xem, hoặc null cho toàn trường.</param>
+    // Sửa lại:
     public static DataTable GetThongKeKhoi_Admin(string khoi)
     {
         var pKhoi = new SqlParameter("@khoi", (object)khoi ?? DBNull.Value);
-        if (khoi == "Tất cả các khối") pKhoi.Value = DBNull.Value; // Đảm bảo null được gửi nếu chọn "Tất cả"
-
-        // Gọi SP đã được sửa đổi (sp_GetThongKeKhoi giờ chấp nhận NULL)
         return ExecuteStoredProcedure("sp_GetThongKeKhoi_Admin", pKhoi);
     }
 

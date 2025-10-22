@@ -2039,7 +2039,7 @@ BEGIN
     SELECT TenLop FROM LopHoc WHERE MaGVCN = @maGV;
 END;
 GO
-CREATE PROCEDURE sp_GetBaoCaoChuyenCan
+Create PROCEDURE sp_GetBaoCaoChuyenCan
     @maLop VARCHAR(10),
     @hocKy INT
 AS
@@ -2047,13 +2047,24 @@ BEGIN
     DECLARE @CurrentDate DATE = GETDATE();
     DECLARE @CurrentMonth INT = MONTH(@CurrentDate);
     DECLARE @CurrentYear INT = YEAR(@CurrentDate);
-    DECLARE @NamHocStr VARCHAR(10);
-    
-    SELECT @NamHocStr = NamHoc FROM LopHoc WHERE MaLop = @maLop;
     
     DECLARE @NamHocStartYear INT;
-    SET @NamHocStartYear = CAST(LEFT(@NamHocStr, 4) AS INT) - 1;
+    
+    -- ================================================================
+    -- SỬA LỖI LOGIC:
+    -- Luôn tính năm học dựa trên ngày hiện tại, 
+    -- vì giáo viên luôn muốn xem báo cáo của năm học hiện tại.
+    -- (Giả sử năm học mới bắt đầu từ tháng 8)
+    IF @CurrentMonth >= 8 
+        SET @NamHocStartYear = @CurrentYear;
+    ELSE 
+        SET @NamHocStartYear = @CurrentYear - 1;
+    -- ================================================================
 
+    /* -- Bỏ logic cũ dựa trên cột NamHoc có thể đã lỗi thời
+    DECLARE @NamHocStr VARCHAR(10);
+    SELECT @NamHocStr = NamHoc FROM LopHoc WHERE MaLop = @maLop;
+    SET @NamHocStartYear = CAST(LEFT(@NamHocStr, 4) AS INT) - 1;
     IF @NamHocStr IS NULL
     BEGIN
         IF @CurrentMonth >= 8 
@@ -2061,6 +2072,7 @@ BEGIN
         ELSE 
             SET @NamHocStartYear = @CurrentYear - 1;
     END;
+    */
     
     DECLARE @StartDate DATE, @EndDate DATE;
 
@@ -2080,6 +2092,7 @@ BEGIN
         SET @EndDate = DATEFROMPARTS(@NamHocStartYear + 1, 5, 31);
     END;
 
+    -- Truy vấn SELECT giữ nguyên
     SELECT 
         hs.MaHS, hs.HoTen,
         COUNT(CASE WHEN dd.TrangThai = N'Có mặt' THEN 1 END) as SoBuoiCoMat,
