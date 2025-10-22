@@ -289,15 +289,26 @@ namespace N6
                 if (dgv.Columns.Contains("MaHS")) dgv.Columns["MaHS"].Visible = false;
                 if (dgv.Columns.Contains("HoTen"))
                 {
-                    dgv.Columns["HoTen"].HeaderText = "Họ và Tên";
+                    // ### BẠN THÊM DÒNG NÀY ###
+                    var col = dgv.Columns["HoTen"];
+                    col.HeaderText = "Họ và Tên";
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; // <--- THÊM VÀO
                     if (dgv.Columns.Contains("STT"))
-                        dgv.Columns["HoTen"].DisplayIndex = 1;
+                        col.DisplayIndex = 1;
                 }
 
                 if (dgv.Columns.Contains("GioiTinh")) dgv.Columns["GioiTinh"].HeaderText = "Giới Tính";
                 if (dgv.Columns.Contains("NgaySinh")) { dgv.Columns["NgaySinh"].HeaderText = "Ngày Sinh"; dgv.Columns["NgaySinh"].DefaultCellStyle.Format = "dd/MM/yyyy"; }
                 if (dgv.Columns.Contains("DiaChi")) dgv.Columns["DiaChi"].HeaderText = "Địa Chỉ";
-                if (dgv.Columns.Contains("TenLop")) dgv.Columns["TenLop"].HeaderText = "Tên Lớp";
+
+                if (dgv.Columns.Contains("TenLop"))
+                {
+                    // ### BẠN THÊM DÒNG NÀY ###
+                    var col = dgv.Columns["TenLop"];
+                    col.HeaderText = "Tên Lớp";
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; // <--- THÊM VÀO
+                }
+
                 if (dgv.Columns.Contains("DanToc")) dgv.Columns["DanToc"].HeaderText = "Dân Tộc";
                 if (dgv.Columns.Contains("SDTPhuHuynh")) dgv.Columns["SDTPhuHuynh"].HeaderText = "SĐT Phụ Huynh";
                 if (dgv.Columns.Contains("TrangThai")) dgv.Columns["TrangThai"].HeaderText = "Trạng Thái";

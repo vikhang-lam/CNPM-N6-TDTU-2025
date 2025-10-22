@@ -607,7 +607,190 @@ INSERT INTO HocSinh (MaHS, MaLop, HoTen, DanToc, GioiTinh, SDTPhuHuynh, DiaChi, 
 ('HS299', '5A3', N'Cao Thùy Anh', N'Kinh', N'Nữ', '0932345019', N'Đà Nẵng', '2015-07-19'),
 ('HS300', '5A3', N'Giang Tuấn Phong', N'Kinh', N'Nam', '0932345020', N'Đà Nẵng', '2015-08-20');
 GO
+PRINT N'Cập nhật điểm cho HS241 (Nguyễn Hoàng An)...';
+-- Môn TV (Tiếng Việt)
+UPDATE KetQuaHocTap SET Diem = 7.0 WHERE MaHS = 'HS241' AND MaMon = 'TV' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS241' AND MaMon = 'TV' AND Loai = 'CuoiKi1';
+-- Môn TOAN (Toán)
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS241' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
+-- Môn ANH (Tiếng Anh)
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS241' AND MaMon = 'ANH' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'ANH' AND Loai = 'CuoiKi1';
+-- Môn KH (Khoa học)
+UPDATE KetQuaHocTap SET Diem = 7.5 WHERE MaHS = 'HS241' AND MaMon = 'KH' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS241' AND MaMon = 'KH' AND Loai = 'CuoiKi1';
+-- Môn LS_DL (Lịch sử và Địa lí)
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS241' AND MaMon = 'LS_DL' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS241' AND MaMon = 'LS_DL' AND Loai = 'CuoiKi1';
+-- Môn TIN (Tin học)
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'TIN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS241' AND MaMon = 'TIN' AND Loai = 'CuoiKi1';
+-- Môn GDTC (Giáo dục thể chất)
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'GDTC' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'GDTC' AND Loai = 'CuoiKi1';
+-- Môn AN (Âm nhạc)
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'AN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'AN' AND Loai = 'CuoiKi1';
+-- Môn MT (Mĩ thuật)
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'MT' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS241' AND MaMon = 'MT' AND Loai = 'CuoiKi1';
+-- Môn CN (Công nghệ)
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS241' AND MaMon = 'CN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS241' AND MaMon = 'CN' AND Loai = 'CuoiKi1';
+-- Môn DD (Đạo đức)
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'DD' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'DD' AND Loai = 'CuoiKi1';
+-- Môn HDTN (Hoạt động trải nghiệm)
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'HDTN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'HDTN' AND Loai = 'CuoiKi1';
 
+-- --- Học Kỳ 2 (HS241) ---
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS241' AND MaMon = 'TV' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS241' AND MaMon = 'TV' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'TOAN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS241' AND MaMon = 'TOAN' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'ANH' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS241' AND MaMon = 'ANH' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS241' AND MaMon = 'KH' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'KH' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS241' AND MaMon = 'LS_DL' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'LS_DL' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS241' AND MaMon = 'TIN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'TIN' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'GDTC' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'GDTC' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'AN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS241' AND MaMon = 'AN' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS241' AND MaMon = 'MT' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS241' AND MaMon = 'MT' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS241' AND MaMon = 'CN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'CN' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'DD' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'DD' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS241' AND MaMon = 'HDTN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS241' AND MaMon = 'HDTN' AND Loai = 'CuoiKi2';
+GO
+
+-- =================================================================
+-- HỌC SINH 2: Trần Bảo Bình (HS242) - LỚP 5A1
+-- =================================================================
+
+-- --- Học Kỳ 1 (HS242) ---
+PRINT N'Cập nhật điểm cho HS242 (Trần Bảo Bình)...';
+-- Môn TV (Tiếng Việt)
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS242' AND MaMon = 'TV' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 7.5 WHERE MaHS = 'HS242' AND MaMon = 'TV' AND Loai = 'CuoiKi1';
+-- Môn TOAN (Toán)
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS242' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
+-- Môn ANH (Tiếng Anh)
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS242' AND MaMon = 'ANH' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS242' AND MaMon = 'ANH' AND Loai = 'CuoiKi1';
+-- Môn KH (Khoa học)
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS242' AND MaMon = 'KH' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'KH' AND Loai = 'CuoiKi1';
+-- Môn LS_DL (Lịch sử và Địa lí)
+UPDATE KetQuaHocTap SET Diem = 7.0 WHERE MaHS = 'HS242' AND MaMon = 'LS_DL' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS242' AND MaMon = 'LS_DL' AND Loai = 'CuoiKi1';
+-- Môn TIN (Tin học)
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'TIN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'TIN' AND Loai = 'CuoiKi1';
+-- Môn GDTC (Giáo dục thể chất)
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'GDTC' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'GDTC' AND Loai = 'CuoiKi1';
+-- Môn AN (Âm nhạc)
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS242' AND MaMon = 'AN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'AN' AND Loai = 'CuoiKi1';
+-- Môn MT (Mĩ thuật)
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS242' AND MaMon = 'MT' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'MT' AND Loai = 'CuoiKi1';
+-- Môn CN (Công nghệ)
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS242' AND MaMon = 'CN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'CN' AND Loai = 'CuoiKi1';
+-- Môn DD (Đạo đức)
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'DD' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'DD' AND Loai = 'CuoiKi1';
+-- Môn HDTN (Hoạt động trải nghiệm)
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'HDTN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'HDTN' AND Loai = 'CuoiKi1';
+
+-- --- Học Kỳ 2 (HS242) ---
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS242' AND MaMon = 'TV' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS242' AND MaMon = 'TV' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS242' AND MaMon = 'TOAN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'TOAN' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS242' AND MaMon = 'ANH' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'ANH' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'KH' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'KH' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS242' AND MaMon = 'LS_DL' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS242' AND MaMon = 'LS_DL' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'TIN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'TIN' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'GDTC' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'GDTC' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'AN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS242' AND MaMon = 'AN' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'MT' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'MT' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS242' AND MaMon = 'CN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 8.5 WHERE MaHS = 'HS242' AND MaMon = 'CN' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'DD' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'DD' AND Loai = 'CuoiKi2';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS242' AND MaMon = 'HDTN' AND Loai = 'GiuaKi2';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS242' AND MaMon = 'HDTN' AND Loai = 'CuoiKi2';
+GO
+
+-- =================================================================
+-- HỌC SINH 3: Lê Gia Cát (HS243) - LỚP 5A1 (THÊM MỘT SỐ ĐIỂM HỌC KỲ 1)
+-- =================================================================
+PRINT N'Cập nhật điểm cho HS243 (Lê Gia Cát)...';
+UPDATE KetQuaHocTap SET Diem = 7.5 WHERE MaHS = 'HS243' AND MaMon = 'TV' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS243' AND MaMon = 'TV' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS243' AND MaMon = 'TOAN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 7.0 WHERE MaHS = 'HS243' AND MaMon = 'TOAN' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 6.5 WHERE MaHS = 'HS243' AND MaMon = 'ANH' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 7.5 WHERE MaHS = 'HS243' AND MaMon = 'ANH' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS243' AND MaMon = 'KH' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 8.0 WHERE MaHS = 'HS243' AND MaMon = 'KH' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS243' AND MaMon = 'TIN' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.5 WHERE MaHS = 'HS243' AND MaMon = 'TIN' AND Loai = 'CuoiKi1';
+UPDATE KetQuaHocTap SET Diem = 10  WHERE MaHS = 'HS243' AND MaMon = 'DD' AND Loai = 'GiuaKi1';
+UPDATE KetQuaHocTap SET Diem = 9.0 WHERE MaHS = 'HS243' AND MaMon = 'DD' AND Loai = 'CuoiKi1';
+GO
+UPDATE KetQuaHocTap SET Diem = 10
+WHERE MaHS = 'HS241' AND MaMon = 'TOAN' AND Loai = 'Thang1_Ki1';
+
+-- Em 2 (Trần Bảo Bình - HS242): 9.5 điểm, Nữ, Kinh
+UPDATE KetQuaHocTap SET Diem = 9.5
+WHERE MaHS = 'HS242' AND MaMon = 'TOAN' AND Loai = 'Thang1_Ki1';
+
+-- Em 3 (Lê Gia Cát - HS243): 8.0 điểm, Nam, Kinh
+UPDATE KetQuaHocTap SET Diem = 8.0
+WHERE MaHS = 'HS243' AND MaMon = 'TOAN' AND Loai = 'Thang1_Ki1';
+
+-- Em 4 (Phạm Minh Dũng - HS244): 7.5 điểm, Nam, Kinh
+UPDATE KetQuaHocTap SET Diem = 7.5
+WHERE MaHS = 'HS244' AND MaMon = 'TOAN' AND Loai = 'Thang1_Ki1';
+
+-- Em 5 (Đỗ Phương Giang - HS245): 6.0 điểm, Nữ, Kinh
+UPDATE KetQuaHocTap SET Diem = 6.0
+WHERE MaHS = 'HS245' AND MaMon = 'TOAN' AND Loai = 'Thang1_Ki1';
+
+-- Em 6 (Vũ Gia Hân - HS246): 5.0 điểm, Nữ, Kinh
+UPDATE KetQuaHocTap SET Diem = 5.0
+WHERE MaHS = 'HS246' AND MaMon = 'TOAN' AND Loai = 'Thang1_Ki1';
+
+-- Em 7 (Hoàng Tuấn Kiệt - HS247): 4.0 điểm, Nam, Kinh
+UPDATE KetQuaHocTap SET Diem = 4.0
+WHERE MaHS = 'HS247' AND MaMon = 'TOAN' AND Loai = 'Thang1_Ki1';
+
+-- Em 8 (Bùi Khánh Linh - HS248): 9.0 điểm, Nữ, Dân tộc thiểu số (để test)
+UPDATE HocSinh SET DanToc = N'Tày' WHERE MaHS = 'HS248';
+UPDATE KetQuaHocTap SET Diem = 9.0
+WHERE MaHS = 'HS248' AND MaMon = 'TOAN' AND Loai = 'Thang1_Ki1';
+Go
 -- 9. Thời Khóa Biểu
 INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, GhiChu, MaGV, MaLop) VALUES
 ('TKB001', '2025-10-06', 1, 'TV', N'Ôn tập chương 1', 'GV007', '5A1'),
@@ -2844,6 +3027,179 @@ BEGIN
     FROM StudentCounts sc
     LEFT JOIN AvgScores av ON sc.MaLop = av.MaLop
     ORDER BY sc.Khoi, sc.TenLop; -- Sắp xếp theo Khối rồi đến Tên lớp
+END;
+GO
+
+GO
+CREATE PROCEDURE sp_GetMonthlyScoreTypes
+    @MaLop VARCHAR(10),
+    @HocKy INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Khoi NVARCHAR(20);
+    SELECT @Khoi = Khoi FROM LopHoc WHERE MaLop = @MaLop;
+
+    IF @Khoi IS NULL
+    BEGIN
+        SELECT TOP 0 '' AS MaCotDiem, '' AS TenHienThi;
+        RETURN;
+    END
+
+    SELECT MaCotDiem, TenHienThi 
+    FROM ThoiHanDiem
+    WHERE Khoi = @Khoi
+      AND HocKy = @HocKy
+      AND MaCotDiem LIKE 'Thang%'
+    ORDER BY NgayMoDiem;
+END;
+GO
+PRINT N'Tạo SP [sp_GetBaoCaoThang_ThongKe]';
+GO
+CREATE PROCEDURE sp_GetBaoCaoThang_ThongKe
+    @MaLop VARCHAR(10),
+    @MaMon VARCHAR(10),
+    @LoaiDiem VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 1. Lấy dữ liệu thô cho lớp/môn/loại điểm cụ thể
+    ;WITH RawData AS (
+        SELECT 
+            hs.GioiTinh,
+            hs.DanToc,
+            kq.Diem
+        FROM KetQuaHocTap kq
+        JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+        WHERE hs.MaLop = @MaLop
+          AND kq.MaMon = @MaMon
+          AND kq.Loai = @LoaiDiem
+          AND kq.Diem IS NOT NULL
+    ),
+    -- 2. Phân loại điểm và các thuộc tính
+    ClassifiedData AS (
+        SELECT
+            CASE 
+                WHEN Diem = 10 THEN '10'
+                WHEN Diem >= 9 AND Diem < 10 THEN '9'
+                WHEN Diem >= 8 AND Diem < 9 THEN '8'
+                WHEN Diem >= 7 AND Diem < 8 THEN '7'
+                WHEN Diem >= 6 AND Diem < 7 THEN '6'
+                WHEN Diem >= 5 AND Diem < 6 THEN '5'
+                ELSE '<5'
+            END AS NhomDiem,
+            CASE 
+                WHEN Diem >= 7 THEN 'T'
+                WHEN Diem >= 5 THEN 'H'
+                ELSE 'C'
+            END AS XepLoai,
+            CASE WHEN GioiTinh = N'Nữ' THEN 1 ELSE 0 END AS IsNu,
+            CASE WHEN DanToc IS NOT NULL AND DanToc != N'Kinh' THEN 1 ELSE 0 END AS IsDanTocThieuSo,
+            CASE WHEN GioiTinh = N'Nữ' AND (DanToc IS NOT NULL AND DanToc != N'Kinh') THEN 1 ELSE 0 END AS IsNuDanTocThieuSo
+        FROM RawData
+    )
+    -- 3. Tổng hợp cho Bảng Điểm
+    SELECT 
+        'Diem' AS LoaiThongKe,
+        NhomDiem AS PhanLoai,
+        COUNT(*) AS TS,
+        SUM(IsNu) AS Nu,
+        SUM(IsDanTocThieuSo) AS DanToc,
+        SUM(IsNuDanTocThieuSo) AS NDT
+    FROM ClassifiedData
+    GROUP BY NhomDiem
+
+    UNION ALL
+
+    -- 4. Tổng hợp cho Bảng Xếp Loại
+    SELECT 
+        'XepLoai' AS LoaiThongKe,
+        XepLoai AS PhanLoai,
+        COUNT(*) AS TS,
+        SUM(IsNu) AS Nu,
+        SUM(IsDanTocThieuSo) AS DanToc,
+        SUM(IsNuDanTocThieuSo) AS NDT
+    FROM ClassifiedData
+    GROUP BY XepLoai;
+END;
+GO
+CREATE PROCEDURE sp_Admin_GetBaoCaoThang_ThongKe
+    @Khoi NVARCHAR(20) = NULL, -- "Khối 5"
+    @MaMon VARCHAR(10),
+    @LoaiDiem VARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 1. Lấy dữ liệu thô (giống SP cũ nhưng lọc theo @Khoi thay vì @MaLop)
+    ;WITH RawData AS (
+        SELECT 
+            hs.GioiTinh,
+            hs.DanToc,
+            kq.Diem
+        FROM KetQuaHocTap kq
+        JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+        JOIN LopHoc lh ON hs.MaLop = lh.MaLop -- Cần Join LopHoc để lọc theo Khối
+        WHERE 
+            (@Khoi IS NULL OR lh.Khoi = @Khoi) -- Lọc theo Khối (hoặc toàn trường nếu NULL)
+          AND kq.MaMon = @MaMon
+          AND kq.Loai = @LoaiDiem
+          AND kq.Diem IS NOT NULL
+    ),
+    -- 2. Phân loại
+    ClassifiedData AS (
+        SELECT
+            CASE 
+                WHEN Diem = 10 THEN '10'
+                WHEN Diem >= 9 AND Diem < 10 THEN '9'
+                WHEN Diem >= 8 AND Diem < 9 THEN '8'
+                WHEN Diem >= 7 AND Diem < 8 THEN '7'
+                WHEN Diem >= 6 AND Diem < 7 THEN '6'
+                WHEN Diem >= 5 AND Diem < 6 THEN '5'
+                ELSE N'Dưới 5' -- Thay đổi theo hình mới
+            END AS NhomDiem,
+            CASE 
+                WHEN Diem >= 7 THEN 'T'
+                WHEN Diem >= 5 THEN 'H'
+                ELSE 'C'
+            END AS XepLoai,
+            CASE WHEN GioiTinh = N'Nữ' THEN 1 ELSE 0 END AS IsNu,
+            CASE WHEN DanToc IS NOT NULL AND DanToc != N'Kinh' THEN 1 ELSE 0 END AS IsDanTocThieuSo,
+            CASE WHEN GioiTinh = N'Nữ' AND (DanToc IS NOT NULL AND DanToc != N'Kinh') THEN 1 ELSE 0 END AS IsNuDanTocThieuSo
+        FROM RawData
+    ),
+    -- 3. Tổng hợp Bảng Điểm
+    DiemStats AS (
+        SELECT 
+            'Diem' AS LoaiThongKe,
+            NhomDiem AS PhanLoai,
+            COUNT(*) AS TS,
+            SUM(IsNu) AS Nu,
+            SUM(IsDanTocThieuSo) AS DanToc,
+            SUM(IsNuDanTocThieuSo) AS NDT,
+            CAST(NULL AS FLOAT) AS TyLe -- Cột này chỉ dùng cho Xếp Loại
+        FROM ClassifiedData
+        GROUP BY NhomDiem
+    ),
+    -- 4. Tổng hợp Bảng Xếp Loại
+    XepLoaiStats AS (
+        SELECT 
+            'XepLoai' AS LoaiThongKe,
+            XepLoai AS PhanLoai,
+            COUNT(*) AS TS,
+            NULL AS Nu, -- Không cần cho Xếp Loại
+            NULL AS DanToc, -- Không cần
+            NULL AS NDT, -- Không cần
+            -- Tính tỷ lệ %
+            CAST( (COUNT(*) * 100.0) / NULLIF((SELECT COUNT(*) FROM RawData), 0) AS DECIMAL(5, 1)) AS TyLe
+        FROM ClassifiedData
+        GROUP BY XepLoai
+    )
+    -- 5. Kết hợp
+    SELECT * FROM DiemStats
+    UNION ALL
+    SELECT * FROM XepLoaiStats;
 END;
 GO
 PRINT 'TẤT CẢ STORED PROCEDURES ĐÃ ĐƯỢC TẠO.';

@@ -1,10 +1,16 @@
 ﻿namespace N6
 {
-    // ### ADMIN CHANGE: Đổi tên lớp ###
     partial class UC_BaoCao_Admin
     {
+        /// <summary> 
+        /// Required designer variable.
+        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
+        /// <summary> 
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -16,6 +22,10 @@
 
         #region Component Designer generated code
 
+        /// <summary> 
+        /// Required method for Designer support - do not modify 
+        /// the contents of this method with the code editor.
+        /// </summary>
         private void InitializeComponent()
         {
             this.pnlFilters = new System.Windows.Forms.Panel();
@@ -25,11 +35,8 @@
             this.rbBangDiem = new System.Windows.Forms.RadioButton();
             this.rbHoSo = new System.Windows.Forms.RadioButton();
             this.rbThongKeKhoi = new System.Windows.Forms.RadioButton();
+            this.rbBaoCaoThang = new System.Windows.Forms.RadioButton(); // <-- THÊM MỚI
             this.pnlKhoi = new System.Windows.Forms.FlowLayoutPanel();
-            // ### ADMIN CHANGE: Loại bỏ tabLoaiGiaoVien ###
-            // this.tabLoaiGiaoVien = new System.Windows.Forms.TabControl();
-            // this.tabGiangDay = new System.Windows.Forms.TabPage();
-            // this.tabChuNhiem = new System.Windows.Forms.TabPage();
             this.lblKhoi = new System.Windows.Forms.Label();
             this.cboKhoi = new System.Windows.Forms.ComboBox();
             this.pnlLop = new System.Windows.Forms.FlowLayoutPanel();
@@ -41,6 +48,9 @@
             this.pnlMon = new System.Windows.Forms.FlowLayoutPanel();
             this.lblMonDay = new System.Windows.Forms.Label();
             this.cboMonDay = new System.Windows.Forms.ComboBox();
+            this.pnlThang = new System.Windows.Forms.FlowLayoutPanel(); // <-- THÊM MỚI
+            this.lblThang = new System.Windows.Forms.Label(); // <-- THÊM MỚI
+            this.cboThang = new System.Windows.Forms.ComboBox(); // <-- THÊM MỚI
             this.btnXuatPDF = new System.Windows.Forms.Button();
             this.btnXuatExcel = new System.Windows.Forms.Button();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
@@ -50,11 +60,10 @@
             this.flpFilters.SuspendLayout();
             this.pnlReportTypeSelector.SuspendLayout();
             this.pnlKhoi.SuspendLayout();
-            // ### ADMIN CHANGE: Loại bỏ tabLoaiGiaoVien khỏi SuspendLayout ###
-            // this.tabLoaiGiaoVien.SuspendLayout();
             this.pnlLop.SuspendLayout();
             this.pnlHocKy.SuspendLayout();
             this.pnlMon.SuspendLayout();
+            this.pnlThang.SuspendLayout(); // <-- THÊM MỚI
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -83,6 +92,7 @@
             this.flpFilters.Controls.Add(this.pnlLop);
             this.flpFilters.Controls.Add(this.pnlHocKy);
             this.flpFilters.Controls.Add(this.pnlMon);
+            this.flpFilters.Controls.Add(this.pnlThang); // <-- THÊM MỚI
             this.flpFilters.Controls.Add(this.btnXuatPDF);
             this.flpFilters.Controls.Add(this.btnXuatExcel);
             this.flpFilters.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -99,11 +109,12 @@
             this.pnlReportTypeSelector.Controls.Add(this.rbBangDiem);
             this.pnlReportTypeSelector.Controls.Add(this.rbHoSo);
             this.pnlReportTypeSelector.Controls.Add(this.rbThongKeKhoi);
+            this.pnlReportTypeSelector.Controls.Add(this.rbBaoCaoThang); // <-- THÊM MỚI
             this.pnlReportTypeSelector.Location = new System.Drawing.Point(3, 3);
             this.pnlReportTypeSelector.Margin = new System.Windows.Forms.Padding(3, 3, 3, 10);
             this.pnlReportTypeSelector.Name = "pnlReportTypeSelector";
             this.pnlReportTypeSelector.Padding = new System.Windows.Forms.Padding(5);
-            this.pnlReportTypeSelector.Size = new System.Drawing.Size(653, 49);
+            this.pnlReportTypeSelector.Size = new System.Drawing.Size(818, 49); // <-- CẬP NHẬT KÍCH THƯỚC
             this.pnlReportTypeSelector.TabIndex = 6;
             this.pnlReportTypeSelector.WrapContents = false;
             // 
@@ -147,23 +158,31 @@
             this.rbThongKeKhoi.Text = "Thống kê tổng hợp khối";
             this.rbThongKeKhoi.UseVisualStyleBackColor = true;
             // 
+            // rbBaoCaoThang
+            // 
+            this.rbBaoCaoThang.Location = new System.Drawing.Point(651, 8); // <-- CẬP NHẬT VỊ TRÍ
+            this.rbBaoCaoThang.Name = "rbBaoCaoThang";
+            this.rbBaoCaoThang.Size = new System.Drawing.Size(160, 33);
+            this.rbBaoCaoThang.TabIndex = 4; // <-- THÊM MỚI
+            this.rbBaoCaoThang.TabStop = true;
+            this.rbBaoCaoThang.Text = "Báo cáo tháng";
+            this.rbBaoCaoThang.UseVisualStyleBackColor = true;
+            // 
             // pnlKhoi
             // 
             this.pnlKhoi.AutoSize = true;
-            // ### ADMIN CHANGE: Loại bỏ tabLoaiGiaoVien khỏi Controls ###
-            // this.pnlKhoi.Controls.Add(this.tabLoaiGiaoVien);
             this.pnlKhoi.Controls.Add(this.lblKhoi);
             this.pnlKhoi.Controls.Add(this.cboKhoi);
             this.pnlKhoi.Location = new System.Drawing.Point(0, 67);
             this.pnlKhoi.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.pnlKhoi.Name = "pnlKhoi";
-            // ### ADMIN CHANGE: Điều chỉnh Size ###
             this.pnlKhoi.Size = new System.Drawing.Size(223, 40);
             this.pnlKhoi.TabIndex = 2;
-            
+            // 
+            // lblKhoi
+            // 
             this.lblKhoi.AutoSize = true;
             this.lblKhoi.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F);
-            // ### ADMIN CHANGE: Điều chỉnh vị trí ###
             this.lblKhoi.Location = new System.Drawing.Point(5, 8);
             this.lblKhoi.Margin = new System.Windows.Forms.Padding(5, 8, 0, 5);
             this.lblKhoi.Name = "lblKhoi";
@@ -176,7 +195,6 @@
             this.cboKhoi.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboKhoi.Font = new System.Drawing.Font("Segoe UI", 9.5F);
             this.cboKhoi.FormattingEnabled = true;
-            // ### ADMIN CHANGE: Điều chỉnh vị trí và kích thước ###
             this.cboKhoi.Location = new System.Drawing.Point(57, 5);
             this.cboKhoi.Margin = new System.Windows.Forms.Padding(5);
             this.cboKhoi.Name = "cboKhoi";
@@ -188,7 +206,6 @@
             this.pnlLop.AutoSize = true;
             this.pnlLop.Controls.Add(this.lblLop);
             this.pnlLop.Controls.Add(this.cboLop);
-            // ### ADMIN CHANGE: Điều chỉnh vị trí ###
             this.pnlLop.Location = new System.Drawing.Point(223, 67);
             this.pnlLop.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.pnlLop.Name = "pnlLop";
@@ -214,7 +231,7 @@
             this.cboLop.Location = new System.Drawing.Point(52, 5);
             this.cboLop.Margin = new System.Windows.Forms.Padding(5);
             this.cboLop.Name = "cboLop";
-            this.cboLop.Size = new System.Drawing.Size(150, 29); // ### ADMIN CHANGE: Tăng kích thước ###
+            this.cboLop.Size = new System.Drawing.Size(150, 29);
             this.cboLop.TabIndex = 1;
             // 
             // pnlHocKy
@@ -222,7 +239,6 @@
             this.pnlHocKy.AutoSize = true;
             this.pnlHocKy.Controls.Add(this.lblHocKy);
             this.pnlHocKy.Controls.Add(this.cboHocKy);
-            // ### ADMIN CHANGE: Điều chỉnh vị trí ###
             this.pnlHocKy.Location = new System.Drawing.Point(430, 67);
             this.pnlHocKy.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.pnlHocKy.Name = "pnlHocKy";
@@ -256,7 +272,6 @@
             this.pnlMon.AutoSize = true;
             this.pnlMon.Controls.Add(this.lblMonDay);
             this.pnlMon.Controls.Add(this.cboMonDay);
-            // ### ADMIN CHANGE: Điều chỉnh vị trí ###
             this.pnlMon.Location = new System.Drawing.Point(623, 67);
             this.pnlMon.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.pnlMon.Name = "pnlMon";
@@ -282,13 +297,46 @@
             this.cboMonDay.Location = new System.Drawing.Point(58, 5);
             this.cboMonDay.Margin = new System.Windows.Forms.Padding(5);
             this.cboMonDay.Name = "cboMonDay";
-            this.cboMonDay.Size = new System.Drawing.Size(199, 29); // ### ADMIN CHANGE: Tăng kích thước ###
+            this.cboMonDay.Size = new System.Drawing.Size(199, 29);
             this.cboMonDay.TabIndex = 1;
+            // 
+            // pnlThang
+            // 
+            this.pnlThang.AutoSize = true;
+            this.pnlThang.Controls.Add(this.lblThang);
+            this.pnlThang.Controls.Add(this.cboThang);
+            this.pnlThang.Location = new System.Drawing.Point(885, 67); // <-- CẬP NHẬT VỊ TRÍ (sau pnlMon)
+            this.pnlThang.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
+            this.pnlThang.Name = "pnlThang";
+            this.pnlThang.Size = new System.Drawing.Size(225, 39);
+            this.pnlThang.TabIndex = 6; // <-- THÊM MỚI
+            // 
+            // lblThang
+            // 
+            this.lblThang.AutoSize = true;
+            this.lblThang.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F);
+            this.lblThang.Location = new System.Drawing.Point(5, 8);
+            this.lblThang.Margin = new System.Windows.Forms.Padding(5, 8, 0, 5);
+            this.lblThang.Name = "lblThang";
+            this.lblThang.Size = new System.Drawing.Size(59, 21);
+            this.lblThang.TabIndex = 0;
+            this.lblThang.Text = "Tháng:";
+            // 
+            // cboThang
+            // 
+            this.cboThang.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboThang.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+            this.cboThang.FormattingEnabled = true;
+            this.cboThang.Location = new System.Drawing.Point(69, 5);
+            this.cboThang.Margin = new System.Windows.Forms.Padding(5);
+            this.cboThang.Name = "cboThang";
+            this.cboThang.Size = new System.Drawing.Size(151, 29);
+            this.cboThang.TabIndex = 1;
             // 
             // btnXuatPDF
             // 
-            this.btnXuatPDF.Location = new System.Drawing.Point(3, 110);
-            this.btnXuatPDF.Margin = new System.Windows.Forms.Padding(3, 3, 10, 3); // ### ADMIN CHANGE: Điều chỉnh vị trí ###
+            this.btnXuatPDF.Location = new System.Drawing.Point(3, 111); // <-- CẬP NHẬT VỊ TRÍ
+            this.btnXuatPDF.Margin = new System.Windows.Forms.Padding(3, 3, 10, 3);
             this.btnXuatPDF.Name = "btnXuatPDF";
             this.btnXuatPDF.Size = new System.Drawing.Size(130, 38);
             this.btnXuatPDF.TabIndex = 8;
@@ -297,7 +345,7 @@
             // 
             // btnXuatExcel
             // 
-            this.btnXuatExcel.Location = new System.Drawing.Point(146, 110);
+            this.btnXuatExcel.Location = new System.Drawing.Point(146, 111); // <-- CẬP NHẬT VỊ TRÍ
             this.btnXuatExcel.Name = "btnXuatExcel";
             this.btnXuatExcel.Size = new System.Drawing.Size(130, 38);
             this.btnXuatExcel.TabIndex = 7;
@@ -345,14 +393,14 @@
             this.flpCharts.TabIndex = 0;
             // 
             // UC_BaoCao_Admin
-            // ### ADMIN CHANGE: Đổi tên lớp ###
+            // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 21F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.pnlFilters);
             this.Font = new System.Drawing.Font("Segoe UI", 9.5F);
-            this.Name = "UC_BaoCao_Admin"; // ### ADMIN CHANGE: Đổi tên lớp ###
+            this.Name = "UC_BaoCao_Admin";
             this.Padding = new System.Windows.Forms.Padding(10);
             this.Size = new System.Drawing.Size(1000, 600);
             this.pnlFilters.ResumeLayout(false);
@@ -361,14 +409,14 @@
             this.pnlReportTypeSelector.ResumeLayout(false);
             this.pnlKhoi.ResumeLayout(false);
             this.pnlKhoi.PerformLayout();
-            // ### ADMIN CHANGE: Loại bỏ tabLoaiGiaoVien khỏi ResumeLayout ###
-            // this.tabLoaiGiaoVien.ResumeLayout(false); 
             this.pnlLop.ResumeLayout(false);
             this.pnlLop.PerformLayout();
             this.pnlHocKy.ResumeLayout(false);
             this.pnlHocKy.PerformLayout();
             this.pnlMon.ResumeLayout(false);
             this.pnlMon.PerformLayout();
+            this.pnlThang.ResumeLayout(false); // <-- THÊM MỚI
+            this.pnlThang.PerformLayout(); // <-- THÊM MỚI
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
@@ -382,10 +430,6 @@
 
         private System.Windows.Forms.Panel pnlFilters;
         private System.Windows.Forms.FlowLayoutPanel flpFilters;
-        // ### ADMIN CHANGE: Loại bỏ khai báo tabLoaiGiaoVien, tabGiangDay, tabChuNhiem ###
-        // private System.Windows.Forms.TabControl tabLoaiGiaoVien;
-        // private System.Windows.Forms.TabPage tabGiangDay;
-        // private System.Windows.Forms.TabPage tabChuNhiem;
         private System.Windows.Forms.ComboBox cboLop;
         private System.Windows.Forms.ComboBox cboKhoi;
         private System.Windows.Forms.ComboBox cboHocKy;
@@ -408,5 +452,9 @@
         private System.Windows.Forms.RadioButton rbThongKeKhoi;
         private System.Windows.Forms.Button btnXuatPDF;
         private System.Windows.Forms.Button btnXuatExcel;
+        private System.Windows.Forms.RadioButton rbBaoCaoThang; // <-- THÊM MỚI
+        private System.Windows.Forms.FlowLayoutPanel pnlThang; // <-- THÊM MỚI
+        private System.Windows.Forms.Label lblThang; // <-- THÊM MỚI
+        private System.Windows.Forms.ComboBox cboThang; // <-- THÊM MỚI
     }
 }

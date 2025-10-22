@@ -1255,4 +1255,28 @@ public static class DatabaseHelper
 
     #endregion
     #endregion
+    // SP MỚI ĐỂ LẤY DANH SÁCH THÁNG
+    public static DataTable GetMonthlyScoreTypes(string maLop, int hocKy)
+    {
+        var pMaLop = new SqlParameter("@MaLop", maLop);
+        var pHocKy = new SqlParameter("@HocKy", hocKy);
+        return ExecuteStoredProcedure("sp_GetMonthlyScoreTypes", pMaLop, pHocKy);
+    }
+
+    public static DataTable GetBaoCaoThang_ThongKe(string maLop, string maMon, string loaiDiem)
+    {
+        var pMaLop = new SqlParameter("@MaLop", maLop);
+        var pMaMon = new SqlParameter("@MaMon", maMon);
+        var pLoaiDiem = new SqlParameter("@LoaiDiem", loaiDiem);
+        return ExecuteStoredProcedure("sp_GetBaoCaoThang_ThongKe", pMaLop, pMaMon, pLoaiDiem);
+    }
+
+    // ### THÊM MỚI: Helper cho SP Báo cáo tháng của Admin ###
+    public static DataTable GetBaoCaoThang_ThongKe_Admin(string khoi, string maMon, string loaiDiem)
+    {
+        var pKhoi = new SqlParameter("@Khoi", (object)khoi ?? DBNull.Value);
+        var pMaMon = new SqlParameter("@MaMon", maMon);
+        var pLoaiDiem = new SqlParameter("@LoaiDiem", loaiDiem);
+        return ExecuteStoredProcedure("sp_Admin_GetBaoCaoThang_ThongKe", pKhoi, pMaMon, pLoaiDiem);
+    }
 }

@@ -122,8 +122,9 @@ namespace N6
             this.tabLoaiGiaoVien.SelectedIndexChanged += new System.EventHandler(this.tabLoaiGiaoVien_SelectedIndexChanged);
             this.cboLop.SelectedIndexChanged += new System.EventHandler(this.cboLop_SelectedIndexChanged_Handler);
             this.cboKhoi.SelectedIndexChanged += new System.EventHandler(this.AutoLoadReport_Trigger);
-            this.cboHocKy.SelectedIndexChanged += new System.EventHandler(this.AutoLoadReport_Trigger);
+            this.cboHocKy.SelectedIndexChanged += new System.EventHandler(this.cboHocKy_SelectedIndexChanged_Handler); // *** MODIFIED ***
             this.cboMonDay.SelectedIndexChanged += new System.EventHandler(this.AutoLoadReport_Trigger);
+            this.cboThang.SelectedIndexChanged += new System.EventHandler(this.AutoLoadReport_Trigger); // *** NEW ***
             this.btnXuatExcel.Click += new System.EventHandler(this.btnXuatExcel_Click);
             this.btnXuatPDF.Click += new System.EventHandler(this.btnXuatPDF_Click);
         }
@@ -143,6 +144,7 @@ namespace N6
             cboLop.Text = "Chọn lớp...";
             cboHocKy.Text = "Chọn học kỳ...";
             cboMonDay.Text = "Chọn môn...";
+            cboThang.Text = "Chọn tháng..."; // *** NEW ***
         }
 
         // New handler for Report Type RadioButtons
@@ -182,7 +184,7 @@ namespace N6
         private void pnlActions_Resize(object sender, EventArgs e)
         {
             // Vertically center the buttons within the pnlActions panel
-            int buttonTop = (btnXuatExcel.Height-20) / 2;
+            int buttonTop = (btnXuatExcel.Height - 20) / 2;
             if (buttonTop < 0) buttonTop = 0; // Prevent negative Top value
 
             // Set Top position relative to the panel's client area
@@ -204,9 +206,74 @@ namespace N6
             {
                 LoadMonHocForSelectedLop();
             }
+            // *** NEW: Load months if this report is selected ***
+            else if (reportType == "Báo cáo tháng")
+            {
+                LoadMonHocForSelectedLop();
+                LoadThangForSelectedHocKy();
+            }
 
             AutoLoadReport_Trigger(sender, e);
         }
+
+        // *** NEW: Handler for HocKy changed ***
+        private void cboHocKy_SelectedIndexChanged_Handler(object sender, EventArgs e)
+        {
+            string reportType = GetSelectedReportType();
+            if (reportType == "Báo cáo tháng")
+            {
+                LoadThangForSelectedHocKy();
+            }
+
+            // Also trigger the general load
+            AutoLoadReport_Trigger(sender, e);
+        }
+
+
+        // *** NEW: Load Monthly Score Types ***
+        private void LoadThangForSelectedHocKy()
+        {
+            var maLop = cboLop.SelectedValue?.ToString();
+            int hocKyIndex = cboHocKy.SelectedIndex; // 0 for HK1, 1 for HK2
+
+            this.cboThang.SelectedIndexChanged -= new System.EventHandler(this.AutoLoadReport_Trigger);
+            cboThang.DataSource = null;
+
+            if (string.IsNullOrEmpty(maLop) || hocKyIndex == -1)
+            {
+                cboThang.Text = "Chọn lớp/học kỳ";
+                this.cboThang.SelectedIndexChanged += new System.EventHandler(this.AutoLoadReport_Trigger);
+                return;
+            }
+
+            int hocKy = hocKyIndex + 1; // 1 for HK1, 2 for HK2
+
+            try
+            {
+                DataTable dtThang = DatabaseHelper.GetMonthlyScoreTypes(maLop, hocKy); // New helper
+                if (dtThang != null && dtThang.Rows.Count > 0)
+                {
+                    cboThang.DataSource = dtThang;
+                    cboThang.DisplayMember = "TenHienThi";
+                    cboThang.ValueMember = "MaCotDiem";
+                    cboThang.SelectedIndex = -1;
+                    cboThang.Text = "Chọn tháng...";
+                }
+                else
+                {
+                    cboThang.Text = "Không có cột điểm";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi tải danh sách tháng: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                this.cboThang.SelectedIndexChanged += new System.EventHandler(this.AutoLoadReport_Trigger);
+            }
+        }
+
 
         private void LoadMonHocForSelectedLop()
         {
@@ -219,6 +286,10 @@ namespace N6
             {
                 try
                 {
+                    // For monthly report, we need *all* subjects for the class, not just by teacher
+                    // But wait, the teacher should only report on *their* subjects.
+                    // Let's assume they report on the subjects they teach for that class.
+                    // This re-uses the logic from "BangDiem-GiangDay"
                     DataTable dtMon = DatabaseHelper.GetMonHocByGiaoVienAndLop(maGV, maLop);
                     if (dtMon != null && dtMon.Rows.Count > 0)
                     {
@@ -265,6 +336,7 @@ namespace N6
                 }
                 else
                 {
+                    // For "Chuyen Can", "Ho So", "Bao Cao Thang" -> Get all classes teacher is associated with
                     dtLop = DatabaseHelper.GetLopByGiaoVien(maGV);
                 }
 
@@ -316,6 +388,7 @@ namespace N6
             lblLop.Visible = cboLop.Visible = false;
             lblHocKy.Visible = cboHocKy.Visible = false;
             lblMonDay.Visible = cboMonDay.Visible = false;
+            lblThang.Visible = cboThang.Visible = false; // *** NEW ***
 
             // Reset dependent dropdowns to placeholder
             if (cboLop.SelectedIndex != -1) cboLop.SelectedIndex = -1;
@@ -326,6 +399,8 @@ namespace N6
             cboKhoi.Text = "Chọn khối...";
             if (cboHocKy.SelectedIndex != -1) cboHocKy.SelectedIndex = -1;
             cboHocKy.Text = "Chọn học kỳ...";
+            if (cboThang.DataSource != null) cboThang.DataSource = null; // *** NEW ***
+            cboThang.Text = "Chọn tháng..."; // *** NEW ***
 
 
             // Show controls based on report type
@@ -366,9 +441,25 @@ namespace N6
                     lblLop.Visible = cboLop.Visible = true;
                     break;
 
-                case "Thống kê tổng hợp khối":
-                    lblKhoi.Visible = cboKhoi.Visible = true;
+                // *** NEW CASE ***
+                case "Báo cáo tháng":
+                    LoadClassListBasedOnTab();
+                    lblLop.Visible = cboLop.Visible = true;
+                    lblHocKy.Visible = cboHocKy.Visible = true;
+                    lblMonDay.Visible = cboMonDay.Visible = true;
+                    lblThang.Visible = cboThang.Visible = true; // Show new combo
+
+                    cboHocKy.Items.Clear();
+                    cboHocKy.Items.AddRange(new object[] { "Học kỳ 1", "Học kỳ 2" });
+
+                    LoadMonHocForSelectedLop(); // Re-use existing
+                    LoadThangForSelectedHocKy(); // New
                     break;
+
+                    // *** REMOVED CASE ***
+                    //case "Thống kê tổng hợp khối":
+                    //    lblKhoi.Visible = cboKhoi.Visible = true;
+                    //    break;
             }
         }
 
@@ -413,14 +504,24 @@ namespace N6
                     return;
                 }
             }
-            else if (reportType == "Thống kê tổng hợp khối")
+            // *** NEW VALIDATION ***
+            else if (reportType == "Báo cáo tháng")
             {
-                if (cboKhoi.SelectedIndex == -1)
+                if (cboLop.SelectedIndex == -1 || cboHocKy.SelectedIndex == -1 || cboMonDay.SelectedIndex == -1 || cboThang.SelectedIndex == -1)
                 {
                     ClearReportData();
                     return;
                 }
             }
+            // *** REMOVED VALIDATION ***
+            //else if (reportType == "Thống kê tổng hợp khối")
+            //{
+            //    if (cboKhoi.SelectedIndex == -1)
+            //    {
+            //        ClearReportData();
+            //        return;
+            //    }
+            //}
 
             LoadReportData();
         }
@@ -459,11 +560,19 @@ namespace N6
                         var maLop3 = cboLop.SelectedValue?.ToString();
                         dtReport = DatabaseHelper.GetHoSoHocSinh(maLop3);
                         break;
-                    case "Thống kê tổng hợp khối":
-                        var khoi = cboKhoi.SelectedItem?.ToString();
-                        if (!string.IsNullOrEmpty(khoi))
-                            dtReport = DatabaseHelper.GetThongKeKhoi("Khối " + khoi);
+                    // *** NEW CASE ***
+                    case "Báo cáo tháng":
+                        var maLop4 = cboLop.SelectedValue?.ToString();
+                        var maMon4 = cboMonDay.SelectedValue?.ToString();
+                        var loaiDiem4 = cboThang.SelectedValue?.ToString();
+                        dtReport = DatabaseHelper.GetBaoCaoThang_ThongKe(maLop4, maMon4, loaiDiem4); // New helper
                         break;
+                        // *** REMOVED CASE ***
+                        //case "Thống kê tổng hợp khối":
+                        //    var khoi = cboKhoi.SelectedItem?.ToString();
+                        //    if (!string.IsNullOrEmpty(khoi))
+                        //        dtReport = DatabaseHelper.GetThongKeKhoi("Khối " + khoi);
+                        //    break;
                 }
                 DisplayReportData(dtReport, reportType);
             }
@@ -482,23 +591,159 @@ namespace N6
             splitContainer1.Panel2Collapsed = true;
         }
 
+        // *** MODIFIED: To handle the new report type ***
         private void DisplayReportData(DataTable dtReport, string reportType)
         {
-            dgvDuLieu.DataSource = dtReport;
-            flpCharts.Controls.Clear();
-
-            if (dtReport != null && dtReport.Rows.Count > 0)
+            if (reportType == "Báo cáo tháng")
             {
-                RenameDataGridViewColumns();
-                UpdateCharts(dtReport, reportType);
-                splitContainer1.Panel2Collapsed = flpCharts.Controls.Count == 0;
+                dgvDuLieu.DataSource = null; // Clear main grid
+                flpCharts.Controls.Clear(); // Clear bottom panel
+
+                if (dtReport != null && dtReport.Rows.Count > 0)
+                {
+                    // 1. Create and populate the Score Stats table (dgvDuLieu)
+                    DataTable dtDiem = CreateStatsTable(dtReport, "Diem");
+                    dgvDuLieu.DataSource = dtDiem;
+                    RenameMonthlyReportColumns(dgvDuLieu, true); // Custom renamer
+
+                    // 2. Create and populate the Ranking Stats table (in flpCharts)
+                    DataTable dtXepLoai = CreateStatsTable(dtReport, "XepLoai");
+                    DataGridView dgvXepLoai = new DataGridView();
+                    StyleDataGridViewModern(dgvXepLoai); // Use existing style
+                    dgvXepLoai.DataSource = dtXepLoai;
+                    RenameMonthlyReportColumns(dgvXepLoai, false); // Custom renamer
+
+                    // Set size for the second grid
+                    int height = dgvXepLoai.ColumnHeadersHeight + (dtXepLoai.Rows.Count * dgvXepLoai.RowTemplate.Height) + 3;
+                    dgvXepLoai.Size = new Size(flpCharts.ClientSize.Width - 25, height);
+                    dgvXepLoai.MinimumSize = new Size(400, 150);
+                    dgvXepLoai.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+
+
+                    flpCharts.Controls.Add(dgvXepLoai);
+
+                    splitContainer1.Panel2Collapsed = false;
+                }
+                else
+                {
+                    splitContainer1.Panel2Collapsed = true;
+                }
             }
             else
             {
-                splitContainer1.Panel2Collapsed = true;
+                // Original logic for other reports
+                dgvDuLieu.DataSource = dtReport;
+                flpCharts.Controls.Clear();
+
+                if (dtReport != null && dtReport.Rows.Count > 0)
+                {
+                    RenameDataGridViewColumns(); // Original renamer
+                    UpdateCharts(dtReport, reportType); // Original chart logic
+                    splitContainer1.Panel2Collapsed = flpCharts.Controls.Count == 0;
+                }
+                else
+                {
+                    splitContainer1.Panel2Collapsed = true;
+                }
             }
         }
 
+        // *** NEW: Helper to create the stats tables from the SP result ***
+        private DataTable CreateStatsTable(DataTable sourceDt, string loaiThongKe)
+        {
+            DataTable dt = new DataTable();
+            dt.Columns.Add("PhanLoai", typeof(string));
+            dt.Columns.Add("TS", typeof(int));
+            dt.Columns.Add("Nu", typeof(int));
+            dt.Columns.Add("DanToc", typeof(int));
+            dt.Columns.Add("NDT", typeof(int));
+
+            DataRow[] rows = sourceDt.Select($"LoaiThongKe = '{loaiThongKe}'");
+            var dataMap = rows.ToDictionary(r => r["PhanLoai"].ToString(), r => r);
+
+            int totalTS = 0, totalNu = 0, totalDanToc = 0, totalNDT = 0;
+
+            if (loaiThongKe == "Diem")
+            {
+                string[] scoreOrder = { "10", "9", "8", "7", "6", "5", "<5" };
+                foreach (string key in scoreOrder)
+                {
+                    int ts = 0, nu = 0, dtoc = 0, ndt = 0;
+                    if (dataMap.ContainsKey(key))
+                    {
+                        ts = Convert.ToInt32(dataMap[key]["TS"]);
+                        nu = Convert.ToInt32(dataMap[key]["Nu"]);
+                        dtoc = Convert.ToInt32(dataMap[key]["DanToc"]);
+                        ndt = Convert.ToInt32(dataMap[key]["NDT"]);
+                    }
+                    dt.Rows.Add(key, ts, nu, dtoc, ndt);
+                    totalTS += ts;
+                    totalNu += nu;
+                    totalDanToc += dtoc;
+                    totalNDT += ndt;
+                }
+                dt.Rows.Add("Tổng", totalTS, totalNu, totalDanToc, totalNDT);
+            }
+            else // XepLoai
+            {
+                string[] rankOrder = { "T", "H", "C" };
+                foreach (string key in rankOrder)
+                {
+                    int ts = 0, nu = 0, dtoc = 0, ndt = 0;
+                    if (dataMap.ContainsKey(key))
+                    {
+                        ts = Convert.ToInt32(dataMap[key]["TS"]);
+                        nu = Convert.ToInt32(dataMap[key]["Nu"]);
+                        dtoc = Convert.ToInt32(dataMap[key]["DanToc"]);
+                        ndt = Convert.ToInt32(dataMap[key]["NDT"]);
+                    }
+                    dt.Rows.Add(key, ts, nu, dtoc, ndt);
+                    // No total row for ranking table per user image
+                }
+            }
+            return dt;
+        }
+
+        // *** NEW: Helper to rename columns for the new report ***
+        private void RenameMonthlyReportColumns(DataGridView dgv, bool isScoreTable)
+        {
+            if (dgv.DataSource == null) return;
+            foreach (DataGridViewColumn col in dgv.Columns)
+            {
+                col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+
+                switch (col.DataPropertyName)
+                {
+                    case "PhanLoai":
+                        col.HeaderText = isScoreTable ? "Điểm" : "Xếp loại";
+                        col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                        col.DefaultCellStyle.Font = new Font(dgv.Font, FontStyle.Bold);
+                        col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+                        col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
+                        break;
+                    case "TS": col.HeaderText = "TS"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
+                    case "Nu": col.HeaderText = "Nữ"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
+                    case "DanToc": col.HeaderText = "Dân tộc"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
+                    case "NDT": col.HeaderText = "NDT"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
+                }
+            }
+            // Bold the "Tổng" row
+            if (isScoreTable)
+            {
+                foreach (DataGridViewRow row in dgv.Rows)
+                {
+                    if (row.Cells[0].Value?.ToString() == "Tổng")
+                    {
+                        row.DefaultCellStyle.Font = new Font(dgv.Font, FontStyle.Bold);
+                        row.DefaultCellStyle.BackColor = Color.FromArgb(240, 240, 240);
+                    }
+                }
+            }
+        }
+
+
+        // *** MODIFIED: Removed ThongKeKhoi ***
         private void UpdateCharts(DataTable dt, string reportType)
         {
             switch (reportType)
@@ -509,10 +754,11 @@ namespace N6
                 case "Bảng điểm học kỳ":
                     DrawScoreDistributionChart(dt);
                     break;
-                case "Thống kê tổng hợp khối":
-                    DrawStudentCountChart(dt);
-                    DrawAverageScoreChart(dt);
-                    break;
+                    // *** REMOVED ***
+                    //case "Thống kê tổng hợp khối":
+                    //    DrawStudentCountChart(dt);
+                    //    DrawAverageScoreChart(dt);
+                    //    break;
             }
         }
 
@@ -644,71 +890,8 @@ namespace N6
             flpCharts.Controls.Add(chart);
         }
 
-
-        private void DrawStudentCountChart(DataTable dt)
-        {
-            if (!dt.Columns.Contains("TenLop") || !dt.Columns.Contains("SoHocSinh")) return;
-
-            var chart = CreateBaseChart("Thống kê sĩ số theo lớp");
-            chart.ChartAreas[0].AxisX.Title = "Lớp";
-            chart.ChartAreas[0].AxisY.Title = "Sĩ số";
-            chart.ChartAreas[0].AxisX.LabelStyle.Angle = -45;
-            chart.ChartAreas[0].AxisX.Interval = 1;
-
-            var series = new Series("Sĩ số")
-            {
-                ChartType = SeriesChartType.Column,
-                IsValueShownAsLabel = true,
-                Font = new Font("Segoe UI", 9F),
-                LabelForeColor = Color.FromArgb(64, 64, 64)
-            };
-
-            foreach (DataRow row in dt.Rows)
-            {
-                if (row["SoHocSinh"] != DBNull.Value && row["TenLop"] != DBNull.Value)
-                {
-                    int pIdx = series.Points.AddXY(row["TenLop"].ToString(), Convert.ToInt32(row["SoHocSinh"]));
-                    series.Points[pIdx].Color = Color.FromArgb(54, 162, 235);
-                }
-            }
-            series["PixelPointWidth"] = "30";
-            chart.Series.Add(series);
-            flpCharts.Controls.Add(chart);
-        }
-
-        private void DrawAverageScoreChart(DataTable dt)
-        {
-            if (!dt.Columns.Contains("TenLop") || !dt.Columns.Contains("DiemTrungBinh")) return;
-
-            var chart = CreateBaseChart("Điểm trung bình theo lớp");
-            chart.ChartAreas[0].AxisX.Title = "Lớp";
-            chart.ChartAreas[0].AxisY.Title = "Điểm trung bình";
-            chart.ChartAreas[0].AxisY.Maximum = 10;
-            chart.ChartAreas[0].AxisY.Minimum = 0;
-            chart.ChartAreas[0].AxisX.LabelStyle.Angle = -45;
-            chart.ChartAreas[0].AxisX.Interval = 1;
-
-            var series = new Series("Điểm TB")
-            {
-                ChartType = SeriesChartType.Column,
-                IsValueShownAsLabel = true,
-                Font = new Font("Segoe UI", 9F),
-                LabelForeColor = Color.FromArgb(64, 64, 64),
-                LabelFormat = "N1"
-            };
-
-            foreach (DataRow row in dt.Rows)
-            {
-                if (row["DiemTrungBinh"] != DBNull.Value && row["TenLop"] != DBNull.Value)
-                {
-                    int pIdx = series.Points.AddXY(row["TenLop"].ToString(), Convert.ToDouble(row["DiemTrungBinh"]));
-                    series.Points[pIdx].Color = Color.FromArgb(75, 192, 192);
-                }
-            }
-            series["PixelPointWidth"] = "30";
-            chart.Series.Add(series);
-            flpCharts.Controls.Add(chart);
-        }
+        // *** REMOVED: DrawStudentCountChart ***
+        // *** REMOVED: DrawAverageScoreChart ***
 
         private void CalculateAndAddAverageColumn(DataTable dt)
         {
@@ -762,12 +945,12 @@ namespace N6
                 switch (col.DataPropertyName)
                 {
                     case "MaHS": col.HeaderText = "Mã HS"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                    case "HoTen": col.HeaderText = "Họ Tên"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                    case "TenLop": col.HeaderText = "Lớp"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
+                    case "HoTen": col.HeaderText = "Họ Tên"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
+                    case "TenLop": col.HeaderText = "Lớp"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
                     case "SoBuoiCoMat": col.HeaderText = "Có Mặt"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
                     case "SoBuoiVang": col.HeaderText = "Vắng KP"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
                     case "SoBuoiVangCoPhep": col.HeaderText = "Vắng CP"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                    case "TongSoBuoi": col.HeaderText = "Tổng Buổi"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill ; break;
+                    case "TongSoBuoi": col.HeaderText = "Tổng Buổi"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
                     case "TyLeChuyenCan": col.HeaderText = "Tỷ Lệ CC (%)"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; col.DefaultCellStyle.Format = "N0"; break;
                     case "Thang1": col.HeaderText = "T1"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; col.DefaultCellStyle.Format = "N1"; break;
                     case "Thang2": col.HeaderText = "T2"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; col.DefaultCellStyle.Format = "N1"; break;
@@ -843,6 +1026,9 @@ namespace N6
             {
                 try
                 {
+                    // *** TODO: This only exports the main grid.
+                    // For "Bao Cao Thang", you might want to export both grids.
+                    // For simplicity, this implementation only exports the main grid (dgvDuLieu).
                     ExportHelper.ExportToExcel(dgvDuLieu, saveFileDialog.FileName);
                     MessageBox.Show($"Đã xuất báo cáo ra file:\n{saveFileDialog.FileName}", "Xuất Excel thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -855,7 +1041,13 @@ namespace N6
 
         private void btnXuatPDF_Click(object sender, EventArgs e)
         {
-            if (dgvDuLieu.Rows.Count == 0)
+            string reportType = GetSelectedReportType();
+            if (dgvDuLieu.Rows.Count == 0 && reportType != "Báo cáo tháng")
+            {
+                MessageBox.Show("Chưa có dữ liệu để xuất.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (reportType == "Báo cáo tháng" && dgvDuLieu.Rows.Count == 0 && flpCharts.Controls.Count == 0)
             {
                 MessageBox.Show("Chưa có dữ liệu để xuất.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -865,21 +1057,23 @@ namespace N6
             {
                 Filter = "PDF Files (*.pdf)|*.pdf",
                 Title = "Lưu file PDF",
-                FileName = $"BaoCao_{GetSelectedReportType()}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf"
+                FileName = $"BaoCao_{reportType}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf"
             };
 
             if (saveFileDialog.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
-                    string reportTypeTitle = GetSelectedReportType()?.ToUpper() ?? "BÁO CÁO";
+                    string reportTypeTitle = reportType?.ToUpper() ?? "BÁO CÁO";
                     string reportTitle = reportTypeTitle;
 
                     if (cboLop.Visible && cboLop.SelectedIndex != -1) reportTitle += $"\nLỚP: {cboLop.Text}";
                     if (cboKhoi.Visible && cboKhoi.SelectedIndex != -1) reportTitle += $"\nKHỐI: {cboKhoi.SelectedItem}";
                     if (cboHocKy.Visible && cboHocKy.SelectedIndex != -1) reportTitle += $" - {cboHocKy.Text.ToUpper()}";
                     if (cboMonDay.Visible && cboMonDay.SelectedIndex != -1) reportTitle += $"\nMÔN: {cboMonDay.Text}";
+                    if (cboThang.Visible && cboThang.SelectedIndex != -1) reportTitle += $"\nTHÁNG: {cboThang.Text}"; // *** NEW ***
 
+                    // Get charts (for old reports)
                     var chartImages = flpCharts.Controls.OfType<Chart>().Select(chart =>
                     {
                         using (var ms = new MemoryStream())
@@ -887,9 +1081,24 @@ namespace N6
                             chart.SaveImage(ms, ChartImageFormat.Png);
                             return (Image)Image.FromStream(ms).Clone();
                         }
-                    }).ToArray();
+                    }).ToList(); // <-- Changed to List
 
-                    ExportHelper.ExportToPDF(dgvDuLieu, saveFileDialog.FileName, reportTitle, chartImages);
+                    // *** NEW: Get secondary grid (for new report) ***
+                    Image secondaryGridImage = null;
+                    if (reportType == "Báo cáo tháng")
+                    {
+                        var dgvSecondary = flpCharts.Controls.OfType<DataGridView>().FirstOrDefault();
+                        if (dgvSecondary != null)
+                        {
+                            // Ensure the grid has a proper size before drawing
+                            dgvSecondary.Size = new Size(Math.Max(500, dgvSecondary.Width), dgvSecondary.Height);
+                            secondaryGridImage = new Bitmap(dgvSecondary.Width, dgvSecondary.Height);
+                            dgvSecondary.DrawToBitmap((Bitmap)secondaryGridImage, new Rectangle(0, 0, dgvSecondary.Width, dgvSecondary.Height));
+                            chartImages.Add(secondaryGridImage);
+                        }
+                    }
+
+                    ExportHelper.ExportToPDF(dgvDuLieu, saveFileDialog.FileName, reportTitle, null, chartImages.ToArray());
                     MessageBox.Show($"Đã xuất báo cáo ra file:\n{saveFileDialog.FileName}", "Xuất PDF thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     foreach (var img in chartImages) img?.Dispose();

@@ -23,7 +23,7 @@
             this.rbChuyenCan = new System.Windows.Forms.RadioButton();
             this.rbBangDiem = new System.Windows.Forms.RadioButton();
             this.rbHoSo = new System.Windows.Forms.RadioButton();
-            this.rbThongKeKhoi = new System.Windows.Forms.RadioButton();
+            this.rbBaoCaoThang = new System.Windows.Forms.RadioButton();
             this.pnlKhoi = new System.Windows.Forms.FlowLayoutPanel();
             this.tabLoaiGiaoVien = new System.Windows.Forms.TabControl();
             this.tabGiangDay = new System.Windows.Forms.TabPage();
@@ -39,6 +39,9 @@
             this.pnlMon = new System.Windows.Forms.FlowLayoutPanel();
             this.lblMonDay = new System.Windows.Forms.Label();
             this.cboMonDay = new System.Windows.Forms.ComboBox();
+            this.pnlThang = new System.Windows.Forms.FlowLayoutPanel();
+            this.lblThang = new System.Windows.Forms.Label();
+            this.cboThang = new System.Windows.Forms.ComboBox();
             this.btnXuatPDF = new System.Windows.Forms.Button();
             this.btnXuatExcel = new System.Windows.Forms.Button();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
@@ -52,6 +55,7 @@
             this.pnlLop.SuspendLayout();
             this.pnlHocKy.SuspendLayout();
             this.pnlMon.SuspendLayout();
+            this.pnlThang.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -80,6 +84,7 @@
             this.flpFilters.Controls.Add(this.pnlLop);
             this.flpFilters.Controls.Add(this.pnlHocKy);
             this.flpFilters.Controls.Add(this.pnlMon);
+            this.flpFilters.Controls.Add(this.pnlThang);
             this.flpFilters.Controls.Add(this.btnXuatPDF);
             this.flpFilters.Controls.Add(this.btnXuatExcel);
             this.flpFilters.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -95,12 +100,12 @@
             this.pnlReportTypeSelector.Controls.Add(this.rbChuyenCan);
             this.pnlReportTypeSelector.Controls.Add(this.rbBangDiem);
             this.pnlReportTypeSelector.Controls.Add(this.rbHoSo);
-            this.pnlReportTypeSelector.Controls.Add(this.rbThongKeKhoi);
+            this.pnlReportTypeSelector.Controls.Add(this.rbBaoCaoThang);
             this.pnlReportTypeSelector.Location = new System.Drawing.Point(3, 3);
             this.pnlReportTypeSelector.Margin = new System.Windows.Forms.Padding(3, 3, 3, 10);
             this.pnlReportTypeSelector.Name = "pnlReportTypeSelector";
             this.pnlReportTypeSelector.Padding = new System.Windows.Forms.Padding(5);
-            this.pnlReportTypeSelector.Size = new System.Drawing.Size(653, 49);
+            this.pnlReportTypeSelector.Size = new System.Drawing.Size(635, 49);
             this.pnlReportTypeSelector.TabIndex = 6;
             this.pnlReportTypeSelector.WrapContents = false;
             // 
@@ -134,15 +139,15 @@
             this.rbHoSo.Text = "Hồ sơ học sinh";
             this.rbHoSo.UseVisualStyleBackColor = true;
             // 
-            // rbThongKeKhoi
+            // rbBaoCaoThang
             // 
-            this.rbThongKeKhoi.Location = new System.Drawing.Point(476, 8);
-            this.rbThongKeKhoi.Name = "rbThongKeKhoi";
-            this.rbThongKeKhoi.Size = new System.Drawing.Size(169, 33);
-            this.rbThongKeKhoi.TabIndex = 3;
-            this.rbThongKeKhoi.TabStop = true;
-            this.rbThongKeKhoi.Text = "Thống kê tổng hợp khối";
-            this.rbThongKeKhoi.UseVisualStyleBackColor = true;
+            this.rbBaoCaoThang.Location = new System.Drawing.Point(476, 8);
+            this.rbBaoCaoThang.Name = "rbBaoCaoThang";
+            this.rbBaoCaoThang.Size = new System.Drawing.Size(151, 33);
+            this.rbBaoCaoThang.TabIndex = 3;
+            this.rbBaoCaoThang.TabStop = true;
+            this.rbBaoCaoThang.Text = "Báo cáo tháng";
+            this.rbBaoCaoThang.UseVisualStyleBackColor = true;
             // 
             // pnlKhoi
             // 
@@ -173,7 +178,7 @@
             this.tabGiangDay.Location = new System.Drawing.Point(4, 30);
             this.tabGiangDay.Name = "tabGiangDay";
             this.tabGiangDay.Padding = new System.Windows.Forms.Padding(3);
-            this.tabGiangDay.Size = new System.Drawing.Size(174, 0);
+            this.tabGiangDay.Size = new System.Drawing.Size(143, 0);
             this.tabGiangDay.TabIndex = 0;
             this.tabGiangDay.Text = "Giảng Dạy";
             this.tabGiangDay.UseVisualStyleBackColor = true;
@@ -183,7 +188,7 @@
             this.tabChuNhiem.Location = new System.Drawing.Point(4, 30);
             this.tabChuNhiem.Name = "tabChuNhiem";
             this.tabChuNhiem.Padding = new System.Windows.Forms.Padding(3);
-            this.tabChuNhiem.Size = new System.Drawing.Size(174, 0);
+            this.tabChuNhiem.Size = new System.Drawing.Size(143, 0);
             this.tabChuNhiem.TabIndex = 1;
             this.tabChuNhiem.Text = "Chủ Nhiệm";
             this.tabChuNhiem.UseVisualStyleBackColor = true;
@@ -192,7 +197,7 @@
             // 
             this.lblKhoi.AutoSize = true;
             this.lblKhoi.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F);
-            this.lblKhoi.Location = new System.Drawing.Point(197, 8);
+            this.lblKhoi.Location = new System.Drawing.Point(166, 8);
             this.lblKhoi.Margin = new System.Windows.Forms.Padding(5, 8, 0, 5);
             this.lblKhoi.Name = "lblKhoi";
             this.lblKhoi.Size = new System.Drawing.Size(47, 21);
@@ -204,10 +209,10 @@
             this.cboKhoi.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboKhoi.Font = new System.Drawing.Font("Segoe UI", 9.5F);
             this.cboKhoi.FormattingEnabled = true;
-            this.cboKhoi.Location = new System.Drawing.Point(249, 5);
+            this.cboKhoi.Location = new System.Drawing.Point(218, 5);
             this.cboKhoi.Margin = new System.Windows.Forms.Padding(5);
             this.cboKhoi.Name = "cboKhoi";
-            this.cboKhoi.Size = new System.Drawing.Size(130, 29);
+            this.cboKhoi.Size = new System.Drawing.Size(161, 29);
             this.cboKhoi.TabIndex = 1;
             // 
             // pnlLop
@@ -218,7 +223,7 @@
             this.pnlLop.Location = new System.Drawing.Point(384, 67);
             this.pnlLop.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.pnlLop.Name = "pnlLop";
-            this.pnlLop.Size = new System.Drawing.Size(170, 39);
+            this.pnlLop.Size = new System.Drawing.Size(182, 39);
             this.pnlLop.TabIndex = 3;
             // 
             // lblLop
@@ -240,7 +245,7 @@
             this.cboLop.Location = new System.Drawing.Point(52, 5);
             this.cboLop.Margin = new System.Windows.Forms.Padding(5);
             this.cboLop.Name = "cboLop";
-            this.cboLop.Size = new System.Drawing.Size(113, 29);
+            this.cboLop.Size = new System.Drawing.Size(125, 29);
             this.cboLop.TabIndex = 1;
             // 
             // pnlHocKy
@@ -248,10 +253,10 @@
             this.pnlHocKy.AutoSize = true;
             this.pnlHocKy.Controls.Add(this.lblHocKy);
             this.pnlHocKy.Controls.Add(this.cboHocKy);
-            this.pnlHocKy.Location = new System.Drawing.Point(554, 67);
+            this.pnlHocKy.Location = new System.Drawing.Point(566, 67);
             this.pnlHocKy.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.pnlHocKy.Name = "pnlHocKy";
-            this.pnlHocKy.Size = new System.Drawing.Size(193, 39);
+            this.pnlHocKy.Size = new System.Drawing.Size(205, 39);
             this.pnlHocKy.TabIndex = 4;
             // 
             // lblHocKy
@@ -273,7 +278,7 @@
             this.cboHocKy.Location = new System.Drawing.Point(74, 5);
             this.cboHocKy.Margin = new System.Windows.Forms.Padding(5);
             this.cboHocKy.Name = "cboHocKy";
-            this.cboHocKy.Size = new System.Drawing.Size(114, 29);
+            this.cboHocKy.Size = new System.Drawing.Size(126, 29);
             this.cboHocKy.TabIndex = 1;
             // 
             // pnlMon
@@ -309,9 +314,42 @@
             this.cboMonDay.Size = new System.Drawing.Size(137, 29);
             this.cboMonDay.TabIndex = 1;
             // 
+            // pnlThang
+            // 
+            this.pnlThang.AutoSize = true;
+            this.pnlThang.Controls.Add(this.lblThang);
+            this.pnlThang.Controls.Add(this.cboThang);
+            this.pnlThang.Location = new System.Drawing.Point(200, 112);
+            this.pnlThang.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
+            this.pnlThang.Name = "pnlThang";
+            this.pnlThang.Size = new System.Drawing.Size(211, 39);
+            this.pnlThang.TabIndex = 9;
+            // 
+            // lblThang
+            // 
+            this.lblThang.AutoSize = true;
+            this.lblThang.Font = new System.Drawing.Font("Segoe UI Semibold", 9.5F);
+            this.lblThang.Location = new System.Drawing.Point(5, 8);
+            this.lblThang.Margin = new System.Windows.Forms.Padding(5, 8, 0, 5);
+            this.lblThang.Name = "lblThang";
+            this.lblThang.Size = new System.Drawing.Size(59, 21);
+            this.lblThang.TabIndex = 0;
+            this.lblThang.Text = "Tháng:";
+            // 
+            // cboThang
+            // 
+            this.cboThang.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboThang.Font = new System.Drawing.Font("Segoe UI", 9.5F);
+            this.cboThang.FormattingEnabled = true;
+            this.cboThang.Location = new System.Drawing.Point(69, 5);
+            this.cboThang.Margin = new System.Windows.Forms.Padding(5);
+            this.cboThang.Name = "cboThang";
+            this.cboThang.Size = new System.Drawing.Size(137, 29);
+            this.cboThang.TabIndex = 1;
+            // 
             // btnXuatPDF
             // 
-            this.btnXuatPDF.Location = new System.Drawing.Point(203, 110);
+            this.btnXuatPDF.Location = new System.Drawing.Point(414, 110);
             this.btnXuatPDF.Name = "btnXuatPDF";
             this.btnXuatPDF.Size = new System.Drawing.Size(114, 41);
             this.btnXuatPDF.TabIndex = 8;
@@ -320,7 +358,7 @@
             // 
             // btnXuatExcel
             // 
-            this.btnXuatExcel.Location = new System.Drawing.Point(323, 110);
+            this.btnXuatExcel.Location = new System.Drawing.Point(534, 110);
             this.btnXuatExcel.Name = "btnXuatExcel";
             this.btnXuatExcel.Size = new System.Drawing.Size(106, 38);
             this.btnXuatExcel.TabIndex = 7;
@@ -391,6 +429,8 @@
             this.pnlHocKy.PerformLayout();
             this.pnlMon.ResumeLayout(false);
             this.pnlMon.PerformLayout();
+            this.pnlThang.ResumeLayout(false);
+            this.pnlThang.PerformLayout();
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
@@ -426,8 +466,11 @@
         private System.Windows.Forms.RadioButton rbChuyenCan;
         private System.Windows.Forms.RadioButton rbBangDiem;
         private System.Windows.Forms.RadioButton rbHoSo;
-        private System.Windows.Forms.RadioButton rbThongKeKhoi;
+        private System.Windows.Forms.RadioButton rbBaoCaoThang;
         private System.Windows.Forms.Button btnXuatPDF;
         private System.Windows.Forms.Button btnXuatExcel;
+        private System.Windows.Forms.FlowLayoutPanel pnlThang;
+        private System.Windows.Forms.Label lblThang;
+        private System.Windows.Forms.ComboBox cboThang;
     }
 }
