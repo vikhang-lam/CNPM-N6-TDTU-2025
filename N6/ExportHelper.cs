@@ -89,20 +89,18 @@ namespace N6 // Make sure this namespace matches your project
             try
             {
                 PdfDocument document = new PdfDocument();
-                document.Info.Title = RemoveVietnameseDiacritics(documentTitleAndFilters.Split('\n')[0]); // Use first line for metadata
+                document.Info.Title = RemoveVietnameseDiacritics(documentTitleAndFilters.Split('\n')[0]);
 
-                // --- PAGE 1: LARGE HEADER + DATA GRID ---
                 PdfPage page = document.AddPage();
                 page.Size = PdfSharp.PageSize.A4;
-                page.Orientation = PdfSharp.PageOrientation.Landscape; // Landscape orientation
+                page.Orientation = PdfSharp.PageOrientation.Landscape;
                 XGraphics gfx = XGraphics.FromPdfPage(page);
 
-                XPdfFontOptions options = new XPdfFontOptions(PdfFontEncoding.Unicode); // For Vietnamese characters
-
-                // Define fonts
+                XPdfFontOptions options = new XPdfFontOptions(PdfFontEncoding.Unicode);
                 XFont docTitleFont = new XFont("Arial", 14, XFontStyle.Bold, options);
-                XFont largeHeaderFont = new XFont("Arial", 24, XFontStyle.Bold, options); // Font for the main content header
+                XFont largeHeaderFont = new XFont("Arial", 24, XFontStyle.Bold, options);
                 XFont gridHeaderFont = new XFont("Arial", 10, XFontStyle.Bold, options);
+                XFont classListFont = new XFont("Arial", 10, XFontStyle.Regular, options);
                 XFont cellFont = new XFont("Arial", 9, XFontStyle.Regular, options);
                 XFont infoFont = new XFont("Arial", 8, XFontStyle.Italic, options);
 
@@ -111,175 +109,219 @@ namespace N6 // Make sure this namespace matches your project
                 double rightMargin = 30;
                 double contentWidth = page.Width - leftMargin - rightMargin;
 
-                // 1. Draw Document Title + Filters
+                // 1️⃣ Tiêu đề và bộ lọc (nếu có)
                 XTextFormatter tf = new XTextFormatter(gfx);
-                XRect docTitleRect = new XRect(leftMargin, yPos, contentWidth, 100); // Area for title
-                tf.DrawString(documentTitleAndFilters, docTitleFont, XBrushes.Black, docTitleRect, XStringFormats.TopLeft);
-                int titleLineCount = documentTitleAndFilters.Split('\n').Length;
-                yPos += (docTitleFont.GetHeight() * titleLineCount) + 10; // Adjust spacing
+                if (!string.IsNullOrEmpty(documentTitleAndFilters))
+                {
+                    XRect docTitleRect = new XRect(leftMargin, yPos, contentWidth, 100);
+                    tf.DrawString(documentTitleAndFilters, docTitleFont, XBrushes.Black, docTitleRect, XStringFormats.TopLeft);
+                    int titleLineCount = documentTitleAndFilters.Split('\n').Length;
+                    yPos += (docTitleFont.GetHeight() * titleLineCount) + 10;
+                }
 
-                // 2. Draw Export Date
-                string dateInfo = $"Ngay xuat: {DateTime.Now:dd/MM/yyyy HH:mm}";
+                // 2️⃣ Ngày xuất
+                string dateInfo = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm}";
                 XSize dateSize = gfx.MeasureString(dateInfo, infoFont);
                 gfx.DrawString(dateInfo, infoFont, XBrushes.Gray, page.Width - rightMargin - dateSize.Width, yPos);
                 yPos += dateSize.Height + 15;
 
-                // 3. Draw Large Content Header (Centered)
-                if (!string.IsNullOrEmpty(mainContentHeader))
+                // --- KIỂM TRA ĐỊNH DẠNG BÁO CÁO ---
+                bool isCombinedKhoiReport = gridView.Columns.Contains("IsHeader");
+
+                // *** SỬA LỖI: Kiểm tra xem đây là báo cáo Khối hay Lớp ***
+                // Dựa vào tiêu đề chính được truyền từ UC_BaoCao_Admin
+                bool isKhoiReportPDF = mainContentHeader.ToUpper().Contains("KHỐI");
+
+                if (isCombinedKhoiReport)
                 {
-                    XRect largeHeaderRect = new XRect(leftMargin, yPos, contentWidth, 50); // Area for large header
-                    gfx.DrawString(mainContentHeader, largeHeaderFont, XBrushes.Black, largeHeaderRect, XStringFormats.TopCenter); // Center align
-                    yPos += largeHeaderFont.GetHeight() + 20; // Add significant space after
+                    // === PATH A: VẼ BÁO CÁO GỘP (KHỐI hoặc LỚP) ===
+
+                    // 1. Định nghĩa cột
+                    string[] colDataNames = { "PhanLoai", "Col_TS", "Col_Nu", "Col_DanToc_Percent", "Col_NDT" };
+                    double[] colWidths = {
+                        contentWidth * 0.30, // PhanLoai
+                        contentWidth * 0.175, // Col_TS
+                        contentWidth * 0.175, // Col_Nu
+                        contentWidth * 0.175, // Col_DanToc_Percent
+                        contentWidth * 0.175  // Col_NDT
+                    };
+                    double rowHeight = 25;
+                    double mainHeaderRowHeight = 35;
+                    double subHeaderRowHeight = 25;
+
+                    // 2. Vẽ Hàng 1 (Tên Khối hoặc Tên Lớp)
+                    XRect headerRect = new XRect(leftMargin, yPos, contentWidth, mainHeaderRowHeight);
+                    gfx.DrawRectangle(XBrushes.Gainsboro, headerRect);
+                    gfx.DrawRectangle(XPens.Black, headerRect);
+                    gfx.DrawString(mainContentHeader, largeHeaderFont, XBrushes.Black, headerRect, XStringFormats.Center);
+                    yPos += mainHeaderRowHeight;
+
+                    // 3. Vẽ Hàng 2 (Chỉ vẽ nếu là Báo cáo Khối và có Tag)
+                    if (isKhoiReportPDF && gridView.Tag is string tagValue && !string.IsNullOrWhiteSpace(tagValue))
+                    {
+                        string classList = tagValue;
+                        XRect subHeaderRect = new XRect(leftMargin, yPos, contentWidth, subHeaderRowHeight);
+                        gfx.DrawRectangle(XBrushes.Gainsboro, subHeaderRect);
+                        gfx.DrawRectangle(XPens.Black, subHeaderRect);
+                        gfx.DrawString(classList, classListFont, XBrushes.Black, subHeaderRect, XStringFormats.Center);
+                        yPos += subHeaderRowHeight;
+                    }
+
+                    // 4. Vẽ các hàng dữ liệu (bắt đầu từ hàng "ĐIỂM")
+                    foreach (DataGridViewRow row in gridView.Rows)
+                    {
+                        if (row.IsNewRow) continue;
+                        if (yPos + rowHeight > page.Height - 40) break;
+
+                        bool isHeaderRow = Convert.ToInt32(row.Cells["IsHeader"].Value) == 1;
+                        bool isXepLoaiHeader = isHeaderRow && (row.Cells["PhanLoai"].Value?.ToString() == "XẾP LOẠI");
+
+                        XFont font = isHeaderRow ? gridHeaderFont : cellFont;
+                        XBrush bgBrush = isHeaderRow ? XBrushes.Gainsboro : XBrushes.White;
+
+                        gfx.DrawRectangle(bgBrush, leftMargin, yPos, contentWidth, rowHeight);
+                        gfx.DrawRectangle(XPens.Gray, leftMargin, yPos, contentWidth, rowHeight);
+
+                        double currentX = leftMargin;
+                        for (int i = 0; i < colDataNames.Length; i++)
+                        {
+                            string cellText = row.Cells[colDataNames[i]].Value?.ToString() ?? "";
+                            XStringFormat alignment = XStringFormats.Center;
+
+                            if (i == 0) // Cột đầu tiên
+                            {
+                                alignment = isHeaderRow ? XStringFormats.CenterLeft : XStringFormats.Center;
+                            }
+
+                            // *** SỬA LỖI: CHỈ ÁP DỤNG LOGIC "%" NẾU LÀ BÁO CÁO KHỐI ***
+                            if (isKhoiReportPDF && isXepLoaiHeader) // Text đặc biệt cho hàng "XẾP LOẠI" (Báo cáo Khối)
+                            {
+                                if (i == 2) cellText = "";
+                                if (i == 3) cellText = "%";
+                                if (i == 4) cellText = "";
+                            }
+                            // (Nếu là Báo cáo Lớp, cellText sẽ giữ nguyên giá trị từ DGV là "Nữ", "Dân tộc"...)
+
+                            XRect cellRect = new XRect(currentX + 5, yPos, colWidths[i] - 10, rowHeight);
+                            gfx.DrawString(cellText, font, XBrushes.Black, cellRect, alignment);
+
+                            // Vẽ đường kẻ cột
+                            if (i > 0)
+                                gfx.DrawLine(XPens.Gray, currentX, yPos, currentX, yPos + rowHeight);
+
+                            if (i == 0 && isHeaderRow)
+                            {
+                                gfx.DrawLine(XPens.Gray, currentX + colWidths[i], yPos, currentX + colWidths[i], yPos + rowHeight);
+                            }
+
+                            currentX += colWidths[i];
+                        }
+                        yPos += rowHeight;
+                    }
                 }
+                else
+                {
+                    // === PATH B: VẼ BÁO CÁO LỚP (CŨ) HOẶC CÁC BÁO CÁO KHÁC ===
+                    // (Logic này giữ nguyên, không thay đổi)
 
-                // 4. Draw DataGridView
-                var visibleColumns = gridView.Columns.Cast<DataGridViewColumn>()
-                                         .Where(col => col.Visible)
-                                         .ToList();
-                int colCount = visibleColumns.Count;
-                if (colCount == 0) throw new Exception("Không có cột nào hiển thị trong DataGridView để xuất.");
+                    // 3️⃣ Header lớn (Lớp)
+                    if (!string.IsNullOrEmpty(mainContentHeader))
+                    {
+                        XRect largeHeaderRect = new XRect(leftMargin, yPos, contentWidth, 50);
+                        gfx.DrawString(mainContentHeader, largeHeaderFont, XBrushes.Black, largeHeaderRect, XStringFormats.TopCenter);
+                        yPos += largeHeaderFont.GetHeight() + 15;
+                    }
 
-                double colWidth = contentWidth / colCount;
-                double gridHeaderHeight = 30; // Height for the header row
+                    // 4️⃣ Vẽ DataGridView chính (Bảng điểm)
+                    var visibleColumns = gridView.Columns.Cast<DataGridViewColumn>()
+                                             .Where(col => col.Visible)
+                                             .ToList();
+                    if (visibleColumns.Count == 0)
+                        throw new Exception("Không có cột nào hiển thị trong DataGridView.");
 
-                // --- DRAW GRID HEADER ---
-                Action drawGridHeader = () => {
-                    double currentXHeader = leftMargin;
-                    gfx.DrawRectangle(XBrushes.LightGray, leftMargin, yPos, contentWidth, gridHeaderHeight); // Background
-                    gfx.DrawRectangle(XPens.Black, leftMargin, yPos, contentWidth, gridHeaderHeight);       // Border
+                    double colWidth = contentWidth / visibleColumns.Count;
+                    double gridHeaderHeight = 30;
+                    double currentX = leftMargin;
 
+                    // Header cột
+                    gfx.DrawRectangle(XBrushes.LightGray, leftMargin, yPos, contentWidth, gridHeaderHeight);
+                    gfx.DrawRectangle(XPens.Black, leftMargin, yPos, contentWidth, gridHeaderHeight);
                     foreach (var col in visibleColumns)
                     {
-                        string headerText = col.HeaderText;
-                        XRect headerRect = new XRect(currentXHeader + 3, yPos + 5, colWidth - 6, gridHeaderHeight - 7); // Padding
-                        tf.DrawString(headerText, gridHeaderFont, XBrushes.Black, headerRect, XStringFormats.TopLeft); // Use TextFormatter for wrapping
-                        // Draw vertical line
-                        if (currentXHeader > leftMargin)
-                            gfx.DrawLine(XPens.Black, currentXHeader, yPos, currentXHeader, yPos + gridHeaderHeight);
-                        currentXHeader += colWidth;
+                        XRect headerRect = new XRect(currentX + 3, yPos + 5, colWidth - 6, gridHeaderHeight - 7);
+                        tf.DrawString(col.HeaderText, gridHeaderFont, XBrushes.Black, headerRect, XStringFormats.TopLeft);
+                        if (currentX > leftMargin)
+                            gfx.DrawLine(XPens.Black, currentX, yPos, currentX, yPos + gridHeaderHeight);
+                        currentX += colWidth;
                     }
                     yPos += gridHeaderHeight;
-                };
 
-                drawGridHeader(); // Draw header initially
-
-                // --- DRAW GRID DATA ROWS ---
-                double rowHeight = 25;
-                int rowCountOnPage = 0;
-                foreach (DataGridViewRow row in gridView.Rows)
-                {
-                    if (row.IsNewRow) continue;
-
-                    // Page Break Check
-                    if (yPos + rowHeight > page.Height - 50) // Check if row fits before drawing
+                    // Hàng dữ liệu
+                    double rowHeight = 25;
+                    int rowCountOnPage = 0;
+                    foreach (DataGridViewRow row in gridView.Rows)
                     {
-                        page = document.AddPage();
-                        page.Orientation = PdfSharp.PageOrientation.Landscape;
-                        gfx = XGraphics.FromPdfPage(page);
-                        tf = new XTextFormatter(gfx); // Update TextFormatter for new page
-                        yPos = 30; // Reset Y position
-                        rowCountOnPage = 0;
-                        drawGridHeader(); // Redraw header on new page
+                        if (row.IsNewRow) continue;
+                        if (yPos + rowHeight > page.Height - 200) break;
+
+                        currentX = leftMargin;
+                        XBrush rowBrush = (rowCountOnPage % 2 == 0) ? XBrushes.White : XBrushes.AliceBlue;
+                        gfx.DrawRectangle(rowBrush, leftMargin, yPos, contentWidth, rowHeight);
+                        gfx.DrawRectangle(XPens.Gray, leftMargin, yPos, contentWidth, rowHeight);
+
+                        for (int i = 0; i < visibleColumns.Count; i++)
+                        {
+                            var cell = row.Cells[visibleColumns[i].Name];
+                            string cellText = cell.FormattedValue?.ToString() ?? "";
+                            XRect cellRect = new XRect(currentX + 3, yPos + 5, colWidth - 6, rowHeight - 7);
+                            tf.DrawString(cellText, cellFont, XBrushes.Black, cellRect, XStringFormats.TopLeft);
+                            if (currentX > leftMargin)
+                                gfx.DrawLine(XPens.Gray, currentX, yPos, currentX, yPos + rowHeight);
+                            currentX += colWidth;
+                        }
+                        yPos += rowHeight;
+                        rowCountOnPage++;
                     }
 
-                    double currentXRow = leftMargin;
-                    // Alternating Row Color
-                    XBrush rowBrush = (rowCountOnPage % 2 == 0) ? XBrushes.White : XBrushes.AliceBlue;
-                    gfx.DrawRectangle(rowBrush, leftMargin, yPos, contentWidth, rowHeight);
-                    // Row Border
-                    gfx.DrawRectangle(XPens.Gray, leftMargin, yPos, contentWidth, rowHeight);
-
-                    for (int i = 0; i < visibleColumns.Count; i++)
+                    // 6️⃣ Vẽ tiếp bảng phụ (Bảng xếp loại) ngay dưới
+                    if (imagesToExport != null && imagesToExport.Length > 0 && imagesToExport[0] != null)
                     {
-                        var cell = row.Cells[visibleColumns[i].Name];
-                        string cellText = cell.FormattedValue?.ToString() ?? "";
-                        XRect cellRect = new XRect(currentXRow + 3, yPos + 5, colWidth - 6, rowHeight - 7); // Padding
-                        tf.DrawString(cellText, cellFont, XBrushes.Black, cellRect, XStringFormats.TopLeft); // Use TextFormatter
-
-                        // Draw vertical line
-                        if (currentXRow > leftMargin)
-                            gfx.DrawLine(XPens.Gray, currentXRow, yPos, currentXRow, yPos + rowHeight);
-                        currentXRow += colWidth;
-                    }
-                    yPos += rowHeight;
-                    rowCountOnPage++;
-                }
-
-                // --- ADD NEW PAGES FOR IMAGES (Charts, Secondary Grids) ---
-                if (imagesToExport != null && imagesToExport.Length > 0)
-                {
-                    PdfPage imagePage = null; // Initialize later
-                    XGraphics imgGfx = null;
-                    double imgYPos = 0;
-                    bool firstImage = true;
-
-                    foreach (Image img in imagesToExport)
-                    {
-                        if (img == null) continue;
-
                         using (MemoryStream stream = new MemoryStream())
                         {
-                            try
+                            imagesToExport[0].Save(stream, ImageFormat.Png);
+                            stream.Position = 0;
+                            XImage xImage = XImage.FromStream(stream);
+
+                            double availableWidth = page.Width - (2 * leftMargin);
+                            double imgWidth = availableWidth;
+                            double ratio = xImage.PixelHeight / (double)xImage.PixelWidth;
+                            double imgHeight = imgWidth * ratio;
+                            double availableHeight = page.Height - yPos - 40;
+
+                            if (imgHeight > availableHeight)
                             {
-                                img.Save(stream, ImageFormat.Png); // Save as PNG
-                                stream.Position = 0;
-                                XImage xImage = XImage.FromStream(stream);
-
-                                // Calculate image dimensions preserving aspect ratio
-                                double ratio = xImage.PixelHeight / (double)xImage.PixelWidth;
-                                double availableWidth = page.Width - (2 * leftMargin); // Use page width with margins
-                                double imgWidth = availableWidth;
-                                double imgHeight = imgWidth * ratio;
-
-                                // Scale down if too high for the page
-                                double availableHeight = page.Height - 60; // Top/Bottom margin
-                                if (imgHeight > availableHeight)
-                                {
-                                    imgHeight = availableHeight;
-                                    imgWidth = imgHeight / ratio;
-                                }
-
-                                // Check if a new page is needed
-                                if (firstImage || (imgYPos + imgHeight > page.Height - 40))
-                                {
-                                    imagePage = document.AddPage();
-                                    imagePage.Orientation = PdfSharp.PageOrientation.Landscape;
-                                    imgGfx = XGraphics.FromPdfPage(imagePage);
-                                    imgYPos = 40; // Reset Y for new page
-                                    firstImage = false;
-                                }
-
-                                // Draw image centered horizontally
-                                double imgX = (imagePage.Width - imgWidth) / 2;
-                                imgGfx.DrawImage(xImage, imgX, imgYPos, imgWidth, imgHeight);
-                                imgYPos += imgHeight + 20; // Space between images
-
+                                imgHeight = availableHeight;
+                                imgWidth = imgHeight / ratio;
                             }
-                            catch (Exception imgEx)
-                            {
-                                Console.WriteLine($"Error processing image for PDF export: {imgEx.Message}");
-                                // Skip problematic image
-                            }
+
+                            double imgX = (page.Width - imgWidth) / 2;
+                            gfx.DrawImage(xImage, imgX, yPos + 20, imgWidth, imgHeight);
                         }
                     }
                 }
-                // --- END ADDING IMAGES ---
 
-                // Save the document
+                // 7️⃣ Lưu file
                 if (!fileName.ToLower().EndsWith(".pdf"))
                     fileName = Path.ChangeExtension(fileName, ".pdf");
                 document.Save(fileName);
                 document.Close();
-
-                // MessageBox and Process.Start are handled by the calling code (UC_BaoCao_Admin)
-
             }
             catch (Exception ex)
             {
-                // Throw exception to be caught by the calling code (UC_BaoCao_Admin)
                 throw new Exception($"Error creating PDF file: {ex.Message}", ex);
             }
         }
+
 
         /// <summary>
         /// Removes Vietnamese diacritics from a string.

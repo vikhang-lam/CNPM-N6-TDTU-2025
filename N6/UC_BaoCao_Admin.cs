@@ -439,7 +439,7 @@ namespace N6
                     // Add "All Classes in this Grade" option
                     DataRow allInGradeRow = filteredClasses.NewRow();
                     allInGradeRow["MaLop"] = "ALL_KHOI"; // Special value for all in grade
-                    allInGradeRow["TenLop"] = $"Tất cả lớp ({selectedKhoi})";
+                    allInGradeRow["TenLop"] = $" ({selectedKhoi})";
                     filteredClasses.Rows.InsertAt(allInGradeRow, 0);
 
                     cboLop.DataSource = filteredClasses;
@@ -732,25 +732,28 @@ namespace N6
 
                 if (dtReport != null && dtReport.Rows.Count > 0)
                 {
-                    // Kiểm tra xem đây là báo cáo Admin (có cột TyLe) hay báo cáo Lớp (không có TyLe)
-                    if (dtReport.Columns.Contains("TyLe"))
-                    {
-                        DisplayMonthlyReport_Admin(dtReport); // Báo cáo kiểu mới (Hình fe45b6)
-                    }
-                    else
-                    {
-                        DisplayMonthlyReport_Class(dtReport); // Báo cáo kiểu cũ (Hình fe45ba)
-                    }
-                    splitContainer1.Panel2Collapsed = false; // Hiển thị panel dưới
+                    // SỬA: Ẩn tiêu đề mặc định của DataGridView
+                    // vì báo cáo này đã có hàng "ĐIỂM" và "XẾP LOẠI" làm tiêu đề
+                    dgvDuLieu.ColumnHeadersVisible = false;
+
+                    // Gọi hàm hiển thị gộp (Giữ nguyên)
+                    DisplayCombinedMonthlyReport(dtReport);
+
+                    splitContainer1.Panel2Collapsed = true;
                 }
                 else
                 {
+                    // SỬA: Hiện lại tiêu đề nếu không có dữ liệu
+                    dgvDuLieu.ColumnHeadersVisible = true;
                     splitContainer1.Panel2Collapsed = true; // Ẩn nếu không có dữ liệu
                 }
             }
             else
             {
-                // Logic cũ cho các báo cáo khác
+                // SỬA: Luôn hiện lại tiêu đề cho TẤT CẢ các báo cáo khác
+                dgvDuLieu.ColumnHeadersVisible = true;
+
+                // Logic cũ cho các báo cáo khác (Giữ nguyên)
                 dgvDuLieu.DataSource = dtReport;
                 flpCharts.Controls.Clear();
 
@@ -767,234 +770,186 @@ namespace N6
             }
         }
 
-        // ### THÊM MỚI: Logic hiển thị Báo cáo tháng (theo LỚP) - (Copy từ UC_BaoCao.cs) ###
-        private void DisplayMonthlyReport_Class(DataTable dtReport)
+
+        // ### HÀM MỚI (Thay thế DisplayMonthlyReport_Admin) ###
+        // Hiển thị báo cáo tháng (Khối) GỘP CHUNG 2 BẢNG
+        private void DisplayCombinedMonthlyReport(DataTable dtReport)
         {
-            // 1. Tạo và điền bảng Thống kê Điểm (hiển thị trên dgvDuLieu)
-            DataTable dtDiem = CreateStatsTable_Class(dtReport, "Diem");
-            dgvDuLieu.DataSource = dtDiem;
-            RenameMonthlyReportColumns_Class(dgvDuLieu, true); // Đổi tên cột cho lưới chính
+            // 1. Dọn dẹp
+            flpCharts.Controls.Clear();
+            splitContainer1.Panel2Collapsed = true; // Không dùng panel dưới nữa
 
-            // 2. Tạo và điền bảng Thống kê Xếp Loại (hiển thị trong flpCharts)
-            DataTable dtXepLoai = CreateStatsTable_Class(dtReport, "XepLoai");
-            DataGridView dgvXepLoai = new DataGridView();
-            StyleDataGridViewModern(dgvXepLoai); // Dùng style hiện có
-            dgvXepLoai.DataSource = dtXepLoai;
-            RenameMonthlyReportColumns_Class(dgvXepLoai, false); // Đổi tên cột cho lưới phụ
+            // *** SỬA MỚI: Kiểm tra đây là báo cáo Khối (Admin) hay Lớp ***
+            // Báo cáo Khối (Admin) có cột "TyLe"
+            bool isAdminReport = dtReport.Columns.Contains("TyLe");
 
-            // 3. Đặt kích thước cho lưới phụ
-            int height = dgvXepLoai.ColumnHeadersHeight + (dtXepLoai.Rows.Count * dgvXepLoai.RowTemplate.Height) + 3;
-            dgvXepLoai.Size = new Size(flpCharts.ClientSize.Width - 25, height);
-            dgvXepLoai.MinimumSize = new Size(400, 150);
-            dgvXepLoai.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            // 2. Lấy dữ liệu nguồn
+            var dataMapDiem = dtReport.Select("LoaiThongKe = 'Diem'")
+                                      .ToDictionary(r => r["PhanLoai"].ToString(), r => r);
+            var dataMapXepLoai = dtReport.Select("LoaiThongKe = 'XepLoai'")
+                                         .ToDictionary(r => r["PhanLoai"].ToString(), r => r);
 
-            flpCharts.Controls.Add(dgvXepLoai); // Thêm lưới phụ vào panel dưới
+            // 3. Tạo DataTable KẾT HỢP
+            DataTable dtCombined = new DataTable();
+            dtCombined.Columns.Add("PhanLoai", typeof(string));
+            dtCombined.Columns.Add("Col_TS", typeof(string));
+            dtCombined.Columns.Add("Col_Nu", typeof(string));
+            dtCombined.Columns.Add("Col_DanToc_Percent", typeof(string)); // Cột này dùng chung
+            dtCombined.Columns.Add("Col_NDT", typeof(string));
+            // QUAN TRỌNG: Cột cờ để PDF nhận diện
+            dtCombined.Columns.Add("IsHeader", typeof(int));
+
+            // 4. Thêm hàng tiêu đề ĐIỂM
+            dtCombined.Rows.Add("ĐIỂM", "TS", "Nữ", "Dân tộc", "NDT", 1);
+
+            // 5. Thêm các hàng dữ liệu ĐIỂM (Dùng chung cho cả Lớp và Khối)
+            string[] scoreOrder = { "10", "9", "8", "7", "6", "5", "Dưới 5" };
+            foreach (string key in scoreOrder)
+            {
+                string ts = "0", nu = "0", dtoc = "0", ndt = "0";
+                if (dataMapDiem.ContainsKey(key))
+                {
+                    ts = dataMapDiem[key]["TS"].ToString();
+                    nu = dataMapDiem[key]["Nu"].ToString();
+                    dtoc = dataMapDiem[key]["DanToc"].ToString();
+                    ndt = dataMapDiem[key]["NDT"].ToString();
+                }
+                dtCombined.Rows.Add(key, ts, nu, dtoc, ndt, 0);
+            }
+
+            // *** SỬA MỚI: Thêm hàng TỔNG CỘNG cho báo cáo LỚP ***
+            if (!isAdminReport)
+            {
+                // Tính tổng từ dataMapDiem
+                int totalTS = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["TS"]));
+                int totalNu = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["Nu"]));
+                int totalDanToc = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["DanToc"]));
+                int totalNDT = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["NDT"]));
+                dtCombined.Rows.Add("Tổng", totalTS.ToString(), totalNu.ToString(), totalDanToc.ToString(), totalNDT.ToString(), 0);
+            }
+
+            // 6. Thêm hàng tiêu đề XẾP LOẠI
+            if (isAdminReport)
+            {
+                dtCombined.Rows.Add("XẾP LOẠI", "TS", "", "%", "", 1);
+            }
+            else
+            {
+                dtCombined.Rows.Add("XẾP LOẠI", "TS", "Nữ", "Dân tộc", "NDT", 1);
+            }
+
+            // 7. Thêm các hàng dữ liệu XẾP LOẠI
+            string[] rankOrder = { "T", "H", "C" };
+            foreach (string key in rankOrder)
+            {
+                string ts = "0";
+                string col2 = ""; // Nữ (Lớp) hoặc "" (Khối)
+                string col3 = ""; // Dân tộc (Lớp) hoặc % (Khối)
+                string col4 = ""; // NDT (Lớp) hoặc "" (Khối)
+
+                if (dataMapXepLoai.ContainsKey(key))
+                {
+                    ts = dataMapXepLoai[key]["TS"].ToString();
+                    if (isAdminReport)
+                    {
+                        // Báo cáo Khối (Admin) lấy TyLe
+                        col3 = Convert.ToDouble(dataMapXepLoai[key]["TyLe"]).ToString("N1") + "%";
+                    }
+                    else
+                    {
+                        // Báo cáo Lớp lấy chi tiết
+                        col2 = dataMapXepLoai[key]["Nu"].ToString();
+                        col3 = dataMapXepLoai[key]["DanToc"].ToString();
+                        col4 = dataMapXepLoai[key]["NDT"].ToString();
+                    }
+                }
+                dtCombined.Rows.Add(key, ts, col2, col3, col4, 0);
+            }
+
+            // 8. Hiển thị
+            dgvDuLieu.DataSource = dtCombined;
+            // Truyền cờ isAdminReport vào hàm Format
+            FormatCombinedMonthlyReportGrid(dgvDuLieu, isAdminReport);
         }
 
-        // ### THÊM MỚI: Helper cho DisplayMonthlyReport_Class (Copy từ UC_BaoCao.cs) ###
-        private DataTable CreateStatsTable_Class(DataTable sourceDt, string loaiThongKe)
-        {
-            DataTable dt = new DataTable();
-            dt.Columns.Add("PhanLoai", typeof(string));
-            dt.Columns.Add("TS", typeof(int));
-            dt.Columns.Add("Nu", typeof(int));
-            dt.Columns.Add("DanToc", typeof(int));
-            dt.Columns.Add("NDT", typeof(int));
-
-            DataRow[] rows = sourceDt.Select($"LoaiThongKe = '{loaiThongKe}'");
-            var dataMap = rows.ToDictionary(r => r["PhanLoai"].ToString(), r => r);
-
-            int totalTS = 0, totalNu = 0, totalDanToc = 0, totalNDT = 0;
-
-            if (loaiThongKe == "Diem")
-            {
-                string[] scoreOrder = { "10", "9", "8", "7", "6", "5", "<5" }; // Logic cũ dùng <5
-                foreach (string key in scoreOrder)
-                {
-                    int ts = 0, nu = 0, dtoc = 0, ndt = 0;
-                    if (dataMap.ContainsKey(key))
-                    {
-                        ts = Convert.ToInt32(dataMap[key]["TS"]);
-                        nu = Convert.ToInt32(dataMap[key]["Nu"]);
-                        dtoc = Convert.ToInt32(dataMap[key]["DanToc"]);
-                        ndt = Convert.ToInt32(dataMap[key]["NDT"]);
-                    }
-                    dt.Rows.Add(key, ts, nu, dtoc, ndt);
-                    totalTS += ts;
-                    totalNu += nu;
-                    totalDanToc += dtoc;
-                    totalNDT += ndt;
-                }
-                dt.Rows.Add("Tổng", totalTS, totalNu, totalDanToc, totalNDT); // Có hàng Tổng
-            }
-            else // XepLoai
-            {
-                string[] rankOrder = { "T", "H", "C" };
-                foreach (string key in rankOrder)
-                {
-                    int ts = 0, nu = 0, dtoc = 0, ndt = 0;
-                    if (dataMap.ContainsKey(key))
-                    {
-                        ts = Convert.ToInt32(dataMap[key]["TS"]);
-                        nu = Convert.ToInt32(dataMap[key]["Nu"]);
-                        dtoc = Convert.ToInt32(dataMap[key]["DanToc"]);
-                        ndt = Convert.ToInt32(dataMap[key]["NDT"]);
-                    }
-                    dt.Rows.Add(key, ts, nu, dtoc, ndt);
-                }
-            }
-            return dt;
-        }
-
-        // ### THÊM MỚI: Helper cho DisplayMonthlyReport_Class (Copy từ UC_BaoCao.cs) ###
-        private void RenameMonthlyReportColumns_Class(DataGridView dgv, bool isScoreTable)
+        // ### HÀM MỚI (Thay thế RenameMonthlyReportColumns_Admin) ###
+        // Định dạng cho DataGridView báo cáo tháng (GỘP CHUNG)
+        private void FormatCombinedMonthlyReportGrid(DataGridView dgv, bool isAdminReport)
         {
             if (dgv.DataSource == null) return;
+
+            // 1. Định dạng cột
             foreach (DataGridViewColumn col in dgv.Columns)
             {
-                col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
                 col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
                 switch (col.DataPropertyName)
                 {
                     case "PhanLoai":
-                        col.HeaderText = isScoreTable ? "Điểm" : "Xếp loại";
-                        col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                        col.DefaultCellStyle.Font = new Font(dgv.Font, FontStyle.Bold);
+                        col.HeaderText = ""; // Cột đầu tiên không có header
                         col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-                        col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
-                        break;
-                    case "TS": col.HeaderText = "TS"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                    case "Nu": col.HeaderText = "Nữ"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                    case "DanToc": col.HeaderText = "Dân tộc"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                    case "NDT": col.HeaderText = "NDT"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                }
-            }
-            // In đậm hàng "Tổng"
-            if (isScoreTable)
-            {
-                foreach (DataGridViewRow row in dgv.Rows)
-                {
-                    if (row.Cells[0].Value?.ToString() == "Tổng")
-                    {
-                        row.DefaultCellStyle.Font = new Font(dgv.Font, FontStyle.Bold);
-                        row.DefaultCellStyle.BackColor = Color.FromArgb(240, 240, 240);
-                    }
-                }
-            }
-        }
-
-        // ### THÊM MỚI: Logic hiển thị Báo cáo tháng (theo KHỐI) - (Logic mới) ###
-        private void DisplayMonthlyReport_Admin(DataTable dtReport)
-        {
-            // 1. Tạo và điền bảng Thống kê Điểm (hiển thị trên dgvDuLieu)
-            DataTable dtDiem = CreateStatsTable_Admin(dtReport, "Diem");
-            dgvDuLieu.DataSource = dtDiem;
-            RenameMonthlyReportColumns_Admin(dgvDuLieu, true); // Đổi tên cột cho lưới chính
-
-            // 2. Tạo và điền bảng Thống kê Xếp Loại (hiển thị trong flpCharts)
-            DataTable dtXepLoai = CreateStatsTable_Admin(dtReport, "XepLoai");
-            DataGridView dgvXepLoai = new DataGridView();
-            StyleDataGridViewModern(dgvXepLoai);
-            dgvXepLoai.DataSource = dtXepLoai;
-            RenameMonthlyReportColumns_Admin(dgvXepLoai, false); // Đổi tên cột cho lưới phụ
-
-            // 3. Đặt kích thước
-            int height = dgvXepLoai.ColumnHeadersHeight + (dtXepLoai.Rows.Count * dgvXepLoai.RowTemplate.Height) + 3;
-            dgvXepLoai.Size = new Size(flpCharts.ClientSize.Width - 25, height);
-            dgvXepLoai.MinimumSize = new Size(300, 150); // Nhỏ hơn vì ít cột hơn
-            dgvXepLoai.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-
-            flpCharts.Controls.Add(dgvXepLoai);
-        }
-
-        // ### THÊM MỚI: Helper cho DisplayMonthlyReport_Admin (Logic mới) ###
-        private DataTable CreateStatsTable_Admin(DataTable sourceDt, string loaiThongKe)
-        {
-            DataTable dt = new DataTable();
-
-            // Lọc các hàng từ kết quả SP
-            DataRow[] rows = sourceDt.Select($"LoaiThongKe = '{loaiThongKe}'");
-            var dataMap = rows.ToDictionary(r => r["PhanLoai"].ToString(), r => r);
-
-            if (loaiThongKe == "Diem")
-            {
-                // Định nghĩa các cột cho bảng Điểm (theo hình fe45b6)
-                dt.Columns.Add("PhanLoai", typeof(string));
-                dt.Columns.Add("TS", typeof(int));
-                dt.Columns.Add("Nu", typeof(int));
-                dt.Columns.Add("DanToc", typeof(int));
-                dt.Columns.Add("NDT", typeof(int));
-
-                string[] scoreOrder = { "10", "9", "8", "7", "6", "5", "Dưới 5" }; // Theo hình mới
-                foreach (string key in scoreOrder)
-                {
-                    int ts = 0, nu = 0, dtoc = 0, ndt = 0;
-                    if (dataMap.ContainsKey(key))
-                    {
-                        ts = Convert.ToInt32(dataMap[key]["TS"]);
-                        nu = Convert.ToInt32(dataMap[key]["Nu"]);
-                        dtoc = Convert.ToInt32(dataMap[key]["DanToc"]);
-                        ndt = Convert.ToInt32(dataMap[key]["NDT"]);
-                    }
-                    dt.Rows.Add(key, ts, nu, dtoc, ndt);
-                }
-                // Báo cáo Khối (hình fe45b6) không có hàng Tổng
-            }
-            else // XepLoai
-            {
-                // Định nghĩa các cột cho bảng Xếp Loại (theo hình fe45b6)
-                dt.Columns.Add("PhanLoai", typeof(string));
-                dt.Columns.Add("TS", typeof(int));
-                dt.Columns.Add("TyLe", typeof(double));
-
-                string[] rankOrder = { "T", "H", "C" };
-                foreach (string key in rankOrder)
-                {
-                    int ts = 0;
-                    double tyLe = 0;
-                    if (dataMap.ContainsKey(key))
-                    {
-                        ts = Convert.ToInt32(dataMap[key]["TS"]);
-                        tyLe = Convert.ToDouble(dataMap[key]["TyLe"]);
-                    }
-                    dt.Rows.Add(key, ts, tyLe);
-                }
-            }
-            return dt;
-        }
-
-        // ### THÊM MỚI: Helper cho DisplayMonthlyReport_Admin (Logic mới) ###
-        private void RenameMonthlyReportColumns_Admin(DataGridView dgv, bool isScoreTable)
-        {
-            if (dgv.DataSource == null) return;
-            foreach (DataGridViewColumn col in dgv.Columns)
-            {
-                col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-                col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
-
-                switch (col.DataPropertyName)
-                {
-                    case "PhanLoai":
-                        col.HeaderText = isScoreTable ? "Điểm" : "Xếp loại";
                         col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                        col.DefaultCellStyle.Font = new Font(dgv.Font, FontStyle.Bold);
-                        col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-                        col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
                         break;
-                    case "TS": col.HeaderText = "TS"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-
-                    // Cột chỉ có ở Bảng Điểm
-                    case "Nu": col.HeaderText = "Nữ"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                    case "DanToc": col.HeaderText = "Dân tộc"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                    case "NDT": col.HeaderText = "NDT"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-
-                    // Cột chỉ có ở Bảng Xếp Loại
-                    case "TyLe":
-                        col.HeaderText = "%";
-                        col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-                        col.DefaultCellStyle.Format = "N1"; // 1 chữ số thập phân
+                    case "Col_TS":
+                        col.HeaderText = "TS";
                         break;
+                    case "Col_Nu":
+                        col.HeaderText = "Nữ";
+                        break;
+                    case "Col_DanToc_Percent":
+                        // Header vẫn là "Dân tộc" cho cả 2
+                        col.HeaderText = "Dân tộc";
+                        break;
+                    case "Col_NDT":
+                        col.HeaderText = "NDT";
+                        break;
+                    case "IsHeader":
+                        col.Visible = false; // Ẩn cột cờ
+                        break;
+                }
+            }
+
+            // 2. Định dạng hàng (Hàng tiêu đề và hàng dữ liệu)
+            foreach (DataGridViewRow row in dgv.Rows)
+            {
+                bool isHeader = Convert.ToInt32(row.Cells["IsHeader"].Value) == 1;
+                string phanLoai = row.Cells["PhanLoai"].Value?.ToString();
+
+                if (isHeader)
+                {
+                    // Hàng tiêu đề (ĐIỂM, XẾP LOẠI)
+                    row.DefaultCellStyle.Font = new Font(dgv.Font, FontStyle.Bold);
+                    row.DefaultCellStyle.BackColor = Color.FromArgb(235, 235, 235);
+                    row.DefaultCellStyle.ForeColor = Color.Black;
+                }
+                else
+                {
+                    // Hàng dữ liệu (10, 9, T, H...)
+                    row.Cells["PhanLoai"].Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                }
+
+                // SỬA: Tô đậm hàng "Tổng" cho báo cáo lớp
+                if (!isAdminReport && phanLoai == "Tổng")
+                {
+                    row.DefaultCellStyle.Font = new Font(dgv.Font, FontStyle.Bold);
+                    row.DefaultCellStyle.BackColor = Color.FromArgb(240, 240, 240);
+                }
+
+                // SỬA: Ẩn/Thay đổi các ô không cần thiết cho báo cáo Khối (Admin)
+                if (isAdminReport && phanLoai == "XẾP LOẠI")
+                {
+                    // Hàng tiêu đề XẾP LOẠI (của Khối)
+                    row.Cells["Col_Nu"].Value = "";
+                    row.Cells["Col_DanToc_Percent"].Value = "%";
+                    row.Cells["Col_NDT"].Value = "";
+                }
+                else if (isAdminReport && (phanLoai == "T" || phanLoai == "H" || phanLoai == "C"))
+                {
+                    // Hàng data XẾP LOẠI (của Khối)
+                    row.Cells["Col_Nu"].Value = "";
+                    row.Cells["Col_NDT"].Value = "";
                 }
             }
         }
@@ -1427,139 +1382,123 @@ namespace N6
             }
         }
 
-        // ### SỬA ĐỔI: Cập nhật PDF Export để xử lý 2-Grid của Báo cáo tháng ###
+        // ===== XUẤT PDF TỰ ĐỘNG (ÁP DỤNG CHO CẢ LỚP & KHỐI) =====
         private void btnXuatPDF_Click(object sender, EventArgs e)
         {
-            string reportType = GetSelectedReportType(); // Lấy loại báo cáo
-
-            // --- Kiểm tra dữ liệu ---
-            bool hasData = dgvDuLieu.Rows.Count > 0;
-            if (reportType == "Báo cáo tháng")
+            try
             {
-                // Báo cáo tháng có thể có dữ liệu ở lưới phụ ngay cả khi lưới chính rỗng
-                hasData = hasData || flpCharts.Controls.OfType<DataGridView>().Any(dgv => dgv.Rows.Count > 0);
-            }
+                // 1️⃣ Lấy thông tin header TRƯỚC để làm tên file mặc định
+                bool isClassReport = false;
+                bool isGradeReport = false;
+                string mainHeader = "";
+                string classOrGradeName = "";
 
-            if (!hasData)
-            {
-                MessageBox.Show("Chưa có dữ liệu để xuất.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            // --- Kết thúc kiểm tra ---
-
-            SaveFileDialog saveFileDialog = new SaveFileDialog
-            {
-                Filter = "PDF Files (*.pdf)|*.pdf",
-                Title = "Lưu file PDF",
-                FileName = $"BaoCao_{reportType?.Replace(" ", "")}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf" // Sanitize filename
-            };
-
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                try
+                // Nếu combobox lớp được chọn => Báo cáo lớp
+                if (cboLop.Visible && cboLop.SelectedItem != null && cboLop.SelectedValue?.ToString() != "ALL" && cboLop.SelectedValue?.ToString() != "ALL_KHOI")
                 {
-                    // --- Xây dựng tiêu đề PDF và Tiêu đề nội dung lớn ---
-                    string reportTypeDisplay = reportType?.ToUpper() ?? "BÁO CÁO";
-                    string documentTitle = reportTypeDisplay; // Tiêu đề chung của file PDF (sẽ được cập nhật)
-                    string mainContentHeader = ""; // Tiêu đề lớn TRONG nội dung PDF
-                    string detailFilters = "";
+                    isClassReport = true;
+                    classOrGradeName = cboLop.Text.Trim();
+                    mainHeader = $"{classOrGradeName.ToUpper()}";
+                }
+                // Nếu combobox khối được chọn => Báo cáo khối
+                else if (cboKhoi.Visible && cboKhoi.SelectedItem != null && cboKhoi.SelectedItem?.ToString() != "Tất cả các khối")
+                {
+                    isGradeReport = true;
+                    classOrGradeName = cboKhoi.Text.Trim();
+                    mainHeader = $"{classOrGradeName.ToUpper()}";
+                }
+                else
+                {
+                    MessageBox.Show("Vui lòng chọn Lớp hoặc Khối (không chọn 'Tất cả') trước khi xuất báo cáo.", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
 
-                    // Lấy giá trị các bộ lọc
-                    string selectedMaLopValue = cboLop.SelectedValue?.ToString();
-                    string selectedKhoiValue = cboKhoi.SelectedItem?.ToString();
-                    bool isSpecificClass = cboLop.Visible && cboLop.SelectedIndex != -1 && selectedMaLopValue != "ALL" && selectedMaLopValue != "ALL_KHOI";
-                    bool isSpecificKhoi = cboKhoi.Visible && cboKhoi.SelectedIndex != -1 && selectedKhoiValue != "Tất cả các khối";
+                // 2️⃣ Mở SaveFileDialog để người dùng chọn vị trí
+                SaveFileDialog saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "PDF Files (*.pdf)|*.pdf",
+                    Title = "Lưu file PDF",
+                    FileName = $"BaoCao_{mainHeader.Replace(" ", "").Replace(":", "")}_{DateTime.Now:yyyyMMdd_HHmm}.pdf"
+                };
 
-                    // Xác định Tiêu đề nội dung lớn VÀ Tiêu đề tài liệu
-                    if (isSpecificClass)
+                // 3️⃣ Nếu người dùng chọn "OK"
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    string fileName = saveFileDialog.FileName;
+                    string documentTitle = "";
+
+                    // 4️⃣ Tự động lấy danh sách lớp (nếu là báo cáo khối)
+                    if (isGradeReport)
                     {
-                        mainContentHeader = cboLop.Text.ToUpper(); // VD: "LỚP 5A1"
-                        documentTitle = $"{mainContentHeader} - {reportTypeDisplay}"; // VD: "LỚP 5A1 - BÁO CÁO THÁNG"
-                    }
-                    else if (isSpecificKhoi)
-                    {
-                        mainContentHeader = selectedKhoiValue.ToUpper(); // VD: "KHỐI 5"
-                        documentTitle = $"{mainContentHeader} - {reportTypeDisplay}"; // VD: "KHỐI 5 - BÁO CÁO THÁNG"
-                    }
-                    else // Nếu xem toàn trường
-                    {
-                        mainContentHeader = "TOÀN TRƯỜNG"; // Hoặc có thể để trống nếu không muốn
-                        documentTitle = reportTypeDisplay; // Giữ nguyên tiêu đề tài liệu
-                    }
-
-
-                    // Tạo chuỗi chi tiết bộ lọc
-                    List<string> filters = new List<string>();
-                    if (isSpecificKhoi) filters.Add($"Khối: {selectedKhoiValue}");
-                    if (isSpecificClass) filters.Add($"Lớp: {cboLop.Text}");
-                    if (cboHocKy.Visible && cboHocKy.SelectedIndex != -1) filters.Add($"{cboHocKy.Text}");
-                    if (cboMonDay.Visible && cboMonDay.SelectedIndex != -1 && cboMonDay.SelectedValue?.ToString() != "ALL") filters.Add($"Môn: {cboMonDay.Text}");
-                    if (cboThang.Visible && cboThang.SelectedIndex != -1) filters.Add($"Tháng: {cboThang.Text}");
-
-                    if (filters.Any())
-                        detailFilters = "Chi tiết: " + string.Join(" - ", filters);
-
-                    // Kết hợp thành tiêu đề cuối cùng cho hàm ExportHelper (Tiêu đề tài liệu + bộ lọc)
-                    string combinedTitleForHelper = documentTitle;
-                    if (!string.IsNullOrEmpty(detailFilters))
-                        combinedTitleForHelper += "\n" + detailFilters;
-                    // --- Kết thúc xây dựng tiêu đề ---
-
-
-                    // --- Lấy ảnh biểu đồ / lưới phụ ---
-                    var imagesToExport = new List<Image>();
-                    imagesToExport.AddRange(flpCharts.Controls.OfType<Chart>().Select(chart =>
-                    {
-                        using (var ms = new MemoryStream())
+                        try
                         {
-                            chart.SaveImage(ms, ChartImageFormat.Png);
-                            return (Image)Image.FromStream(ms).Clone();
-                        }
-                    }));
-                    if (reportType == "Báo cáo tháng")
-                    {
-                        var dgvSecondary = flpCharts.Controls.OfType<DataGridView>().FirstOrDefault();
-                        if (dgvSecondary != null && dgvSecondary.Rows.Count > 0)
-                        {
-                            try
+                            var lopList = new List<string>();
+                            foreach (DataRowView rowView in cboLop.Items)
                             {
-                                dgvSecondary.Width = Math.Max(dgvSecondary.Width, 600);
-                                dgvSecondary.Height = dgvSecondary.ColumnHeadersHeight + dgvSecondary.Rows.Cast<DataGridViewRow>().Sum(r => r.Height) + 3;
-                                Bitmap secondaryGridImage = new Bitmap(dgvSecondary.Width, dgvSecondary.Height);
-                                dgvSecondary.DrawToBitmap(secondaryGridImage, new Rectangle(0, 0, dgvSecondary.Width, dgvSecondary.Height));
-                                imagesToExport.Add(secondaryGridImage);
+                                string maLop = rowView["MaLop"].ToString();
+                                string tenLop = rowView["TenLop"].ToString();
+
+                                if (maLop != "ALL" && maLop != "ALL_KHOI" && !string.IsNullOrWhiteSpace(tenLop))
+                                {
+                                    lopList.Add(tenLop.Trim().Replace("Lớp ", "").Replace("A", "/"));
+                                }
                             }
-                            catch (Exception imgEx)
+
+                            if (lopList.Count > 0)
+                                dgvDuLieu.Tag = string.Join("; ", lopList);
+                            else
+                                dgvDuLieu.Tag = "(Không tìm thấy lớp nào)";
+                        }
+                        catch { dgvDuLieu.Tag = ""; }
+                    }
+                    else
+                    {
+                        dgvDuLieu.Tag = null;
+                    }
+
+                    // 5️⃣ SỬA: Chỉ lấy ảnh nếu KHÔNG phải báo cáo tháng
+                    Image secondTable = null;
+                    string reportType = GetSelectedReportType();
+
+                    if (reportType != "Báo cáo tháng")
+                    {
+                        try
+                        {
+                            if (flpCharts.Controls.Count > 0 && flpCharts.Controls[0] is PictureBox pic)
                             {
-                                Console.WriteLine("Lỗi khi tạo ảnh DataGridView phụ: " + imgEx.Message);
+                                Bitmap bmp = new Bitmap(pic.Width, pic.Height);
+                                pic.DrawToBitmap(bmp, new Rectangle(0, 0, pic.Width, pic.Height));
+                                secondTable = bmp;
+                            }
+                            else if (flpCharts.Controls.Count > 0 && flpCharts.Controls[0] is DataGridView grid)
+                            {
+                                Bitmap bmp = new Bitmap(grid.Width, grid.Height);
+                                grid.DrawToBitmap(bmp, new Rectangle(0, 0, grid.Width, grid.Height));
+                                secondTable = bmp;
                             }
                         }
+                        catch { }
                     }
-                    // --- Kết thúc lấy ảnh ---
+                    // Nếu là Báo cáo tháng, secondTable sẽ là null (ĐÚNG)
 
-                    // --- Xuất PDF ---
-                    // Gọi hàm ExportToPDF đã được sửa đổi với tham số mainContentHeader
-                    ExportHelper.ExportToPDF(
-                        dgvDuLieu,
-                        saveFileDialog.FileName,
-                        combinedTitleForHelper, // Tiêu đề tài liệu + bộ lọc
-                        mainContentHeader,      // <<< TIÊU ĐỀ NỘI DUNG LỚN
-                        imagesToExport.ToArray());
-                    // --- Kết thúc xuất PDF ---
+                    // 6️⃣ Xuất PDF
+                    // Giờ đây, dgvDuLieu của Báo cáo tháng (Lớp) cũng có cờ "IsHeader"
+                    // nên ExportHelper sẽ tự động dùng Path A (gộp bảng)
+                    ExportHelper.ExportToPDF(dgvDuLieu, fileName, documentTitle, mainHeader, secondTable);
 
-                    MessageBox.Show($"Đã xuất báo cáo ra file:\n{saveFileDialog.FileName}", "Xuất PDF thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("✅ Đã xuất PDF thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                    // Giải phóng bộ nhớ ảnh
-                    foreach (var img in imagesToExport) img?.Dispose();
-
+                    // 7️⃣ Mở file đã lưu
+                    if (File.Exists(fileName))
+                        System.Diagnostics.Process.Start(fileName);
                 }
-                catch (Exception ex)
-                {
-                    // Hiển thị lỗi từ ExportHelper hoặc lỗi khác
-                    MessageBox.Show("Lỗi khi xuất PDF: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi xuất PDF: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
         // Add this method to handle the Paint event for pnlFilters
         private void pnlFilters_Paint(object sender, PaintEventArgs e)
