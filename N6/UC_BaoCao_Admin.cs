@@ -1383,6 +1383,8 @@ namespace N6
         }
 
         // ===== XUẤT PDF TỰ ĐỘNG (ÁP DỤNG CHO CẢ LỚP & KHỐI) =====
+        // ===== XUẤT PDF TỰ ĐỘNG (ÁP DỤNG CHO CẢ LỚP & KHỐI) =====
+        // DÀNH CHO UC_BaoCao_Admin.cs
         private void btnXuatPDF_Click(object sender, EventArgs e)
         {
             try
@@ -1425,7 +1427,23 @@ namespace N6
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string fileName = saveFileDialog.FileName;
-                    string documentTitle = "";
+
+                    // SỬA: Tạo tiêu đề tài liệu chi tiết (cho phần đầu trang)
+                    string reportType = GetSelectedReportType();
+                    string documentTitle = reportType?.ToUpper() ?? "BÁO CÁO"; // VD: "BÁO CÁO THÁNG"
+
+                    if (isGradeReport)
+                    {
+                        documentTitle += $"\nKHỐI: {cboKhoi.Text}"; // VD: "... \nKHỐI: Khối 5"
+                    }
+                    if (isClassReport)
+                    {
+                        documentTitle += $"\nLỚP: {cboLop.Text}"; // VD: "... \nLỚP: 5A1"
+                    }
+                    if (cboHocKy.Visible && cboHocKy.SelectedIndex != -1) documentTitle += $" - {cboHocKy.Text.ToUpper()}";
+                    if (cboMonDay.Visible && cboMonDay.SelectedIndex != -1) documentTitle += $"\nMÔN: {cboMonDay.Text}";
+                    if (cboThang.Visible && cboThang.SelectedIndex != -1) documentTitle += $"\nTHÁNG: {cboThang.Text}";
+                    // KẾT THÚC SỬA
 
                     // 4️⃣ Tự động lấy danh sách lớp (nếu là báo cáo khối)
                     if (isGradeReport)
@@ -1456,10 +1474,8 @@ namespace N6
                         dgvDuLieu.Tag = null;
                     }
 
-                    // 5️⃣ SỬA: Chỉ lấy ảnh nếu KHÔNG phải báo cáo tháng
+                    // 5️⃣ Lấy ảnh của bảng xếp loại (nếu có)
                     Image secondTable = null;
-                    string reportType = GetSelectedReportType();
-
                     if (reportType != "Báo cáo tháng")
                     {
                         try
@@ -1479,11 +1495,8 @@ namespace N6
                         }
                         catch { }
                     }
-                    // Nếu là Báo cáo tháng, secondTable sẽ là null (ĐÚNG)
 
-                    // 6️⃣ Xuất PDF
-                    // Giờ đây, dgvDuLieu của Báo cáo tháng (Lớp) cũng có cờ "IsHeader"
-                    // nên ExportHelper sẽ tự động dùng Path A (gộp bảng)
+                    // 6️⃣ Xuất PDF (Truyền documentTitle mới)
                     ExportHelper.ExportToPDF(dgvDuLieu, fileName, documentTitle, mainHeader, secondTable);
 
                     MessageBox.Show("✅ Đã xuất PDF thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
