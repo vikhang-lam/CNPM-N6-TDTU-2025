@@ -250,6 +250,7 @@
       <DependentUpon>ChangePasswordForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Class1.cs" />
+    <Compile Include="EmailHelper.cs" />
     <Compile Include="ExcelHelper.cs" />
     <Compile Include="ExportHelper.cs" />
     <Compile Include="frmAssistiveMenu.cs">
@@ -287,6 +288,12 @@
     </Compile>
     <Compile Include="frmModernPopup.Designer.cs">
       <DependentUpon>frmModernPopup.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmTimerPopup.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmTimerPopup.Designer.cs">
+      <DependentUpon>frmTimerPopup.cs</DependentUpon>
     </Compile>
     <Compile Include="InsightCard.cs">
       <SubType>UserControl</SubType>

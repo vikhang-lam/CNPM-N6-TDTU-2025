@@ -212,11 +212,44 @@ namespace N6
                 MessageBox.Show("Vui lòng chọn một tài khoản để xác nhận.", "Chưa chọn", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
             string maGV = dgvGV.CurrentRow.Cells["MaGV"].Value.ToString();
-            DatabaseHelper.UpdateTrangThaiGiaoVien(maGV, "Đã xác nhận");
-            MessageBox.Show("Xác nhận tài khoản thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            LoadDataForCurrentTab(); // Tải lại tab chờ duyệt
-            ClearInputs();
+
+            try
+            {
+                // Cập nhật trạng thái và lấy email, tên giáo viên
+                var result = DatabaseHelper.UpdateTrangThaiGiaoVien(maGV, "Đã xác nhận");
+                string email = result.Item1;
+                string tenGV = result.Item2;
+
+                // Gửi email thông báo
+                if (!string.IsNullOrEmpty(email))
+                {
+                    bool emailSent = EmailHelper.SendAccountStatusEmail(email, tenGV, isApproved: true);
+                    if (emailSent)
+                    {
+                        MessageBox.Show($"Xác nhận tài khoản thành công!\nEmail thông báo đã được gửi đến: {email}",
+                            "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Xác nhận tài khoản thành công!\nNhưng không thể gửi email đến: {email}",
+                            "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Xác nhận tài khoản thành công! (Giáo viên chưa cung cấp email)",
+                        "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
+                LoadDataForCurrentTab();
+                ClearInputs();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void btnHuy_Click(object sender, EventArgs e)
@@ -226,13 +259,49 @@ namespace N6
                 MessageBox.Show("Vui lòng chọn một tài khoản để hủy.", "Chưa chọn", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
             string maGV = dgvGV.CurrentRow.Cells["MaGV"].Value.ToString();
-            if (MessageBox.Show("Bạn có chắc muốn hủy yêu cầu tạo tài khoản này không?", "Xác nhận hủy", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            string tenGV = dgvGV.CurrentRow.Cells["Ten"].Value.ToString();
+
+            if (MessageBox.Show($"Bạn có chắc muốn hủy yêu cầu tạo tài khoản của '{tenGV}' không?",
+                "Xác nhận hủy", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                DatabaseHelper.DeleteGiaoVien(maGV);
-                MessageBox.Show("Đã hủy yêu cầu thành công.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                LoadDataForCurrentTab();
-                ClearInputs();
+                try
+                {
+                    // Lấy email trước khi xóa
+                    string email = dgvGV.CurrentRow.Cells["Email"].Value?.ToString();
+
+                    // Xóa giáo viên
+                    DatabaseHelper.DeleteGiaoVien(maGV);
+
+                    // Gửi email thông báo từ chối
+                    if (!string.IsNullOrEmpty(email))
+                    {
+                        bool emailSent = EmailHelper.SendAccountStatusEmail(email, tenGV, isApproved: false);
+                        if (emailSent)
+                        {
+                            MessageBox.Show($"Đã hủy yêu cầu thành công.\nEmail thông báo đã được gửi đến: {email}",
+                                "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Đã hủy yêu cầu thành công. (Không gửi được email thông báo)",
+                                "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Đã hủy yêu cầu thành công.",
+                            "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+
+                    LoadDataForCurrentTab();
+                    ClearInputs();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 

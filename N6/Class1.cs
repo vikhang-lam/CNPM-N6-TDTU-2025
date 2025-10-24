@@ -24,8 +24,8 @@ public class TeacherProfile
 public static class DatabaseHelper
 {
     private static string connectionString =
-        @"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
-    //@"Data Source=DES-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+        //@"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+    @"Data Source=DESKTOP-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
 
     // Helper không thay đổi
     public static DataTable ExecuteQuery(string query)
@@ -555,11 +555,48 @@ public static class DatabaseHelper
         return ExecuteStoredProcedure("sp_GetGiaoVienByTrangThai", pTT);
     }
 
-    public static void UpdateTrangThaiGiaoVien(string maGV, string trangThai)
+    public static Tuple<string, string> UpdateTrangThaiGiaoVien(string maGV, string trangThai)
     {
-        var pMaGV = new SqlParameter("@id", maGV);
-        var pTT = new SqlParameter("@tt", trangThai);
-        ExecuteNonQueryStoredProcedure("sp_UpdateTrangThaiGiaoVien", pMaGV, pTT);
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                using (SqlCommand cmd = new SqlCommand("sp_UpdateTrangThaiGiaoVien", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Input parameters
+                    cmd.Parameters.AddWithValue("@id", maGV);
+                    cmd.Parameters.AddWithValue("@tt", trangThai);
+
+                    // Output parameters
+                    SqlParameter emailParam = new SqlParameter("@Email", SqlDbType.NVarChar, 50)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    SqlParameter tenParam = new SqlParameter("@Ten", SqlDbType.NVarChar, 100)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+
+                    cmd.Parameters.Add(emailParam);
+                    cmd.Parameters.Add(tenParam);
+
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+
+                    // Lấy giá trị trả về
+                    string email = emailParam.Value?.ToString();
+                    string ten = tenParam.Value?.ToString();
+
+                    return Tuple.Create(email, ten);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Lỗi khi cập nhật trạng thái giáo viên: " + ex.Message);
+        }
     }
 
     public static void UpdateGiaoVien(string maGV, string ten, string email, string sdt)

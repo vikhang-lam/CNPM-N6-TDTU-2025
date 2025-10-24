@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
@@ -24,22 +25,101 @@ public class frmDraggableRoundedPopup : Form
     public frmDraggableRoundedPopup()
     {
         this.FormBorderStyle = FormBorderStyle.None;
-        // ====> THAY ĐỔI 1: Đặt nền chính là màu trắng <====
         this.BackColor = Color.White;
         this.StartPosition = FormStartPosition.CenterScreen;
         this.DoubleBuffered = true;
         this.TopMost = true;
 
-        var topPanel = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = Color.Transparent };
-        lblTitle = new Label { Dock = DockStyle.Fill, Text = this.Text, Font = new Font("Segoe UI", 11F, FontStyle.Bold), ForeColor = Color.DimGray, TextAlign = ContentAlignment.MiddleCenter, Padding = new Padding(30, 0, 30, 0) };
+        var topPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 40,
+            BackColor = Color.Transparent,
+            Padding = new Padding(8, 6, 8, 0)
+        };
 
-        var btnClose = new Label { Text = "✕", Dock = DockStyle.Right, Width = 40, Font = new Font("Segoe UI", 12F), ForeColor = Color.Gray, TextAlign = ContentAlignment.MiddleCenter, Cursor = Cursors.Hand };
+        lblTitle = new Label
+        {
+            Dock = DockStyle.Fill,
+            Text = this.Text,
+            Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+            ForeColor = Color.DimGray,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Padding = new Padding(30, 0, 30, 0)
+        };
+
+        var btnHost = new Panel
+        {
+            Dock = DockStyle.Right,
+            Width = 88,
+            BackColor = Color.Transparent,
+            Padding = new Padding(0),
+            Margin = new Padding(0)
+        };
+
+        // Minimize button
+        bool hoverMin = false;
+        var btnMinimize = new Label
+        {
+            Text = "−",
+            Dock = DockStyle.Right,
+            Width = 40,
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = Color.Gray,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Cursor = Cursors.Hand,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+        btnMinimize.Click += (s, e) => this.WindowState = FormWindowState.Minimized;
+        btnMinimize.MouseEnter += (s, e) => { hoverMin = true; btnMinimize.Invalidate(); };
+        btnMinimize.MouseLeave += (s, e) => { hoverMin = false; btnMinimize.Invalidate(); };
+        btnMinimize.Paint += (s, e) =>
+        {
+            if (hoverMin)
+            {
+                var inner = Rectangle.Inflate(btnMinimize.ClientRectangle, -4, -3);
+                using (var br = new SolidBrush(Color.FromArgb(235, 244, 255)))
+                    e.Graphics.FillRectangle(br, inner);
+            }
+            TextRenderer.DrawText(e.Graphics, "−", btnMinimize.Font, btnMinimize.ClientRectangle, btnMinimize.ForeColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        };
+
+        // Close button
+        bool hoverClose = false;
+        var btnClose = new Label
+        {
+            Text = "✕",
+            Dock = DockStyle.Right,
+            Width = 40,
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = Color.Gray,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Cursor = Cursors.Hand,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
         btnClose.Click += (s, e) => this.Close();
-        btnClose.MouseEnter += (s, e) => btnClose.BackColor = Color.FromArgb(255, 230, 230);
-        btnClose.MouseLeave += (s, e) => btnClose.BackColor = Color.Transparent;
+        btnClose.MouseEnter += (s, e) => { hoverClose = true; btnClose.Invalidate(); };
+        btnClose.MouseLeave += (s, e) => { hoverClose = false; btnClose.Invalidate(); };
+        btnClose.Paint += (s, e) =>
+        {
+            if (hoverClose)
+            {
+                var inner = Rectangle.Inflate(btnClose.ClientRectangle, -4, -3);
+                using (var br = new SolidBrush(Color.FromArgb(255, 230, 230)))
+                    e.Graphics.FillRectangle(br, inner);
+            }
+            TextRenderer.DrawText(e.Graphics, "✕", btnClose.Font, btnClose.ClientRectangle, btnClose.ForeColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        };
+
+        btnHost.Controls.Add(btnMinimize);
+        btnHost.Controls.Add(btnClose);
 
         topPanel.Controls.Add(lblTitle);
-        topPanel.Controls.Add(btnClose);
+        topPanel.Controls.Add(btnHost);
 
         ContentPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(15) };
 
@@ -66,7 +146,6 @@ public class frmDraggableRoundedPopup : Form
         using (var path = new GraphicsPath())
         {
             var rect = ClientRectangle;
-            // Thu nhỏ rect một chút để đường viền không bị cắt
             rect.Width--;
             rect.Height--;
 
@@ -77,22 +156,13 @@ public class frmDraggableRoundedPopup : Form
             path.AddArc(rect.X, rect.Bottom - radius, radius, radius, 90, 90);
             path.CloseFigure();
 
-            // Đặt vùng hiển thị của form theo đường path bo tròn
             this.Region = new Region(path);
 
-            // ====> THAY ĐỔI 2: VẼ NỀN VÀ VIỀN <====
-
-            // Vẽ nền trắng cho form
             using (var brush = new SolidBrush(this.BackColor))
-            {
                 e.Graphics.FillPath(brush, path);
-            }
 
-            // Vẽ đường viền màu đen xung quanh
             using (var pen = new Pen(Color.Black, 3))
-            {
                 e.Graphics.DrawPath(pen, path);
-            }
         }
     }
 }
