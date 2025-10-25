@@ -39,6 +39,8 @@ CREATE TABLE GiaoVien (
     MaAdmin VARCHAR(10),
     AnhDaiDien NVARCHAR(200),
     TrangThai NVARCHAR(20) DEFAULT N'Chưa xác nhận',
+	ResetOTP VARCHAR(6) NULL,       
+    OTPExpiry DATETIME NULL,
     FOREIGN KEY (MaAdmin) REFERENCES Admin(MaAdmin)
 );
 
@@ -3207,6 +3209,93 @@ BEGIN
     SELECT * FROM DiemStats
     UNION ALL
     SELECT * FROM XepLoaiStats;
+END;
+GO
+CREATE PROCEDURE sp_RequestPasswordReset
+    @UsernameOrEmail NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Email NVARCHAR(50);
+    DECLARE @MaGV VARCHAR(10);
+    DECLARE @OTP VARCHAR(6);
+    
+    -- 1. Tìm giáo viên
+    SELECT @Email = Email, @MaGV = MaGV
+    FROM GiaoVien
+    WHERE (Username = @UsernameOrEmail OR Email = @UsernameOrEmail)
+      AND TrangThai = N'Đã xác nhận';
+
+    IF @MaGV IS NOT NULL
+    BEGIN
+        -- 2. Tạo OTP ngẫu nhiên (6 số)
+        SET @OTP = CAST(FLOOR(RAND() * (999999 - 100000 + 1) + 100000) AS VARCHAR(6));
+        
+        -- 3. Lưu OTP và thời gian hết hạn (vd: 10 phút)
+        UPDATE GiaoVien
+        SET ResetOTP = @OTP,
+            OTPExpiry = DATEADD(minute, 10, GETDATE())
+        WHERE MaGV = @MaGV;
+        
+        -- 4. Trả về Email và OTP để C# gửi mail
+        SELECT @Email AS Email, @OTP AS OTP;
+        RETURN;
+    END
+    
+    -- Không tìm thấy tài khoản
+    SELECT NULL AS Email, NULL AS OTP;
+END;
+
+GO
+CREATE PROCEDURE sp_ResetPasswordWithOtp
+    @UsernameOrEmail NVARCHAR(50),
+    @OTP VARCHAR(6),
+    @NewPassword VARCHAR(30)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @MaGV VARCHAR(10);
+    DECLARE @StoredOTP VARCHAR(6);
+    DECLARE @Expiry DATETIME;
+
+    -- 1. Lấy thông tin OTP đã lưu
+    SELECT 
+        @MaGV = MaGV,
+        @StoredOTP = ResetOTP,
+        @Expiry = OTPExpiry
+    FROM GiaoVien
+    WHERE (Username = @UsernameOrEmail OR Email = @UsernameOrEmail)
+      AND TrangThai = N'Đã xác nhận';
+
+    -- 2. Kiểm tra
+    IF @MaGV IS NULL
+    BEGIN
+        SELECT 0; -- 0 = Tài khoản không tồn tại
+        RETURN;
+    END
+
+    IF @StoredOTP IS NULL OR @StoredOTP != @OTP
+    BEGIN
+        SELECT 1; -- 1 = OTP không chính xác
+        RETURN;
+    END
+
+    IF GETDATE() > @Expiry
+    BEGIN
+        SELECT 2; -- 2 = OTP đã hết hạn
+        RETURN;
+    END
+
+    -- 3. Thành công -> Cập nhật mật khẩu và xóa OTP
+    UPDATE GiaoVien
+    SET Password = @NewPassword,
+        ResetOTP = NULL,
+        OTPExpiry = NULL
+    WHERE MaGV = @MaGV;
+    
+    SELECT 100; -- 100 = Thành công
 END;
 GO
 PRINT 'TẤT CẢ STORED PROCEDURES ĐÃ ĐƯỢC TẠO.';

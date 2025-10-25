@@ -253,6 +253,12 @@
     <Compile Include="EmailHelper.cs" />
     <Compile Include="ExcelHelper.cs" />
     <Compile Include="ExportHelper.cs" />
+    <Compile Include="ForgotPasswordForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ForgotPasswordForm.Designer.cs">
+      <DependentUpon>ForgotPasswordForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="frmAssistiveMenu.cs">
       <SubType>Form</SubType>
     </Compile>

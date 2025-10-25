@@ -261,7 +261,11 @@ namespace N6
             this.Close();
         }
 
-        private void LblForgotPassword_Click(object sender, EventArgs e) => MessageBox.Show("Chức năng này đang được phát triển.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        private void LblForgotPassword_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Ignore;
+            this.Close();
+        }
         private void Link_MouseEnter(object sender, EventArgs e) { if (sender is Label label) { label.ForeColor = linkHoverColor; } }
         private void Link_MouseLeave(object sender, EventArgs e) { if (sender is Label label) { label.ForeColor = linkIdleColor; } }
 

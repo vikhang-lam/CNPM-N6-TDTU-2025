@@ -309,7 +309,17 @@ namespace N6
             Properties.Settings.Default["User3"] = finalUsers.ElementAtOrDefault(2) ?? "";
             Properties.Settings.Default.Save();
         }
-
+        private void ShowForgotPasswordForm()
+        {
+            // Form login (this) sẽ tự động bị vô hiệu hóa 
+            // cho đến khi form quên mật khẩu đóng lại.
+            using (var forgotForm = new ForgotPasswordForm())
+            {
+                forgotForm.ShowDialog(this);
+            }
+            // Sau khi form này đóng, người dùng sẽ quay lại
+            // màn hình chọn user (form login)
+        }
         private void HandleUserPanelClick(int panelIndex)
         {
             try
@@ -337,6 +347,10 @@ namespace N6
                     else if (dialogResult == DialogResult.Retry)
                     {
                         ShowRegistrationForm();
+                    }
+                    else if (dialogResult == DialogResult.Ignore)
+                    {
+                        ShowForgotPasswordForm();
                     }
                 }
             }

@@ -1,5 +1,4 @@
-﻿// File: Program.cs (Phiên bản cải tiến)
-using System;
+﻿using System;
 using System.Windows.Forms;
 
 namespace N6
@@ -12,38 +11,50 @@ namespace N6
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-
             while (true)
             {
+                DialogResult loginChoiceResult;
+
                 using (login loginForm = new login())
                 {
-          
-                    if (loginForm.ShowDialog() == DialogResult.OK)
+                    loginChoiceResult = loginForm.ShowDialog();
+                }
+
+                if (loginChoiceResult == DialogResult.OK)
+                {
+                    bool isAdmin = Properties.Settings.Default.isAdmin;
+                    Form mainForm = isAdmin ? (Form)new MenuAdmin() : new dashboard();
+
+                    Application.Run(mainForm);
+
+                    if (string.IsNullOrEmpty(Properties.Settings.Default.CurrentUser?.ToString()))
                     {
-                        bool isAdmin = Properties.Settings.Default.isAdmin;
-
-
-                        Form mainForm = isAdmin ? (Form)new MenuAdmin() : new dashboard();
-
-                  
-                        Application.Run(mainForm);
-
-                        
-                        if (string.IsNullOrEmpty(Properties.Settings.Default.CurrentUser?.ToString()))
-                        {
-                            continue; 
-                        }
-                        else
-                        {
-                            
-                            break; 
-                        }
+                        continue;
                     }
                     else
                     {
-                        // Nếu người dùng đóng form login mà không đăng nhập -> thoát ứng dụng.
-                        break; // Thoát khỏi vòng lặp while
+                        break;
                     }
+                }
+                else if (loginChoiceResult == DialogResult.Retry)
+                {
+                    using (TeacherRegistrationForm regForm = new TeacherRegistrationForm())
+                    {
+                        regForm.ShowDialog();
+                    }
+                    continue;
+                }
+                else if (loginChoiceResult == DialogResult.Ignore)
+                {
+                    using (ForgotPasswordForm forgotForm = new ForgotPasswordForm())
+                    {
+                        forgotForm.ShowDialog();
+                    }
+                    continue;
+                }
+                else
+                {
+                    break;
                 }
             }
         }

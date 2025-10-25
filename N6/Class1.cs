@@ -5,6 +5,10 @@ using System.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+// THÊM 2 DÒNG NÀY:
+using N6.Properties; // Để truy cập Settings.Default
+using System.Net;    // Cần cho OtpRequestResult (mặc dù logic mail đã chuyển)
+using System.Net.Mail; // Cần cho OtpRequestResult
 
 public enum LoginStatus
 {
@@ -23,9 +27,10 @@ public class TeacherProfile
 
 public static class DatabaseHelper
 {
-    private static string connectionString =
-        @"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
-    //@"Data Source=DESKTOP-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+    // *** THAY ĐỔI QUAN TRỌNG ***
+    // Đọc chuỗi kết nối TỰ ĐỘNG từ file App.config
+    // thay vì hard-code "Data Source=LAPTOP-3IRTDDBK;..."
+    private static string connectionString = Settings.Default.ConnectionString;
 
     // Helper không thay đổi
     public static DataTable ExecuteQuery(string query)
@@ -1315,4 +1320,69 @@ public static class DatabaseHelper
         var pLoaiDiem = new SqlParameter("@LoaiDiem", loaiDiem);
         return ExecuteStoredProcedure("sp_Admin_GetBaoCaoThang_ThongKe", pKhoi, pMaMon, pLoaiDiem);
     }
+
+    #region Quên Mật Khẩu (MỚI)
+
+    /// <summary>
+    /// Gói kết quả trả về từ SP sp_RequestPasswordReset
+    /// </summary>
+    public class OtpRequestResult
+    {
+        public bool Success { get; set; }
+        public string Email { get; set; }
+        public string Otp { get; set; }
+    }
+
+    /// <summary>
+    /// Gói kết quả trả về từ SP sp_ResetPasswordWithOtp
+    /// </summary>
+    public enum ResetPasswordStatus
+    {
+        AccountNotFound = 0,
+        InvalidOtp = 1,
+        OtpExpired = 2,
+        Success = 100
+    }
+
+    /// <summary>
+    /// Gọi SP để kiểm tra tài khoản, tạo OTP và lấy email/OTP
+    /// </summary>
+    public static OtpRequestResult RequestPasswordReset(string usernameOrEmail)
+    {
+        var pUser = new SqlParameter("@UsernameOrEmail", usernameOrEmail);
+        DataTable dt = ExecuteStoredProcedure("sp_RequestPasswordReset", pUser);
+
+        if (dt.Rows.Count > 0)
+        {
+            var row = dt.Rows[0];
+            string email = row["Email"]?.ToString();
+            string otp = row["OTP"]?.ToString();
+
+            if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(otp))
+            {
+                return new OtpRequestResult { Success = true, Email = email, Otp = otp };
+            }
+        }
+        return new OtpRequestResult { Success = false };
+    }
+
+    /// <summary>
+    /// Gọi SP để xác thực OTP và đổi mật khẩu mới
+    /// </summary>
+    public static ResetPasswordStatus ResetPasswordWithOtp(string usernameOrEmail, string otp, string newPassword)
+    {
+        var pUser = new SqlParameter("@UsernameOrEmail", usernameOrEmail);
+        var pOtp = new SqlParameter("@OTP", otp);
+        var pNewPass = new SqlParameter("@NewPassword", newPassword);
+
+        object result = ExecuteScalarStoredProcedure("sp_ResetPasswordWithOtp", pUser, pOtp, pNewPass);
+
+        if (result != null && result != DBNull.Value)
+        {
+            return (ResetPasswordStatus)Convert.ToInt32(result);
+        }
+        return ResetPasswordStatus.AccountNotFound;
+    }
+
+    #endregion
 }
