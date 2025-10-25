@@ -34,7 +34,7 @@ namespace N6
             SetupControl(txtPhone, pnlPhoneBorder, "Số điện thoại");
             SetupControl(txtPassword, pnlPasswordBorder, "Mật khẩu", true);
             SetupControl(txtConfirmPassword, pnlConfirmPasswordBorder, "Xác nhận mật khẩu", true);
-            SetupControl(cmbSubject, pnlSubjectBorder);
+            // Đã xóa SetupControl cho cmbSubject
 
             lblClose.Click += (s, e) => this.Close();
             this.MouseDown += Form_MouseDown;
@@ -122,27 +122,7 @@ namespace N6
         #region Form Loading and Submission
         private void TeacherRegistrationForm_Load(object sender, EventArgs e)
         {
-            // Tải dữ liệu môn học
-            try
-            {
-                // Gọi phương thức từ lớp Helper để lấy dữ liệu
-                DataTable dtSubjects = DatabaseHelper.GetAllMonHoc();
-
-                // Tạo dòng placeholder
-                DataRow placeholder = dtSubjects.NewRow();
-                placeholder["MaMon"] = ""; // Hoặc DBNull.Value
-                placeholder["TenMon"] = "Chọn môn học...";
-                dtSubjects.Rows.InsertAt(placeholder, 0);
-
-                // Gán dữ liệu cho ComboBox
-                cmbSubject.DataSource = dtSubjects;
-                cmbSubject.DisplayMember = "TenMon"; // Hiển thị tên môn học
-                cmbSubject.ValueMember = "MaMon";   // Giá trị thực sự là mã môn
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Không thể tải danh sách môn học: " + ex.Message, "Lỗi Dữ Liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // Đã xóa logic tải môn học
         }
 
         private void btnSubmit_Click(object sender, EventArgs e)
@@ -177,24 +157,19 @@ namespace N6
                 return;
             }
 
-            if (cmbSubject.SelectedIndex <= 0)
-            {
-                MessageBox.Show("Vui lòng chọn môn học.", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
+            // Đã xóa kiểm tra cmbSubject
 
             try
             {
-                
+
                 DatabaseHelper.CreateTeacherRequest(
                     txtName.Text.Trim(),
                     txtUsername.Text.Trim(),
                     txtPassword.Text,
-                    cmbSubject.SelectedValue.ToString(),
                     txtEmail.Text.Trim(),
                     txtPhone.Text.Trim()
                 );
-                
+
                 MessageBox.Show("Yêu cầu đã được gửi thành công. Vui lòng chờ admin xác nhận.", "Thành Công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();

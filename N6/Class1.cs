@@ -24,8 +24,8 @@ public class TeacherProfile
 public static class DatabaseHelper
 {
     private static string connectionString =
-        //@"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
-    @"Data Source=DESKTOP-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+        @"Data Source=LAPTOP-3IRTDDBK;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
+    //@"Data Source=DESKTOP-RH3KRAF\SQLEXPRESS;Initial Catalog=quanlilophoc_giangday;Integrated Security=True;";
 
     // Helper không thay đổi
     public static DataTable ExecuteQuery(string query)
@@ -826,18 +826,17 @@ public static class DatabaseHelper
 
         return ExecuteStoredProcedure("sp_GetScoresForAnalysis", pMaGV, pPhamVi, pChiTiet, pMaMon, pHocKy);
     }
-    public static void CreateTeacherRequest(string ten, string username, string password, string maMon, string email, string sdt)
+    public static void CreateTeacherRequest(string ten, string username, string password, string email, string sdt)
     {
         try
         {
             var pTen = new SqlParameter("@Ten", ten);
             var pUser = new SqlParameter("@Username", username);
             var pPass = new SqlParameter("@Password", password);
-            var pMaMon = new SqlParameter("@MaMon", string.IsNullOrEmpty(maMon) ? (object)DBNull.Value : maMon);
             var pEmail = new SqlParameter("@Email", email);
             var pSdt = new SqlParameter("@SDT", sdt);
 
-            ExecuteNonQueryStoredProcedure("sp_CreateTeacherRequest", pTen, pUser, pPass, pMaMon, pEmail, pSdt);
+            ExecuteNonQueryStoredProcedure("sp_CreateTeacherRequest", pTen, pUser, pPass, pEmail, pSdt);
         }
         catch (SqlException ex)
         {

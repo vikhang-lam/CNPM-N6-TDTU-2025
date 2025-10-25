@@ -1730,12 +1730,24 @@ BEGIN
     WHERE TrangThai = @tt;
 END;
 GO
-CREATE PROCEDURE sp_UpdateTrangThaiGiaoVien
+create PROCEDURE sp_UpdateTrangThaiGiaoVien
     @id VARCHAR(10),
-    @tt NVARCHAR(20)
+    @tt NVARCHAR(20),
+    @Email NVARCHAR(50) OUTPUT,
+    @Ten NVARCHAR(100) OUTPUT
 AS
 BEGIN
-    UPDATE GiaoVien SET TrangThai=@tt WHERE MaGV=@id;
+    SET NOCOUNT ON;
+    
+    -- 1. Thực hiện Update
+    UPDATE GiaoVien 
+    SET TrangThai=@tt 
+    WHERE MaGV=@id;
+    
+    -- 2. Lấy giá trị trả về (để C# có thể gửi email)
+    SELECT @Email = Email, @Ten = Ten
+    FROM GiaoVien
+    WHERE MaGV = @id;
 END;
 GO
 CREATE PROCEDURE sp_UpdateGiaoVien
@@ -2160,11 +2172,10 @@ BEGIN
         @hocKy, @chiTiet, @maMon;
 END;
 GO
-CREATE PROCEDURE sp_CreateTeacherRequest
+create PROCEDURE sp_CreateTeacherRequest
     @Ten NVARCHAR(100),
     @Username NVARCHAR(50),
     @Password VARCHAR(30),
-    @MaMon VARCHAR(10),
     @Email NVARCHAR(50),
     @SDT VARCHAR(15)
 AS
@@ -2184,12 +2195,8 @@ BEGIN
     INSERT INTO GiaoVien (MaGV, Ten, Username, Password, Email, SDT, MaAdmin, TrangThai) 
     VALUES (@newMaGV, @Ten, @Username, @Password, @Email, @SDT, 'AD001', N'Chưa xác nhận');
 
-    IF @MaMon IS NOT NULL AND @MaMon != '' AND EXISTS (SELECT 1 FROM MonHoc WHERE MaMon = @MaMon)
-    BEGIN
-        INSERT INTO GiaoVien_MonHoc (MaGV, MaMon) VALUES (@newMaGV, @MaMon);
-    END
 END;
-GO
+go
 CREATE PROCEDURE sp_GetTaiLieuSharedWithUploader
 AS
 BEGIN

@@ -32,8 +32,6 @@
             this.txtPassword = new System.Windows.Forms.TextBox();
             this.pnlConfirmPasswordBorder = new System.Windows.Forms.Panel();
             this.txtConfirmPassword = new System.Windows.Forms.TextBox();
-            this.pnlSubjectBorder = new System.Windows.Forms.Panel();
-            this.cmbSubject = new System.Windows.Forms.ComboBox();
             this.lblSubTitle = new System.Windows.Forms.Label();
             this.lblClose = new System.Windows.Forms.Label();
             this.pictureBoxIcon = new System.Windows.Forms.PictureBox();
@@ -43,7 +41,6 @@
             this.pnlPhoneBorder.SuspendLayout();
             this.pnlPasswordBorder.SuspendLayout();
             this.pnlConfirmPasswordBorder.SuspendLayout();
-            this.pnlSubjectBorder.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxIcon)).BeginInit();
             this.SuspendLayout();
             // 
@@ -54,10 +51,10 @@
             this.btnSubmit.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSubmit.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnSubmit.ForeColor = System.Drawing.Color.White;
-            this.btnSubmit.Location = new System.Drawing.Point(172, 459);
+            this.btnSubmit.Location = new System.Drawing.Point(172, 390);
             this.btnSubmit.Name = "btnSubmit";
             this.btnSubmit.Size = new System.Drawing.Size(260, 42);
-            this.btnSubmit.TabIndex = 7;
+            this.btnSubmit.TabIndex = 6;
             this.btnSubmit.Text = "Gửi Yêu Cầu";
             this.btnSubmit.UseVisualStyleBackColor = false;
             this.btnSubmit.Click += new System.EventHandler(this.btnSubmit_Click);
@@ -70,10 +67,10 @@
             this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCancel.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.btnCancel.ForeColor = System.Drawing.Color.Gray;
-            this.btnCancel.Location = new System.Drawing.Point(447, 459);
+            this.btnCancel.Location = new System.Drawing.Point(450, 390);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(140, 42);
-            this.btnCancel.TabIndex = 8;
+            this.btnCancel.TabIndex = 7;
             this.btnCancel.Text = "Hủy";
             this.btnCancel.UseVisualStyleBackColor = false;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
@@ -191,25 +188,6 @@
             this.txtConfirmPassword.Size = new System.Drawing.Size(310, 23);
             this.txtConfirmPassword.TabIndex = 5;
             // 
-            // pnlSubjectBorder
-            // 
-            this.pnlSubjectBorder.Controls.Add(this.cmbSubject);
-            this.pnlSubjectBorder.Location = new System.Drawing.Point(50, 380);
-            this.pnlSubjectBorder.Name = "pnlSubjectBorder";
-            this.pnlSubjectBorder.Size = new System.Drawing.Size(690, 45);
-            this.pnlSubjectBorder.TabIndex = 15;
-            // 
-            // cmbSubject
-            // 
-            this.cmbSubject.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbSubject.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.cmbSubject.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.cmbSubject.FormattingEnabled = true;
-            this.cmbSubject.Location = new System.Drawing.Point(15, 7);
-            this.cmbSubject.Name = "cmbSubject";
-            this.cmbSubject.Size = new System.Drawing.Size(660, 31);
-            this.cmbSubject.TabIndex = 6;
-            // 
             // lblSubTitle
             // 
             this.lblSubTitle.Font = new System.Drawing.Font("Segoe UI", 10F);
@@ -250,11 +228,10 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
             this.CancelButton = this.btnCancel;
-            this.ClientSize = new System.Drawing.Size(784, 531);
+            this.ClientSize = new System.Drawing.Size(784, 460);
             this.Controls.Add(this.lblClose);
             this.Controls.Add(this.lblSubTitle);
             this.Controls.Add(this.pictureBoxIcon);
-            this.Controls.Add(this.pnlSubjectBorder);
             this.Controls.Add(this.pnlConfirmPasswordBorder);
             this.Controls.Add(this.pnlPasswordBorder);
             this.Controls.Add(this.pnlPhoneBorder);
@@ -280,7 +257,6 @@
             this.pnlPasswordBorder.PerformLayout();
             this.pnlConfirmPasswordBorder.ResumeLayout(false);
             this.pnlConfirmPasswordBorder.PerformLayout();
-            this.pnlSubjectBorder.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxIcon)).EndInit();
             this.ResumeLayout(false);
 
@@ -302,8 +278,6 @@
         private System.Windows.Forms.TextBox txtPassword;
         private System.Windows.Forms.Panel pnlConfirmPasswordBorder;
         private System.Windows.Forms.TextBox txtConfirmPassword;
-        private System.Windows.Forms.Panel pnlSubjectBorder;
-        private System.Windows.Forms.ComboBox cmbSubject;
         private System.Windows.Forms.PictureBox pictureBoxIcon;
         private System.Windows.Forms.Label lblSubTitle;
         private System.Windows.Forms.Label lblClose;
