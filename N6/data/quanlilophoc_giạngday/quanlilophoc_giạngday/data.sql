@@ -2437,58 +2437,88 @@ BEGIN
 
     DROP TABLE #TempHocSinh;
 END;
+/* * SCRIPT CẬP NHẬT STORED PROCEDURE: sp_ImportTKBForGV
+ * * CHẠY SCRIPT NÀY TRONG SQL SERVER MANAGEMENT STUDIO (SSMS) ĐỂ SỬA LỖI
+ */
+
 GO
-CREATE PROCEDURE sp_ImportTKBForGV
+ALTER PROCEDURE [dbo].[sp_ImportTKBForGV]
     @MaGV VARCHAR(10),
     @NgayList ut_DateList READONLY,
     @TKBData ut_TKBImport READONLY
 AS
 BEGIN
     SET NOCOUNT ON;
-    BEGIN TRANSACTION;
-    BEGIN TRY
-        DELETE TKB
-        FROM ThoiKhoaBieu TKB
-        INNER JOIN @NgayList DL ON CAST(TKB.Ngay AS DATE) = DL.Ngay
-        WHERE TKB.MaGV = @MaGV;
 
-        SELECT * INTO #TempTKB FROM @TKBData;
+    -- Màu mặc định (SteelBlue - #4682B4) nếu file Excel không cung cấp màu
+    -- Màu này có độ sáng < 0.6, nên code C# sẽ tự động dùng chữ trắng
+    DECLARE @DefaultColor VARCHAR(20) = '#4682B4';
 
-        DECLARE @Failed INT = 0;
-        DECLARE @Success INT = 0;
+    -- 1. Đưa dữ liệu vào Bảng tạm, tra cứu MaMon/MaLop và gán màu mặc định
+    SELECT 
+        t.Ngay, 
+        t.Tiet, 
+        m.MaMon, 
+        l.MaLop,
+        NULLIF(t.GhiChu, '') AS GhiChu,
+        -- Nếu MauSac là rỗng hoặc NULL, dùng màu mặc định
+        COALESCE(NULLIF(t.MauSac, ''), @DefaultColor) AS MauSac
+    INTO #ProcessedTKB
+    FROM @TKBData t
+    LEFT JOIN MonHoc m ON t.TenMon = m.TenMon -- Dùng LEFT JOIN để kiểm tra
+    LEFT JOIN LopHoc l ON t.TenLop = l.TenLop -- Dùng LEFT JOIN để kiểm tra
+    WHERE CAST(t.Ngay AS DATE) IN (SELECT Ngay FROM @NgayList); -- Chỉ xử lý ngày có trong list
 
-        INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, MaLop, GhiChu, MauSac, MaGV)
-        SELECT
-            LEFT(NEWID(), 10),
-            t.Ngay, t.Tiet, m.MaMon, l.MaLop,
-            NULLIF(t.GhiChu, ''),
-            NULLIF(t.MauSac, ''),
-            @MaGV
-        FROM #TempTKB t
-        INNER JOIN MonHoc m ON t.TenMon = m.TenMon
-        INNER JOIN LopHoc l ON t.TenLop = l.TenLop;
+    -- 2. Đếm thành công và thất bại
+    DECLARE @Failed INT = 0;
+    DECLARE @Success INT = 0;
 
-        SET @Success = @@ROWCOUNT;
+    SELECT @Failed = COUNT(*) FROM #ProcessedTKB WHERE MaMon IS NULL OR MaLop IS NULL;
+    SELECT @Success = COUNT(*) FROM #ProcessedTKB WHERE MaMon IS NOT NULL AND MaLop IS NOT NULL;
 
-        SELECT @Failed = COUNT(*)
-        FROM #TempTKB t
-        LEFT JOIN MonHoc m ON t.TenMon = m.TenMon
-        LEFT JOIN LopHoc l ON t.TenLop = l.TenLop
-        WHERE m.MaMon IS NULL OR l.MaLop IS NULL;
+    -- 3. Chỉ thực hiện XÓA/THÊM khi có ít nhất 1 dòng thành công
+    --    Điều này ngăn việc xóa sạch TKB nếu import file bị lỗi 100%
+    IF @Success > 0
+    BEGIN
+        BEGIN TRANSACTION;
+        BEGIN TRY
+            -- Xóa TKB cũ của GV TRONG NHỮNG NGÀY ĐƯỢC IMPORT
+            DELETE TKB
+            FROM ThoiKhoaBieu TKB
+            INNER JOIN @NgayList DL ON CAST(TKB.Ngay AS DATE) = DL.Ngay
+            WHERE TKB.MaGV = @MaGV;
 
-        COMMIT TRANSACTION;
-
-        SELECT @Success AS [Success], @Failed AS [Failed];
-        DROP TABLE #TempTKB;
-    END TRY
-    BEGIN CATCH
-        ROLLBACK TRANSACTION;
-        RAISERROR(N'Lỗi import TKB. Đã hoàn tác.', 16, 1);
-        SELECT 0 AS [Success], 0 AS [Failed];
-        IF OBJECT_ID('tempdb..#TempTKB') IS NOT NULL DROP TABLE #TempTKB;
-    END CATCH
+            -- Chèn TKB mới (chỉ chèn những dòng hợp lệ)
+            INSERT INTO ThoiKhoaBieu (MaTKB, Ngay, Tiet, MaMon, MaLop, GhiChu, MauSac, MaGV)
+            SELECT
+                LEFT(NEWID(), 10),
+                p.Ngay, p.Tiet, p.MaMon, p.MaLop,
+                p.GhiChu,
+                p.MauSac, -- Sử dụng màu (mới hoặc mặc định)
+                @MaGV
+            FROM #ProcessedTKB p
+            WHERE p.MaMon IS NOT NULL AND p.MaLop IS NOT NULL; -- Chỉ chèn dòng hợp lệ
+            
+            COMMIT TRANSACTION;
+        END TRY
+        BEGIN CATCH
+            ROLLBACK TRANSACTION;
+            RAISERROR(N'Lỗi import TKB. Đã hoàn tác.', 16, 1);
+            -- Nếu lỗi, tất cả đều là failed
+            SELECT 0 AS [Success], (ISNULL(@Success, 0) + ISNULL(@Failed, 0)) AS [Failed];
+            IF OBJECT_ID('tempdb..#ProcessedTKB') IS NOT NULL DROP TABLE #ProcessedTKB;
+            RETURN;
+        END CATCH
+    END
+    -- ELSE: Nếu @Success = 0, không làm gì cả (không xóa, không chèn)
+    
+    -- 4. Trả về kết quả
+    SELECT @Success AS [Success], @Failed AS [Failed];
+    IF OBJECT_ID('tempdb..#ProcessedTKB') IS NOT NULL DROP TABLE #ProcessedTKB;
 END;
 GO
+
+PRINT N'Đã cập nhật Stored Procedure [sp_ImportTKBForGV] thành công!';
 CREATE PROCEDURE sp_GetTeacherNameById
     @MaGV VARCHAR(10)
 AS
@@ -2522,6 +2552,25 @@ BEGIN
     INSERT INTO QuyLop (MaQL, MaLop, Loai, SoTien, Ngay, GhiChu)
     VALUES (LEFT(NEWID(), 10), @MaLop, @Loai, @SoTien, @Ngay, @GhiChu);
 END;
+go
+CREATE PROCEDURE sp_DeleteTKBByWeek
+    @MaGV VARCHAR(10),
+    @Monday DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Tính ngày Chủ nhật của tuần đó
+    DECLARE @Sunday DATE = DATEADD(day, 6, @Monday);
+
+    -- Xóa tất cả TKB của giáo viên trong khoảng ngày này
+    DELETE FROM ThoiKhoaBieu
+    WHERE MaGV = @MaGV
+      AND Ngay >= @Monday
+      AND Ngay <= @Sunday;
+      
+    PRINT N'Đã xóa TKB cho GV ' + @MaGV + ' từ ' + CAST(@Monday AS VARCHAR) + ' đến ' + CAST(@Sunday AS VARCHAR);
+END
 GO
 CREATE PROCEDURE sp_DeleteQuyLop
     @MaQL VARCHAR(10)
@@ -2541,7 +2590,23 @@ BEGIN
     SELECT MaMon FROM GiaoVien_MonHoc WHERE MaGV = @MaGV;
 END;
 GO
+CREATE PROCEDURE sp_DeleteTKBEntry
+    @MaGV VARCHAR(10),
+    @Ngay DATE,
+    @Tiet INT
+AS
+BEGIN
+    SET NOCOUNT ON;
 
+    -- Xóa mục TKB cụ thể của giáo viên vào ngày và tiết đó
+    DELETE FROM ThoiKhoaBieu
+    WHERE MaGV = @MaGV
+      AND Ngay = @Ngay
+      AND Tiet = @Tiet;
+
+    PRINT N'Đã xóa TKB cho GV ' + @MaGV + ' vào ngày ' + CAST(@Ngay AS VARCHAR) + ', tiết ' + CAST(@Tiet AS VARCHAR);
+END
+GO
 CREATE PROCEDURE sp_UpdateGiaoVien_MonHoc
     @MaGV VARCHAR(10),
     @MonHocList ut_MaMonList READONLY

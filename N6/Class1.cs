@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using N6.Properties; // Để truy cập Settings.Default
 using System.Net;    // Cần cho OtpRequestResult (mặc dù logic mail đã chuyển)
 using System.Net.Mail; // Cần cho OtpRequestResult
+using System.Globalization; // *** THÊM CÁI NÀY ĐỂ XỬ LÝ NGÀY THÁNG ***
 
 public enum LoginStatus
 {
@@ -498,6 +499,15 @@ public static class DatabaseHelper
     }
     #endregion
     #region Thời khóa biểu
+    public static void DeleteTKBEntry(string maGV, DateTime ngay, int tiet)
+    {
+        var pMaGV = new SqlParameter("@MaGV", maGV);
+        var pNgay = new SqlParameter("@Ngay", ngay.Date);
+        var pTiet = new SqlParameter("@Tiet", tiet);
+
+        // SP này không trả về gì
+        ExecuteNonQueryStoredProcedure("sp_DeleteTKBEntry", pMaGV, pNgay, pTiet);
+    }
     public static DataTable GetTKBByGV(string maGV, DateTime monday)
     {
         DateTime sunday = monday.AddDays(6);
@@ -507,7 +517,14 @@ public static class DatabaseHelper
 
         return ExecuteStoredProcedure("sp_GetTKBByGV", pMaGV, pMonday, pSunday);
     }
+    public static void DeleteTKBByWeek(string maGV, DateTime monday)
+    {
+        var pMaGV = new SqlParameter("@MaGV", maGV);
+        var pMonday = new SqlParameter("@Monday", monday.Date);
 
+        // SP này không trả về gì
+        ExecuteNonQueryStoredProcedure("sp_DeleteTKBByWeek", pMaGV, pMonday);
+    }
     public static void UpdateCellColor(string maGV, DateTime ngay, int tiet, string colorHex)
     {
         var pMaGV = new SqlParameter("@MaGV", maGV);
@@ -682,7 +699,7 @@ public static class DatabaseHelper
         public int Failed;
     }
 
-    // Đã REFACTOR: Dùng Table-Valued Parameter
+    // CẬP NHẬT: Xử lý ngày tháng an toàn hơn
     public static ImportResult ImportHocSinhFromDataTable(DataTable dt)
     {
         // Tạo một DataTable mới chỉ chứa các cột khớp với TVP
@@ -701,10 +718,11 @@ public static class DatabaseHelper
         foreach (DataRow row in dt.Rows)
         {
             DateTime ngaySinh;
+            // CẬP NHẬT: Thử 2 định dạng ngày
             if (!DateTime.TryParse(row["NgaySinh"]?.ToString().Trim(), out ngaySinh))
             {
                 // Thử định dạng dd/MM/yyyy
-                if (!DateTime.TryParseExact(row["NgaySinh"]?.ToString().Trim(), "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out ngaySinh))
+                if (!DateTime.TryParseExact(row["NgaySinh"]?.ToString().Trim(), "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out ngaySinh))
                 {
                     failed++;
                     continue; // Bỏ qua nếu ngày sinh không hợp lệ
@@ -738,7 +756,8 @@ public static class DatabaseHelper
             result.Success = (int)resultDt.Rows[0]["Success"];
             result.Skipped = (int)resultDt.Rows[0]["Skipped"];
         }
-        result.Failed = failed + (dt.Rows.Count - result.Success - result.Skipped - failed);
+        // CẬP NHẬT: Tính toán lỗi chính xác hơn
+        result.Failed = dt.Rows.Count - result.Success - result.Skipped;
 
         return result;
     }
@@ -955,7 +974,7 @@ public static class DatabaseHelper
         }
     }
 
-    // Đã REFACTOR: Dùng Table-Valued Parameter
+    // CẬP NHẬT: Xử lý ngày tháng an toàn hơn
     public static ImportResult ImportHocSinhToLop(DataTable dt, string maLopTarget)
     {
         DataTable tvpTable = new DataTable();
@@ -973,10 +992,14 @@ public static class DatabaseHelper
         foreach (DataRow row in dt.Rows)
         {
             DateTime ngaySinh;
+            // CẬP NHẬT: Thử 2 định dạng ngày
             if (!DateTime.TryParse(row["NgaySinh"]?.ToString().Trim(), out ngaySinh))
             {
-                failed++;
-                continue;
+                if (!DateTime.TryParseExact(row["NgaySinh"]?.ToString().Trim(), "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out ngaySinh))
+                {
+                    failed++;
+                    continue; // Bỏ qua nếu ngày sinh không hợp lệ
+                }
             }
             if (string.IsNullOrWhiteSpace(row["MaHS"]?.ToString().Trim()))
             {
@@ -1011,12 +1034,13 @@ public static class DatabaseHelper
             result.Success = (int)resultDt.Rows[0]["Success"];
             result.Skipped = (int)resultDt.Rows[0]["Skipped"];
         }
-        result.Failed = failed + (dt.Rows.Count - result.Success - result.Skipped - failed);
+        // CẬP NHẬT: Tính toán lỗi chính xác hơn
+        result.Failed = dt.Rows.Count - result.Success - result.Skipped;
 
         return result;
     }
 
-    // Đã REFACTOR: Dùng Table-Valued Parameter
+    // CẬP NHẬT: Xử lý ngày/tiết an toàn hơn
     public static ImportResult ImportThoiKhoaBieuForGV(string maGV, DataTable dt)
     {
         DataTable tvpTable = new DataTable();
@@ -1034,8 +1058,27 @@ public static class DatabaseHelper
         {
             try
             {
-                DateTime ngay = Convert.ToDateTime(row["Ngay"]).Date;
-                int tiet = Convert.ToInt32(row["Tiet"]);
+                DateTime ngay;
+                int tiet;
+
+                // CẬP NHẬT: Xử lý ngày an toàn
+                if (!DateTime.TryParse(row["Ngay"]?.ToString().Trim(), out ngay))
+                {
+                    if (!DateTime.TryParseExact(row["Ngay"]?.ToString().Trim(), "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out ngay))
+                    {
+                        failed++;
+                        continue; // Bỏ qua ngày không hợp lệ
+                    }
+                }
+                ngay = ngay.Date; // Chỉ lấy ngày
+
+                // CẬP NHẬT: Xử lý tiết an toàn
+                if (!int.TryParse(row["Tiet"]?.ToString().Trim(), out tiet))
+                {
+                    failed++;
+                    continue; // Bỏ qua tiết không hợp lệ
+                }
+
 
                 if (!datesInExcel.Contains(ngay))
                 {
@@ -1083,8 +1126,14 @@ public static class DatabaseHelper
         if (resultDt.Rows.Count > 0)
         {
             result.Success = (int)resultDt.Rows[0]["Success"];
+            // CẬP NHẬT: Tính toán lỗi chính xác hơn
             result.Failed = (int)resultDt.Rows[0]["Failed"] + failed;
         }
+        else
+        {
+            result.Failed = failed;
+        }
+
 
         return result;
     }
