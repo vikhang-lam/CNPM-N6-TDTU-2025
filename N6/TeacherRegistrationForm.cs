@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using System.Diagnostics; // <-- THÊM MỚI
 
 namespace N6
 {
@@ -27,14 +28,12 @@ namespace N6
             SetRoundedRegion(12);
             pictureBoxIcon.Image = MakeRegisterIcon();
 
-            // Sử dụng phương thức thiết lập control chung
             SetupControl(txtName, pnlNameBorder, "Họ và tên");
             SetupControl(txtUsername, pnlUsernameBorder, "Tên đăng nhập");
             SetupControl(txtEmail, pnlEmailBorder, "Email");
             SetupControl(txtPhone, pnlPhoneBorder, "Số điện thoại");
             SetupControl(txtPassword, pnlPasswordBorder, "Mật khẩu", true);
             SetupControl(txtConfirmPassword, pnlConfirmPasswordBorder, "Xác nhận mật khẩu", true);
-            // Đã xóa SetupControl cho cmbSubject
 
             lblClose.Click += (s, e) => this.Close();
             this.MouseDown += Form_MouseDown;
@@ -42,28 +41,23 @@ namespace N6
             this.MouseUp += Form_MouseUp;
         }
 
-        // Tái cấu trúc thành một hàm SetupControl chung
         private void SetupControl(Control control, Panel pnl, string placeholder = null, bool isPassword = false)
         {
             _borderColors[pnl] = Color.Lavender;
             pnl.Paint += _pnlBorderPaintHandler;
-            control.Enter += Control_Enter; // Sử dụng sự kiện Enter
-            control.Leave += Control_Leave; // Sử dụng sự kiện Leave
+            control.Enter += Control_Enter;
+            control.Leave += Control_Leave;
 
             if (control is TextBox tb)
             {
                 tb.Text = placeholder;
                 tb.Tag = placeholder;
                 tb.ForeColor = Color.Gray;
-                if (isPassword)
-                {
-                    tb.UseSystemPasswordChar = false;
-                }
+                if (isPassword) tb.UseSystemPasswordChar = false;
             }
         }
 
-        #region Events (Enter, Leave, Paint) - ĐÃ CẬP NHẬT
-        // Sự kiện Enter thay cho GotFocus
+        #region Events (Enter, Leave, Paint)
         private void Control_Enter(object sender, EventArgs e)
         {
             var control = sender as Control;
@@ -76,7 +70,6 @@ namespace N6
             {
                 tb.Text = "";
                 tb.ForeColor = Color.Black;
-                // Chỉ thay đổi UseSystemPasswordChar cho các ô mật khẩu
                 if (tb == txtPassword || tb == txtConfirmPassword)
                 {
                     tb.UseSystemPasswordChar = true;
@@ -84,7 +77,6 @@ namespace N6
             }
         }
 
-        // Sự kiện Leave thay cho LostFocus
         private void Control_Leave(object sender, EventArgs e)
         {
             var control = sender as Control;
@@ -96,12 +88,7 @@ namespace N6
             if (control is TextBox tb && string.IsNullOrWhiteSpace(tb.Text))
             {
                 tb.ForeColor = Color.Gray;
-                if (tb.Tag != null)
-                {
-                    tb.Text = tb.Tag.ToString();
-                }
-
-                // Chỉ thay đổi UseSystemPasswordChar cho các ô mật khẩu
+                if (tb.Tag != null) tb.Text = tb.Tag.ToString();
                 if (tb == txtPassword || tb == txtConfirmPassword)
                 {
                     tb.UseSystemPasswordChar = false;
@@ -122,9 +109,12 @@ namespace N6
         #region Form Loading and Submission
         private void TeacherRegistrationForm_Load(object sender, EventArgs e)
         {
-            // Đã xóa logic tải môn học
+            // (Không có logic load)
         }
 
+        // =================================================================
+        // ### CẬP NHẬT: btnSubmit_Click (đã sửa để gọi CSDL lấy email Admin) ###
+        // =================================================================
         private void btnSubmit_Click(object sender, EventArgs e)
         {
             if (IsPlaceholder(txtName) || IsPlaceholder(txtUsername) || IsPlaceholder(txtEmail) || IsPlaceholder(txtPhone) || IsPlaceholder(txtPassword))
@@ -133,44 +123,68 @@ namespace N6
                 return;
             }
 
+            // (Giữ nguyên các kiểm tra Regex...)
             if (!Regex.IsMatch(txtName.Text.Trim(), @"^[\p{L}\s]+$"))
             {
-                MessageBox.Show("Họ và tên không hợp lệ. Vui lòng chỉ nhập chữ cái và khoảng trắng.", "Lỗi Định Dạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Họ và tên không hợp lệ...", "Lỗi Định Dạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
             if (!Regex.IsMatch(txtEmail.Text.Trim(), @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
             {
-                MessageBox.Show("Địa chỉ email không hợp lệ. Vui lòng nhập lại.", "Lỗi Định Dạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Địa chỉ email không hợp lệ...", "Lỗi Định Dạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
             if (!Regex.IsMatch(txtPhone.Text.Trim(), @"^\d{10}$"))
             {
-                MessageBox.Show("Số điện thoại không hợp lệ. Vui lòng nhập chính xác 10 chữ số.", "Lỗi Định Dạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Số điện thoại không hợp lệ...", "Lỗi Định Dạng", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
             if (txtPassword.Text != txtConfirmPassword.Text)
             {
-                MessageBox.Show("Mật khẩu và xác nhận mật khẩu không khớp. Vui lòng nhập lại.", "Lỗi Mật khẩu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Mật khẩu và xác nhận mật khẩu không khớp.", "Lỗi Mật khẩu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
-            // Đã xóa kiểm tra cmbSubject
 
             try
             {
+                string teacherName = txtName.Text.Trim();
+                string teacherUsername = txtUsername.Text.Trim();
+                string teacherEmail = txtEmail.Text.Trim();
+                string teacherPhone = txtPhone.Text.Trim();
 
+                // 1. Gửi yêu cầu vào Database
                 DatabaseHelper.CreateTeacherRequest(
-                    txtName.Text.Trim(),
-                    txtUsername.Text.Trim(),
+                    teacherName,
+                    teacherUsername,
                     txtPassword.Text,
-                    txtEmail.Text.Trim(),
-                    txtPhone.Text.Trim()
+                    teacherEmail,
+                    teacherPhone
                 );
 
-                MessageBox.Show("Yêu cầu đã được gửi thành công. Vui lòng chờ admin xác nhận.", "Thành Công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // 2. Gửi email xác nhận cho giáo viên
+                EmailHelper.SendRegistrationConfirmationEmail(teacherEmail, teacherName);
+
+                // 3. LẤY EMAIL ADMIN TỪ DATABASE
+                // (Giả sử admin chính luôn có mã 'AD001')
+                string adminEmailFromDb = DatabaseHelper.GetAdminEmail("AD001");
+
+                // 4. Gửi email thông báo cho Admin (nếu tìm thấy email)
+                if (!string.IsNullOrEmpty(adminEmailFromDb))
+                {
+                    EmailHelper.SendAdminNotificationEmail(
+                        adminEmailFromDb, // Truyền email admin vào đây
+                        teacherName,
+                        teacherUsername,
+                        teacherEmail
+                    );
+                }
+                else
+                {
+                    Debug.WriteLine("CẢNH BÁO: Không tìm thấy email cho Admin 'AD001' trong CSDL.");
+                }
+
+                MessageBox.Show("Yêu cầu đã được gửi thành công. Vui lòng kiểm tra email và chờ admin phê duyệt.", "Thành Công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
@@ -192,7 +206,7 @@ namespace N6
         }
         #endregion
 
-        #region UI Helpers
+        #region UI Helpers (Giữ nguyên)
         private void Form_MouseDown(object sender, MouseEventArgs e) => _lastPoint = new Point(e.X, e.Y);
         private void Form_MouseMove(object sender, MouseEventArgs e)
         {
@@ -210,7 +224,6 @@ namespace N6
             using (var pen = new Pen(color, 2))
             using (var path = RoundedRect(rect, 8))
             {
-                // Dòng g.Clear() đã được bỏ đi, đây là điều đúng đắn
                 g.DrawPath(pen, path);
             }
         }
@@ -259,7 +272,6 @@ namespace N6
         }
         #endregion
 
-        // Cải thiện phương thức Dispose để hủy đăng ký sự kiện, tránh rò rỉ bộ nhớ
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -269,7 +281,6 @@ namespace N6
                     components.Dispose();
                 }
 
-                // Hủy đăng ký tất cả các sự kiện đã dùng
                 foreach (var pnl in _borderColors.Keys)
                 {
                     pnl.Paint -= _pnlBorderPaintHandler;

@@ -108,7 +108,7 @@ namespace N6
             userMenu = new ContextMenuStrip();
             userMenu.Font = new Font("Segoe UI", 11, FontStyle.Regular);
 
-            ToolStripMenuItem settingsItem = new ToolStripMenuItem("⚙️ Cài đặt");
+            ToolStripMenuItem settingsItem = new ToolStripMenuItem("👤 Hồ sơ cá nhân");
             settingsItem.Click += SettingsItem_Click;
 
             ToolStripMenuItem logoutItem = new ToolStripMenuItem("🚪 Đăng xuất");
@@ -275,9 +275,10 @@ namespace N6
 
         private void SettingsItem_Click(object sender, EventArgs e)
         {
-            // Mở form cài đặt hoặc profile của Admin nếu có
-            // Ví dụ: new AdminProfileForm().ShowDialog(this);
-            MessageBox.Show("Chức năng cài đặt đang được phát triển.");
+            using (AdminProfileForm pf = new AdminProfileForm())
+            {
+                pf.ShowDialog(this);
+            }
         }
 
         // --- Theme and Window Controls ---

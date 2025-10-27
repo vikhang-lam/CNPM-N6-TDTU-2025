@@ -18,18 +18,25 @@ namespace N6
         private static readonly string SenderPassword = ConfigurationManager.AppSettings["SmtpPassword"];
         private static readonly string SenderName = "Hệ Thống Quản Lý Trường Học";
 
+        // (Không còn đọc AdminEmail từ App.config)
+
         /// <summary>
         /// Gửi email thông báo trạng thái tài khoản cho giáo viên
         /// </summary>
-        public static bool SendAccountStatusEmail(string recipientEmail, string teacherName, bool isApproved)
+        // =================================================================
+        // ### CẬP NHẬT 1: Thêm tham số "string adminEmail" ###
+        // =================================================================
+        public static bool SendAccountStatusEmail(string recipientEmail, string teacherName, bool isApproved, string adminEmail)
         {
             try
             {
-                // Tạo tiêu đề và nội dung email
                 string subject = isApproved
                     ? "✅ Tài khoản của bạn đã được kích hoạt"
                     : "❌ Yêu cầu tạo tài khoản bị từ chối";
 
+                // =================================================================
+                // ### CẬP NHẬT 2: Sửa nội dung email từ chối theo yêu cầu của bạn ###
+                // =================================================================
                 string body = isApproved
                     ? $@"
                         <html>
@@ -37,7 +44,6 @@ namespace N6
                             <h2 style='color: #28a745;'>Chào mừng {teacherName}!</h2>
                             <p>Tài khoản giáo viên của bạn đã được <b>kích hoạt thành công</b>.</p>
                             <p>Bạn có thể đăng nhập vào hệ thống ngay bây giờ.</p>
-                            <p>Chúc bạn có trải nghiệm tốt!</p>
                             <hr/>
                             <small>Email này được gửi tự động từ Hệ Thống Quản Lý Trường Học</small>
                         </body>
@@ -48,13 +54,14 @@ namespace N6
                             <h2 style='color: #dc3545;'>Thông báo từ Hệ Thống</h2>
                             <p>Kính gửi {teacherName},</p>
                             <p>Yêu cầu tạo tài khoản giáo viên của bạn <b>đã bị từ chối</b>.</p>
-                            <p>Vui lòng liên hệ với ban quản trị để biết thêm chi tiết.</p>
+                            
+                            <p>Nếu có câu hỏi gì, hãy liên hệ với quản trị viên qua email: <b>{adminEmail}</b></p>
+                            
                             <hr/>
                             <small>Email này được gửi tự động từ Hệ Thống Quản Lý Trường Học</small>
                         </body>
                         </html>";
 
-                // Tạo MailMessage
                 using (MailMessage mail = new MailMessage())
                 {
                     mail.From = new MailAddress(SenderEmail, SenderName);
@@ -63,23 +70,18 @@ namespace N6
                     mail.Body = body;
                     mail.IsBodyHtml = true;
 
-                    // Cấu hình SMTP
                     using (SmtpClient smtp = new SmtpClient(SmtpServer, SmtpPort))
                     {
                         smtp.Credentials = new NetworkCredential(SenderEmail, SenderPassword);
                         smtp.EnableSsl = true;
-
-                        // Gửi email
                         smtp.Send(mail);
                     }
                 }
-
                 return true;
             }
             catch (Exception ex)
             {
-                string errorMsg = $"Lỗi gửi email: {ex.Message}\n\n" +
-                                  $"Hãy đảm bảo App.config đã được cấu hình đúng với Email và 'Mật khẩu ứng dụng' (App Password).";
+                string errorMsg = $"Lỗi gửi email: {ex.Message}";
                 Debug.WriteLine(errorMsg);
                 MessageBox.Show(errorMsg, "Lỗi Gửi Email", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
@@ -87,7 +89,7 @@ namespace N6
         }
 
         /// <summary>
-        /// Gửi email chứa mã OTP để khôi phục mật khẩu
+        /// Gửi email chứa mã OTP để khôi phục mật khẩu (Giữ nguyên)
         /// </summary>
         public static bool SendOtpEmail(string recipientEmail, string otp)
         {
@@ -110,7 +112,6 @@ namespace N6
                     </body>
                     </html>";
 
-                // Tạo MailMessage
                 using (MailMessage mail = new MailMessage())
                 {
                     mail.From = new MailAddress(SenderEmail, SenderName);
@@ -119,7 +120,6 @@ namespace N6
                     mail.Body = body;
                     mail.IsBodyHtml = true;
 
-                    // Cấu hình SMTP
                     using (SmtpClient smtp = new SmtpClient(SmtpServer, SmtpPort))
                     {
                         smtp.Credentials = new NetworkCredential(SenderEmail, SenderPassword);
@@ -135,6 +135,95 @@ namespace N6
                                   $"Hãy đảm bảo App.config đã được cấu hình đúng với Email và 'Mật khẩu ứng dụng' (App Password).";
                 Debug.WriteLine(errorMsg);
                 MessageBox.Show(errorMsg, "Lỗi Gửi Email", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        // =================================================================
+        // ### HÀM MỚI: Gửi email xác nhận cho giáo viên ###
+        // =================================================================
+        public static bool SendRegistrationConfirmationEmail(string recipientEmail, string teacherName)
+        {
+            try
+            {
+                string subject = "✅ [Hệ Thống] Xác nhận đã nhận yêu cầu đăng ký";
+                string body = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif;'>
+                        <h2 style='color: #007bff;'>Chào {teacherName},</h2>
+                        <p>Chúc mừng bạn đã gửi yêu cầu đăng ký tài khoản giáo viên thành công!</p>
+                        <p>Yêu cầu của bạn đang được xem xét. Hệ thống sẽ phản hồi nhanh nhất có thể (thường là trong vòng 3 ngày làm việc).</p>
+                        <hr/>
+                        <small>Email này được gửi tự động từ Hệ Thống Quản Lý Trường Học</small>
+                    </body>
+                    </html>";
+
+                using (MailMessage mail = new MailMessage())
+                {
+                    mail.From = new MailAddress(SenderEmail, SenderName);
+                    mail.To.Add(recipientEmail);
+                    mail.Subject = subject;
+                    mail.Body = body;
+                    mail.IsBodyHtml = true;
+
+                    using (SmtpClient smtp = new SmtpClient(SmtpServer, SmtpPort))
+                    {
+                        smtp.Credentials = new NetworkCredential(SenderEmail, SenderPassword);
+                        smtp.EnableSsl = true;
+                        smtp.Send(mail);
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Lỗi gửi email xác nhận đăng ký: {ex.Message}");
+                return false;
+            }
+        }
+
+        // =================================================================
+        // ### HÀM ĐÃ SỬA: Gửi email thông báo cho Admin (nhận email làm tham số) ###
+        // =================================================================
+        public static bool SendAdminNotificationEmail(string adminRecipientEmail, string newTeacherName, string newTeacherUsername, string newTeacherEmail)
+        {
+            try
+            {
+                string subject = "🔔 [Hệ Thống] Có yêu cầu đăng ký tài khoản mới";
+                string body = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif;'>
+                        <h2 style='color: #fd7e14;'>Thông báo cho Admin,</h2>
+                        <p>Có một giáo viên vừa gửi yêu cầu tạo tài khoản mới:</p>
+                        <ul>
+                            <li><strong>Họ và tên:</strong> {newTeacherName}</li>
+                            <li><strong>Tên đăng nhập:</strong> {newTeacherUsername}</li>
+                            <li><strong>Email:</strong> {newTeacherEmail}</li>
+                        </ul>
+                        <p>Vui lòng đăng nhập vào hệ thống quản trị để <b>Duyệt</b> hoặc <b>Từ chối</b> yêu cầu này.</p>
+                    </body>
+                    </html>";
+
+                using (MailMessage mail = new MailMessage())
+                {
+                    mail.From = new MailAddress(SenderEmail, SenderName);
+                    mail.To.Add(adminRecipientEmail); // Dùng email được truyền vào
+                    mail.Subject = subject;
+                    mail.Body = body;
+                    mail.IsBodyHtml = true;
+
+                    using (SmtpClient smtp = new SmtpClient(SmtpServer, SmtpPort))
+                    {
+                        smtp.Credentials = new NetworkCredential(SenderEmail, SenderPassword);
+                        smtp.EnableSsl = true;
+                        smtp.Send(mail);
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Lỗi gửi email thông báo cho admin: {ex.Message}");
                 return false;
             }
         }

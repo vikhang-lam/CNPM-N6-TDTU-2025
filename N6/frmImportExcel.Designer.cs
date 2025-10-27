@@ -60,7 +60,7 @@
             this.lblTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
             this.lblTitle.Location = new System.Drawing.Point(12, 9);
             this.lblTitle.Name = "lblTitle";
-            this.lblTitle.Size = new System.Drawing.Size(155, 23);
+            this.lblTitle.Size = new System.Drawing.Size(165, 23);
             this.lblTitle.TabIndex = 1;
             this.lblTitle.Text = "Import từ file Excel";
             // 
@@ -118,7 +118,7 @@
             // 
             // picUploadIcon
             // 
-            this.picUploadIcon.Image = global::N6.Properties.Resources.upload_icon; // Bạn cần thêm icon này
+            this.picUploadIcon.Image = global::N6.Properties.Resources.upload_icon;
             this.picUploadIcon.Location = new System.Drawing.Point(245, 20);
             this.picUploadIcon.Name = "picUploadIcon";
             this.picUploadIcon.Size = new System.Drawing.Size(50, 50);
@@ -135,7 +135,7 @@
             this.btnDownloadTemplate.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
             this.btnDownloadTemplate.Location = new System.Drawing.Point(30, 240);
             this.btnDownloadTemplate.Name = "btnDownloadTemplate";
-            this.btnDownloadTemplate.Size = new System.Drawing.Size(180, 45);
+            this.btnDownloadTemplate.Size = new System.Drawing.Size(272, 45);
             this.btnDownloadTemplate.TabIndex = 2;
             this.btnDownloadTemplate.Text = "📥 Tải file mẫu";
             this.btnDownloadTemplate.UseVisualStyleBackColor = false;

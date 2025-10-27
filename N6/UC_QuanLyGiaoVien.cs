@@ -217,15 +217,20 @@ namespace N6
 
             try
             {
-                // Cập nhật trạng thái và lấy email, tên giáo viên
+                // 1. Cập nhật trạng thái và lấy email, tên giáo viên
                 var result = DatabaseHelper.UpdateTrangThaiGiaoVien(maGV, "Đã xác nhận");
                 string email = result.Item1;
                 string tenGV = result.Item2;
 
-                // Gửi email thông báo
+                // 2. LẤY EMAIL ADMIN 
+                string adminEmail = DatabaseHelper.GetAdminEmail("AD001");
+
+                // 3. Gửi email thông báo
                 if (!string.IsNullOrEmpty(email))
                 {
-                    bool emailSent = EmailHelper.SendAccountStatusEmail(email, tenGV, isApproved: true);
+                    // THÊM THAM SỐ "adminEmail" VÀO CUỘC GỌI HÀM
+                    bool emailSent = EmailHelper.SendAccountStatusEmail(email, tenGV, isApproved: true, adminEmail);
+
                     if (emailSent)
                     {
                         MessageBox.Show($"Xác nhận tài khoản thành công!\nEmail thông báo đã được gửi đến: {email}",
@@ -271,13 +276,18 @@ namespace N6
                     // Lấy email trước khi xóa
                     string email = dgvGV.CurrentRow.Cells["Email"].Value?.ToString();
 
+                    // LẤY EMAIL ADMIN (ĐÂY LÀ DÒNG MỚI)
+                    string adminEmail = DatabaseHelper.GetAdminEmail("AD001");
+
                     // Xóa giáo viên
                     DatabaseHelper.DeleteGiaoVien(maGV);
 
                     // Gửi email thông báo từ chối
                     if (!string.IsNullOrEmpty(email))
                     {
-                        bool emailSent = EmailHelper.SendAccountStatusEmail(email, tenGV, isApproved: false);
+                        // THÊM THAM SỐ "adminEmail" VÀO CUỘC GỌI HÀM
+                        bool emailSent = EmailHelper.SendAccountStatusEmail(email, tenGV, isApproved: false, adminEmail);
+
                         if (emailSent)
                         {
                             MessageBox.Show($"Đã hủy yêu cầu thành công.\nEmail thông báo đã được gửi đến: {email}",

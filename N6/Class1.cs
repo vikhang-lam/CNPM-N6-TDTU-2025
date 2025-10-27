@@ -453,6 +453,17 @@ public static class DatabaseHelper
         var pMaLopMoi = new SqlParameter("@MaLopMoi", (object)maLopMoi ?? DBNull.Value);
         ExecuteNonQueryStoredProcedure("sp_UpdateHocSinhLop", pMaHS, pMaLopMoi);
     }
+    public static string GetAdminEmail(string maAdmin)
+    {
+        // 1. Chuẩn bị tham số cho Stored Procedure
+        var pMaAdmin = new SqlParameter("@MaAdmin", maAdmin);
+
+        // 2. Sử dụng helper 'ExecuteScalarStoredProcedure' đã có sẵn của bạn
+        object result = ExecuteScalarStoredProcedure("sp_GetAdminEmail", pMaAdmin);
+
+        // 3. Trả về email (hoặc null nếu không tìm thấy)
+        return result?.ToString();
+    }
     public static int UpdateHocSinhLop_Multi(System.Collections.Generic.List<string> maHocSinhList, string maLopMoi)
     {
         // 1. Chuyển List<string> thành DataTable

@@ -431,6 +431,9 @@
     <Compile Include="UC_ThoiKhoaBieu.Designer.cs">
       <DependentUpon>UC_ThoiKhoaBieu.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="frmImportExcel.resx">
+      <DependentUpon>frmImportExcel.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="login.resx">
       <DependentUpon>login.cs</DependentUpon>
     </EmbeddedResource>

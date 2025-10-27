@@ -3363,5 +3363,17 @@ BEGIN
     SELECT 100; -- 100 = Thành công
 END;
 GO
+CREATE PROCEDURE sp_GetAdminEmail
+    @MaAdmin VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Lấy email từ bảng Admin dựa trên Mã Admin
+    SELECT Email 
+    FROM Admin 
+    WHERE MaAdmin = @MaAdmin;
+END;
+GO
 PRINT 'TẤT CẢ STORED PROCEDURES ĐÃ ĐƯỢC TẠO.';
 PRINT 'QUÁ TRÌNH TÁI TẠO HOÀN TẤT!';
