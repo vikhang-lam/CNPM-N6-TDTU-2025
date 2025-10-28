@@ -101,6 +101,16 @@ namespace N6.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap cn_school_management {
+            get {
+                object obj = ResourceManager.GetObject("cn_school_management", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap cn_teacher_management {
             get {
                 object obj = ResourceManager.GetObject("cn_teacher_management", resourceCulture);

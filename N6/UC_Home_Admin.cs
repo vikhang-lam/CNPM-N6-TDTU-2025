@@ -43,7 +43,7 @@ namespace N6
                 new { Name = "👨‍🏫 Quản lý Giáo viên", Tag = "Admin_QuanLyGV", Icon = "cn_teacher_management" },
                 new { Name = "🏫 Quản lý Lớp học", Tag = "Admin_QuanLyLop", Icon = "cn_class_management" },
                 new { Name = "🎓 Quản lý Trường học", Tag = "Admin_QuanLyTruongHoc", Icon = "cn_school_management" }, // <-- THÊM DÒNG NÀY
-                new { Name = "📊 Báo cáo Admin", Tag = "Admin_BaoCao", Icon = "cn_admin_report" }, // <<< THÊM DÒNG NÀY (chọn Icon phù hợp)
+                new { Name = "📊 Báo cáo Admin", Tag = "Admin_BaoCao", Icon = "cn6" }, // <<< THÊM DÒNG NÀY (chọn Icon phù hợp)
                 new { Name = "🚪 Đăng xuất", Tag = "Admin_DangXuat", Icon = "cn_logout" }
             };
 
