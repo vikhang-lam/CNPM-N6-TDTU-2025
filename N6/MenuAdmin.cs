@@ -130,7 +130,7 @@ namespace N6
                 ("🏠 Trang chủ", btnTrangChu_Click),
                 ("👨‍🏫 Quản lý Giáo viên", btnQuanLyGV_Click),
                 ("🏫 Quản lý Lớp học", btnQuanLyLop_Click),
-                ("Quản Lý Trường học", btnQuanLyTruongHoc_Click),
+                ("🎓 Quản Lý Trường học", btnQuanLyTruongHoc_Click),
                 ("📊 Báo cáo Admin", btnBaoCaoAdmin_Click),
                 ("🚪 Đăng xuất", btnDangXuat_Click)
             };
@@ -179,7 +179,7 @@ namespace N6
             UC_QuanLyTruongHoc uc = new UC_QuanLyTruongHoc();
             uc.Dock = DockStyle.Fill;
             panelContent.Controls.Add(uc);
-            ActivateButton(FindButtonByText("Học vụ & Trường học"));
+            ActivateButton(FindButtonByText("Quản lý Trường học"));
         }
         private void btnBaoCaoAdmin_Click(object sender, EventArgs e)
         {
@@ -275,7 +275,11 @@ namespace N6
 
         private void SettingsItem_Click(object sender, EventArgs e)
         {
-            using (AdminProfileForm pf = new AdminProfileForm())
+            // THAY ĐỔI: Lấy currentUser giống như ở trên
+            string currentUser = Properties.Settings.Default["CurrentUser"]?.ToString();
+
+            // THAY ĐỔI: Đổi "AdminProfileForm" thành "UserProfileForm(currentUser)"
+            using (UserProfileForm pf = new UserProfileForm(currentUser))
             {
                 pf.ShowDialog(this);
             }

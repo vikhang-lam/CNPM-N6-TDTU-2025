@@ -10,6 +10,7 @@
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ForgotPasswordForm));
             this.lblTitle = new System.Windows.Forms.Label();
             this.pnlUsernameBorder = new System.Windows.Forms.Panel();
             this.txtUsernameOrEmail = new System.Windows.Forms.TextBox();
@@ -196,6 +197,7 @@
             this.Controls.Add(this.pnlOtpBorder);
             this.Controls.Add(this.pnlUsernameBorder);
             this.Controls.Add(this.lblTitle);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ForgotPasswordForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "ForgotPasswordForm";

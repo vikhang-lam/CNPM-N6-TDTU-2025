@@ -17,7 +17,10 @@
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MenuAdmin));
             this.panelTopBar = new System.Windows.Forms.Panel();
+            this.labelAppTitle = new System.Windows.Forms.Label();
+            this.pictureBoxAppIcon = new System.Windows.Forms.PictureBox();
             this.avatarAdmin = new System.Windows.Forms.PictureBox();
             this.lblAdminName = new System.Windows.Forms.Label();
             this.btnThemeToggle = new System.Windows.Forms.Button();
@@ -26,11 +29,9 @@
             this.labelMinimize = new System.Windows.Forms.Label();
             this.panelMenu = new System.Windows.Forms.Panel();
             this.panelContent = new System.Windows.Forms.Panel();
-            this.labelAppTitle = new System.Windows.Forms.Label();
-            this.pictureBoxAppIcon = new System.Windows.Forms.PictureBox();
             this.panelTopBar.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.avatarAdmin)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.avatarAdmin)).BeginInit();
             this.SuspendLayout();
             // 
             // panelTopBar
@@ -49,6 +50,27 @@
             this.panelTopBar.Name = "panelTopBar";
             this.panelTopBar.Size = new System.Drawing.Size(1200, 50);
             this.panelTopBar.TabIndex = 0;
+            // 
+            // labelAppTitle
+            // 
+            this.labelAppTitle.AutoSize = true;
+            this.labelAppTitle.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.labelAppTitle.ForeColor = System.Drawing.Color.White;
+            this.labelAppTitle.Location = new System.Drawing.Point(60, 15);
+            this.labelAppTitle.Name = "labelAppTitle";
+            this.labelAppTitle.Size = new System.Drawing.Size(206, 25);
+            this.labelAppTitle.TabIndex = 7;
+            this.labelAppTitle.Text = "Quản Lý và Giảng Dạy";
+            // 
+            // pictureBoxAppIcon
+            // 
+            this.pictureBoxAppIcon.Image = global::N6.Properties.Resources.logo;
+            this.pictureBoxAppIcon.Location = new System.Drawing.Point(12, 7);
+            this.pictureBoxAppIcon.Name = "pictureBoxAppIcon";
+            this.pictureBoxAppIcon.Size = new System.Drawing.Size(42, 40);
+            this.pictureBoxAppIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBoxAppIcon.TabIndex = 8;
+            this.pictureBoxAppIcon.TabStop = false;
             // 
             // avatarAdmin
             // 
@@ -142,27 +164,6 @@
             this.panelContent.Size = new System.Drawing.Size(1000, 700);
             this.panelContent.TabIndex = 2;
             // 
-            // labelAppTitle
-            // 
-            this.labelAppTitle.AutoSize = true;
-            this.labelAppTitle.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
-            this.labelAppTitle.ForeColor = System.Drawing.Color.White;
-            this.labelAppTitle.Location = new System.Drawing.Point(60, 15);
-            this.labelAppTitle.Name = "labelAppTitle";
-            this.labelAppTitle.Size = new System.Drawing.Size(206, 25);
-            this.labelAppTitle.TabIndex = 7;
-            this.labelAppTitle.Text = "Quản Lý và Giảng Dạy";
-            // 
-            // pictureBoxAppIcon
-            // 
-            this.pictureBoxAppIcon.Image = global::N6.Properties.Resources.logo;
-            this.pictureBoxAppIcon.Location = new System.Drawing.Point(12, 7);
-            this.pictureBoxAppIcon.Name = "pictureBoxAppIcon";
-            this.pictureBoxAppIcon.Size = new System.Drawing.Size(42, 40);
-            this.pictureBoxAppIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.pictureBoxAppIcon.TabIndex = 8;
-            this.pictureBoxAppIcon.TabStop = false;
-            // 
             // MenuAdmin
             // 
             this.ClientSize = new System.Drawing.Size(1200, 750);
@@ -170,13 +171,14 @@
             this.Controls.Add(this.panelMenu);
             this.Controls.Add(this.panelTopBar);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MenuAdmin";
             this.Text = "MenuAdmin";
             this.Load += new System.EventHandler(this.MenuAdmin_Load);
             this.panelTopBar.ResumeLayout(false);
             this.panelTopBar.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.avatarAdmin)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxAppIcon)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.avatarAdmin)).EndInit();
             this.ResumeLayout(false);
 
         }

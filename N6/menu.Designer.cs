@@ -10,6 +10,7 @@
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(dashboard));
             this.panelTopBar = new System.Windows.Forms.Panel();
             this.labelAppTitle = new System.Windows.Forms.Label();
             this.btnThemeToggle = new System.Windows.Forms.Button();
@@ -202,6 +203,7 @@
             this.Controls.Add(this.panelMenu);
             this.Controls.Add(this.panelTopBar);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "dashboard";
             this.Text = "dashboard";
             this.Load += new System.EventHandler(this.dashboard_Load);

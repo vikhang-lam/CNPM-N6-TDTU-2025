@@ -123,24 +123,35 @@ namespace N6
         // === THAY ĐỔI 3: Đổi tên phương thức và giữ nguyên logic ===
         private void UC_Home_Resize(object sender, EventArgs e)
         {
-            const int idealCardWidth = 250;
-            const int cardMargin = 45; // Tổng margin ngang của một card (20 trái + 20 phải + 5 khoảng cách)
+            flowPanel.SuspendLayout();
 
-            // Lấy chiều rộng của FlowLayoutPanel để tính toán
-            int panelWidth = flowPanel.ClientSize.Width;
-
-            // Tính toán số cột có thể hiển thị dựa trên chiều rộng lý tưởng
-            int columns = Math.Max(1, panelWidth / idealCardWidth);
-
-            // Tính toán chiều rộng mới cho mỗi card để lấp đầy không gian
-            int newCardWidth = (panelWidth / columns) - cardMargin;
-            int newCardHeight = (int)(newCardWidth * 0.7) + 50; // Giữ tỉ lệ card hợp lý
-
-            // Áp dụng kích thước mới cho tất cả các card
-            foreach (Panel card in flowPanel.Controls.OfType<Panel>())
+            try
             {
-                card.Width = newCardWidth;
-                card.Height = newCardHeight;
+                const int idealCardWidth = 250;
+                const int cardHorizontalMargins = 40;
+
+                int panelWidth = flowPanel.ClientSize.Width;
+
+                int columns = Math.Max(1, panelWidth / (idealCardWidth + cardHorizontalMargins));
+
+                int widthPerColumn = panelWidth / columns;
+
+                int newCardWidth = widthPerColumn - cardHorizontalMargins - 4;
+
+                int newCardHeight = (int)(newCardWidth * 0.7) + 50;
+
+                foreach (Control ctrl in flowPanel.Controls)
+                {
+                    if (ctrl is Panel card)
+                    {
+                        card.Width = newCardWidth;
+                        card.Height = newCardHeight;
+                    }
+                }
+            }
+            finally
+            {
+                flowPanel.ResumeLayout(true);
             }
         }
 

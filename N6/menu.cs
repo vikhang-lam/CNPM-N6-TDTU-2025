@@ -259,10 +259,12 @@ namespace N6
         private void ProfileItem_Click(object sender, EventArgs e)
         {
             string currentUser = Properties.Settings.Default["CurrentUser"]?.ToString();
-            using (ProfileForm pf = new ProfileForm(currentUser))
+
+            // THAY ĐỔI: Đổi "ProfileForm" thành "UserProfileForm"
+            using (UserProfileForm pf = new UserProfileForm(currentUser))
             {
                 pf.AvatarChanged += (s, args) => {
-                    LoadUserInfo();
+                    LoadUserInfo(); // Giữ nguyên
                 };
                 pf.ShowDialog(this);
             }

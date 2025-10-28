@@ -10,6 +10,7 @@
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(login));
             this.panelTopBar = new System.Windows.Forms.Panel();
             this.labelMaximize = new System.Windows.Forms.Label();
             this.labelClose = new System.Windows.Forms.Label();
@@ -245,7 +246,8 @@
             this.Controls.Add(this.labelInstruction);
             this.Controls.Add(this.labelGreeting);
             this.Controls.Add(this.panelTopBar);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "login";
             this.Text = "Form1";
             this.Load += new System.EventHandler(this.login_Load);
