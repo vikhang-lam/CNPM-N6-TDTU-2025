@@ -479,6 +479,9 @@
     <EmbeddedResource Include="UC_QuanLyTaiLieu.resx">
       <DependentUpon>UC_QuanLyTaiLieu.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="UC_QuanLyTruongHoc.resx">
+      <DependentUpon>UC_QuanLyTruongHoc.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="UC_ThoiKhoaBieu.resx">
       <DependentUpon>UC_ThoiKhoaBieu.cs</DependentUpon>
     </EmbeddedResource>
