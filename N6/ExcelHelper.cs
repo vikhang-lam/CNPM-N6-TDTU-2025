@@ -3,10 +3,18 @@ using System;
 using System.Data;
 using System.IO;
 using System.Text;
-using System.Windows.Forms;
+
 
 public static class ExcelHelper
 {
+    /// <summary>
+    /// Đọc file Excel (.xlsx, .xls) hoặc CSV (.csv) và trả về một DataTable.
+    /// Ném (throws) ngoại lệ nếu file không hợp lệ hoặc không đọc được.
+    /// </summary>
+    /// <param name="filePath">Đường dẫn đến file cần đọc.</param>
+    /// <returns>Một DataTable chứa dữ liệu từ sheet đầu tiên.</returns>
+    /// <exception cref="InvalidDataException">Ném ra khi file không phải định dạng Excel/CSV hợp lệ.</exception>
+    /// <exception cref="Exception">Ném ra cho các lỗi đọc file khác.</exception>
     public static DataTable ReadExcelFile(string filePath)
     {
         try
@@ -15,25 +23,18 @@ public static class ExcelHelper
 
             using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read))
             {
-                // SỬA LỖI: Khai báo trình đọc IExcelDataReader
                 IExcelDataReader reader;
-
-                // Lấy phần mở rộng của file để kiểm tra
                 string extension = Path.GetExtension(filePath).ToLower();
 
-                // Dựa vào đuôi file để chọn đúng trình đọc
                 if (extension == ".csv")
                 {
-                    // Nếu là file .csv, dùng trình đọc CSV
                     reader = ExcelReaderFactory.CreateCsvReader(stream);
                 }
                 else
                 {
-                    // Nếu là file .xlsx hoặc .xls, dùng trình đọc Excel mặc định
                     reader = ExcelReaderFactory.CreateReader(stream);
                 }
 
-                // Dùng trình đọc đã được chọn
                 using (reader)
                 {
                     var result = reader.AsDataSet(new ExcelDataSetConfiguration()
@@ -53,18 +54,19 @@ public static class ExcelHelper
         }
         catch (Exception ex)
         {
+            // CHUẨN HÓA: Ném ngoại lệ thay vì hiển thị MessageBox
             if (ex.Message.ToLower().Contains("invalid file signature"))
             {
-                MessageBox.Show(
+                // Ném lại lỗi với thông điệp rõ ràng cho UI
+                throw new InvalidDataException(
                     "Lỗi: File được chọn không phải là định dạng Excel hợp lệ (.xlsx, .xls).\n\n" +
                     "Vui lòng thử mở và lưu lại file bằng Microsoft Excel dưới dạng 'Excel Workbook (*.xlsx)' và thử lại.",
-                    "Lỗi Định Dạng File",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                    ex);
             }
             else
             {
-                MessageBox.Show("Lỗi không thể đọc file Excel: " + ex.Message, "Lỗi File", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Ném lại các lỗi khác
+                throw new Exception("Lỗi không thể đọc file Excel: " + ex.Message, ex);
             }
         }
         return null;

@@ -1,19 +1,21 @@
 ﻿using System;
-using System.Collections.Generic; // Added for List
-using System.Data;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq; // Added for LINQ operations
+using System.Linq;
 using System.Text;
-using System.Windows.Forms;
+using System.Windows.Forms; 
 using PdfSharp.Drawing;
-using PdfSharp.Drawing.Layout; // Ensure this is included
+using PdfSharp.Drawing.Layout;
 using PdfSharp.Pdf;
 
 
-namespace N6 // Make sure this namespace matches your project
+namespace N6
 {
+    /// <summary>
+    /// Cung cấp các phương thức tĩnh để xuất dữ liệu ra các định dạng file.
+    /// </summary>
     public static class ExportHelper
     {
         /// <summary>
@@ -25,21 +27,19 @@ namespace N6 // Make sure this namespace matches your project
             {
                 StringBuilder csvContent = new StringBuilder();
 
-                // Get visible columns only
                 var visibleColumns = gridView.Columns.Cast<DataGridViewColumn>()
                                          .Where(col => col.Visible)
                                          .ToList();
 
-                // Add header from visible GridView columns, using ;
+                // Add header
                 string[] headers = new string[visibleColumns.Count];
                 for (int i = 0; i < visibleColumns.Count; i++)
                 {
-                    // Bao bọc header trong dấu "" để xử lý các trường hợp đặc biệt (dấu phẩy, ngoặc kép, xuống dòng)
                     headers[i] = "\"" + visibleColumns[i].HeaderText.Replace("\"", "\"\"") + "\"";
                 }
                 csvContent.AppendLine(string.Join(";", headers));
 
-                // Add data from visible GridView columns, using ;
+                // Add data
                 foreach (DataGridViewRow row in gridView.Rows)
                 {
                     if (row.IsNewRow) continue;
@@ -47,31 +47,25 @@ namespace N6 // Make sure this namespace matches your project
                     string[] fields = new string[visibleColumns.Count];
                     for (int i = 0; i < visibleColumns.Count; i++)
                     {
-                        var cell = row.Cells[visibleColumns[i].Name]; // Access cell by column name
-                        string field = cell.FormattedValue?.ToString() ?? ""; // Use FormattedValue for display consistency
-
-                        // Xử lý ký tự " bên trong dữ liệu và bao bọc toàn bộ bằng "
+                        var cell = row.Cells[visibleColumns[i].Name];
+                        string field = cell.FormattedValue?.ToString() ?? "";
                         field = "\"" + field.Replace("\"", "\"\"") + "\"";
                         fields[i] = field;
                     }
                     csvContent.AppendLine(string.Join(";", fields));
                 }
 
-                // Ensure the file extension is .csv as we are creating a CSV file
                 if (!fileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
                 {
                     fileName = Path.ChangeExtension(fileName, ".csv");
                 }
 
-                // Ghi file với UTF-8 BOM để Excel đọc đúng tiếng Việt
-                File.WriteAllText(fileName, csvContent.ToString(), Encoding.UTF8); // Simpler write with BOM for UTF8
-
-                // MessageBox is handled by the calling code in UC_BaoCao_Admin
-                // MessageBox.Show($"Đã xuất thành công file Excel: {fileName}", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Ghi file với UTF-8 BOM
+                File.WriteAllText(fileName, csvContent.ToString(), Encoding.UTF8);
             }
             catch (Exception ex)
             {
-                // Throw exception to be caught by the calling code (UC_BaoCao_Admin)
+                // Ném ngoại lệ để lớp UI bên ngoài bắt và xử lý
                 throw new Exception($"Lỗi khi xuất file CSV: {ex.Message}", ex);
             }
         }
@@ -109,7 +103,7 @@ namespace N6 // Make sure this namespace matches your project
                 double rightMargin = 30;
                 double contentWidth = page.Width - leftMargin - rightMargin;
 
-                // 1️⃣ Tiêu đề và bộ lọc (nếu có)
+                // 1. Tiêu đề và bộ lọc
                 XTextFormatter tf = new XTextFormatter(gfx);
                 if (!string.IsNullOrEmpty(documentTitleAndFilters))
                 {
@@ -119,7 +113,7 @@ namespace N6 // Make sure this namespace matches your project
                     yPos += (docTitleFont.GetHeight() * titleLineCount) + 10;
                 }
 
-                // 2️⃣ Ngày xuất
+                // 2. Ngày xuất
                 string dateInfo = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm}";
                 XSize dateSize = gfx.MeasureString(dateInfo, infoFont);
                 gfx.DrawString(dateInfo, infoFont, XBrushes.Gray, page.Width - rightMargin - dateSize.Width, yPos);
@@ -127,16 +121,11 @@ namespace N6 // Make sure this namespace matches your project
 
                 // --- KIỂM TRA ĐỊNH DẠNG BÁO CÁO ---
                 bool isCombinedKhoiReport = gridView.Columns.Contains("IsHeader");
-
-                // *** SỬA LỖI: Kiểm tra xem đây là báo cáo Khối hay Lớp ***
-                // Dựa vào tiêu đề chính được truyền từ UC_BaoCao_Admin
                 bool isKhoiReportPDF = mainContentHeader.ToUpper().Contains("KHỐI");
 
                 if (isCombinedKhoiReport)
                 {
                     // === PATH A: VẼ BÁO CÁO GỘP (KHỐI hoặc LỚP) ===
-
-                    // 1. Định nghĩa cột
                     string[] colDataNames = { "PhanLoai", "Col_TS", "Col_Nu", "Col_DanToc_Percent", "Col_NDT" };
                     double[] colWidths = {
                         contentWidth * 0.30, // PhanLoai
@@ -149,14 +138,14 @@ namespace N6 // Make sure this namespace matches your project
                     double mainHeaderRowHeight = 35;
                     double subHeaderRowHeight = 25;
 
-                    // 2. Vẽ Hàng 1 (Tên Khối hoặc Tên Lớp)
+                    // 2.1. Vẽ Hàng 1 (Tên Khối hoặc Tên Lớp)
                     XRect headerRect = new XRect(leftMargin, yPos, contentWidth, mainHeaderRowHeight);
                     gfx.DrawRectangle(XBrushes.Gainsboro, headerRect);
                     gfx.DrawRectangle(XPens.Black, headerRect);
                     gfx.DrawString(mainContentHeader, largeHeaderFont, XBrushes.Black, headerRect, XStringFormats.Center);
                     yPos += mainHeaderRowHeight;
 
-                    // 3. Vẽ Hàng 2 (Chỉ vẽ nếu là Báo cáo Khối và có Tag)
+                    // 2.2. Vẽ Hàng 2 (Danh sách lớp)
                     if (isKhoiReportPDF && gridView.Tag is string tagValue && !string.IsNullOrWhiteSpace(tagValue))
                     {
                         string classList = tagValue;
@@ -167,7 +156,7 @@ namespace N6 // Make sure this namespace matches your project
                         yPos += subHeaderRowHeight;
                     }
 
-                    // 4. Vẽ các hàng dữ liệu (bắt đầu từ hàng "ĐIỂM")
+                    // 2.3. Vẽ các hàng dữ liệu
                     foreach (DataGridViewRow row in gridView.Rows)
                     {
                         if (row.IsNewRow) continue;
@@ -188,24 +177,21 @@ namespace N6 // Make sure this namespace matches your project
                             string cellText = row.Cells[colDataNames[i]].Value?.ToString() ?? "";
                             XStringFormat alignment = XStringFormats.Center;
 
-                            if (i == 0) // Cột đầu tiên
+                            if (i == 0)
                             {
                                 alignment = isHeaderRow ? XStringFormats.CenterLeft : XStringFormats.Center;
                             }
-
-                            // *** SỬA LỖI: CHỈ ÁP DỤNG LOGIC "%" NẾU LÀ BÁO CÁO KHỐI ***
-                            if (isKhoiReportPDF && isXepLoaiHeader) // Text đặc biệt cho hàng "XẾP LOẠI" (Báo cáo Khối)
+                            
+                            if (isKhoiReportPDF && isXepLoaiHeader)
                             {
                                 if (i == 2) cellText = "";
                                 if (i == 3) cellText = "%";
                                 if (i == 4) cellText = "";
                             }
-                            // (Nếu là Báo cáo Lớp, cellText sẽ giữ nguyên giá trị từ DGV là "Nữ", "Dân tộc"...)
-
+                            
                             XRect cellRect = new XRect(currentX + 5, yPos, colWidths[i] - 10, rowHeight);
                             gfx.DrawString(cellText, font, XBrushes.Black, cellRect, alignment);
 
-                            // Vẽ đường kẻ cột
                             if (i > 0)
                                 gfx.DrawLine(XPens.Gray, currentX, yPos, currentX, yPos + rowHeight);
 
@@ -222,9 +208,8 @@ namespace N6 // Make sure this namespace matches your project
                 else
                 {
                     // === PATH B: VẼ BÁO CÁO LỚP (CŨ) HOẶC CÁC BÁO CÁO KHÁC ===
-                    // (Logic này giữ nguyên, không thay đổi)
-
-                    // 3️⃣ Header lớn (Lớp)
+                    
+                    // 3. Header lớn (Lớp)
                     if (!string.IsNullOrEmpty(mainContentHeader))
                     {
                         XRect largeHeaderRect = new XRect(leftMargin, yPos, contentWidth, 50);
@@ -232,7 +217,7 @@ namespace N6 // Make sure this namespace matches your project
                         yPos += largeHeaderFont.GetHeight() + 15;
                     }
 
-                    // 4️⃣ Vẽ DataGridView chính (Bảng điểm)
+                    // 4. Vẽ DataGridView chính (Bảng điểm)
                     var visibleColumns = gridView.Columns.Cast<DataGridViewColumn>()
                                              .Where(col => col.Visible)
                                              .ToList();
@@ -283,7 +268,7 @@ namespace N6 // Make sure this namespace matches your project
                         rowCountOnPage++;
                     }
 
-                    // 6️⃣ Vẽ tiếp bảng phụ (Bảng xếp loại) ngay dưới
+                    // 5. Vẽ tiếp bảng phụ (Bảng xếp loại) ngay dưới
                     if (imagesToExport != null && imagesToExport.Length > 0 && imagesToExport[0] != null)
                     {
                         using (MemoryStream stream = new MemoryStream())
@@ -310,7 +295,7 @@ namespace N6 // Make sure this namespace matches your project
                     }
                 }
 
-                // 7️⃣ Lưu file
+                // 6. Lưu file
                 if (!fileName.ToLower().EndsWith(".pdf"))
                     fileName = Path.ChangeExtension(fileName, ".pdf");
                 document.Save(fileName);
@@ -318,20 +303,20 @@ namespace N6 // Make sure this namespace matches your project
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error creating PDF file: {ex.Message}", ex);
+                // Ném ngoại lệ để UI xử lý
+                throw new Exception($"Lỗi khi tạo file PDF: {ex.Message}", ex);
             }
         }
 
 
         /// <summary>
-        /// Removes Vietnamese diacritics from a string.
+        /// Xóa dấu thanh tiếng Việt khỏi một chuỗi.
         /// </summary>
         private static string RemoveVietnameseDiacritics(string text)
         {
             if (string.IsNullOrEmpty(text))
                 return string.Empty;
 
-            // Using Normalize to decompose characters and remove non-spacing marks
             string normalizedString = text.Normalize(NormalizationForm.FormD);
             StringBuilder stringBuilder = new StringBuilder();
 
@@ -340,7 +325,6 @@ namespace N6 // Make sure this namespace matches your project
                 var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
                 if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
                 {
-                    // Special case for Đ/đ
                     if (c == 'Đ') stringBuilder.Append('D');
                     else if (c == 'đ') stringBuilder.Append('d');
                     else stringBuilder.Append(c);

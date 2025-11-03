@@ -6,15 +6,6 @@
         private System.Windows.Forms.FlowLayoutPanel panelGames;
         private System.Windows.Forms.Label labelTitle;
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
         #region Component Designer generated code
 
         private void InitializeComponent()

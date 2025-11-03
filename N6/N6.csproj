@@ -39,7 +39,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>logo.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\logo.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject>
@@ -245,7 +245,7 @@
   <ItemGroup>
     <Compile Include="AIAnalyzer.cs" />
     <Compile Include="AllGameCode.cs" />
-    <Compile Include="Class1.cs" />
+    <Compile Include="DatabaseHelper.cs" />
     <Compile Include="EmailHelper.cs" />
     <Compile Include="ExcelHelper.cs" />
     <Compile Include="ExportHelper.cs" />
@@ -336,11 +336,11 @@
     <Compile Include="RoundedPanel.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="menu.cs">
+    <Compile Include="Menu.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="menu.Designer.cs">
-      <DependentUpon>menu.cs</DependentUpon>
+    <Compile Include="Menu.Designer.cs">
+      <DependentUpon>Menu.cs</DependentUpon>
     </Compile>
     <Compile Include="login.cs">
       <SubType>Form</SubType>
@@ -447,8 +447,8 @@
     <EmbeddedResource Include="LoginDialog.resx">
       <DependentUpon>LoginDialog.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="menu.resx">
-      <DependentUpon>menu.cs</DependentUpon>
+    <EmbeddedResource Include="Menu.resx">
+      <DependentUpon>Menu.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MenuAdmin.resx">
       <DependentUpon>MenuAdmin.cs</DependentUpon>
@@ -623,7 +623,7 @@
     <None Include="Resources\Gemini_Generated_Image_rmr1f5rmr1f5rmr1 %282%29.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="logo.ico" />
+    <Content Include="Resources\logo.ico" />
     <None Include="Resources\Gemini_Generated_Image_5wy0wj5wy0wj5wy0.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

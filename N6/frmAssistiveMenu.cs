@@ -2,12 +2,22 @@
 using System.Drawing;
 using System.Windows.Forms;
 using N6;
+using System.Collections.Generic; // Thêm
+using System.Linq; // Thêm
 
+/// <summary>
+/// Form popup hiển thị các công cụ hỗ trợ nhanh (Bảng trắng, Ghi chú, Hẹn giờ).
+/// </summary>
 public class frmAssistiveMenu : frmDraggableRoundedPopup
 {
     private string _maGV;
 
-    // P/Invoke for TextBox placeholder on .NET Framework
+    // Biến lưu trữ các control động để gỡ sự kiện
+    private List<Panel> menuButtons = new List<Panel>();
+    private Dictionary<Control, EventHandler> clickHandlers = new Dictionary<Control, EventHandler>();
+    private Dictionary<Control, EventHandler> mouseEnterHandlers = new Dictionary<Control, EventHandler>();
+    private Dictionary<Control, EventHandler> mouseLeaveHandlers = new Dictionary<Control, EventHandler>();
+
     [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
     private static extern int SendMessage(IntPtr hWnd, int msg, int wParam, string lParam);
     private const int EM_SETCUEBANNER = 0x1501;
@@ -29,20 +39,14 @@ public class frmAssistiveMenu : frmDraggableRoundedPopup
         tlp.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
         tlp.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
 
-        var btnWhiteboard = CreateMenuButton("Bảng Trắng", "🖊️");
-        var btnNoteTKB = CreateMenuButton("Ghi Chú TKB", "📅");
-        var btnNoteHS = CreateMenuButton("Ghi Chú HS", "👥");
-        var btnTimer = CreateMenuButton("Hẹn Giờ", "⏰");
+        // Tạo các nút
+        var btnWhiteboard = CreateMenuButton("Bảng Trắng", "🖊️", BtnWhiteboard_Click);
+        var btnNoteTKB = CreateMenuButton("Ghi Chú TKB", "📅", BtnNoteTKB_Click);
+        var btnNoteHS = CreateMenuButton("Ghi Chú HS", "👥", BtnNoteHS_Click);
+        var btnTimer = CreateMenuButton("Hẹn Giờ", "⏰", BtnTimer_Click);
 
-        btnWhiteboard.Click += BtnWhiteboard_Click;
-        btnNoteTKB.Click += BtnNoteTKB_Click;
-        btnNoteHS.Click += BtnNoteHS_Click;
-        btnTimer.Click += BtnTimer_Click;
-
-        foreach (Control c in btnWhiteboard.Controls) c.Click += BtnWhiteboard_Click;
-        foreach (Control c in btnNoteTKB.Controls) c.Click += BtnNoteTKB_Click;
-        foreach (Control c in btnNoteHS.Controls) c.Click += BtnNoteHS_Click;
-        foreach (Control c in btnTimer.Controls) c.Click += BtnTimer_Click;
+        // Lưu lại để Dispose
+        menuButtons.AddRange(new[] { btnWhiteboard, btnNoteTKB, btnNoteHS, btnTimer });
 
         tlp.Controls.Add(btnWhiteboard, 0, 0);
         tlp.Controls.Add(btnNoteTKB, 1, 0);
@@ -55,7 +59,10 @@ public class frmAssistiveMenu : frmDraggableRoundedPopup
         this.Text = "Công cụ Hỗ trợ";
     }
 
-    private Panel CreateMenuButton(string text, string icon)
+    /// <summary>
+    /// Tạo một nút bấm (Panel) cho menu.
+    /// </summary>
+    private Panel CreateMenuButton(string text, string icon, EventHandler mainClickHandler)
     {
         var panel = new RoundedPanel
         {
@@ -65,39 +72,47 @@ public class frmAssistiveMenu : frmDraggableRoundedPopup
             CornerRadius = 15,
             Cursor = Cursors.Hand
         };
-        var lblIcon = new Label
-        {
-            Text = icon,
-            Dock = DockStyle.Top,
-            Height = 45,
-            Font = new Font("Segoe UI Emoji", 18),
-            TextAlign = ContentAlignment.MiddleCenter,
-            BackColor = Color.Transparent
-        };
-        var lblText = new Label
-        {
-            Text = text,
-            Dock = DockStyle.Bottom,
-            Height = 25,
-            Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = Color.DimGray,
-            BackColor = Color.Transparent
-        };
+        var lblIcon = new Label { Text = icon, Dock = DockStyle.Top, Height = 45, Font = new Font("Segoe UI Emoji", 18), TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.Transparent };
+        var lblText = new Label { Text = text, Dock = DockStyle.Bottom, Height = 25, Font = new Font("Segoe UI", 9, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.DimGray, BackColor = Color.Transparent };
+
         panel.Controls.Add(lblText);
         panel.Controls.Add(lblIcon);
 
         Action<Color> setBackColor = (color) => { panel.BackColor = color; };
 
-        panel.MouseEnter += (s, e) => setBackColor(Color.FromArgb(220, 235, 255));
-        panel.MouseLeave += (s, e) => setBackColor(Color.WhiteSmoke);
-        lblIcon.MouseEnter += (s, e) => setBackColor(Color.FromArgb(220, 235, 255));
-        lblIcon.MouseLeave += (s, e) => setBackColor(Color.WhiteSmoke);
-        lblText.MouseEnter += (s, e) => setBackColor(Color.FromArgb(220, 235, 255));
-        lblText.MouseLeave += (s, e) => setBackColor(Color.WhiteSmoke);
+        // Lưu trữ các handler để gỡ bỏ sau
+        var enterHandler = (EventHandler)((s, e) => setBackColor(Color.FromArgb(220, 235, 255)));
+        var leaveHandler = (EventHandler)((s, e) => setBackColor(Color.WhiteSmoke));
+
+        mouseEnterHandlers[panel] = enterHandler;
+        mouseEnterHandlers[lblIcon] = enterHandler;
+        mouseEnterHandlers[lblText] = enterHandler;
+
+        mouseLeaveHandlers[panel] = leaveHandler;
+        mouseLeaveHandlers[lblIcon] = leaveHandler;
+        mouseLeaveHandlers[lblText] = leaveHandler;
+
+        clickHandlers[panel] = mainClickHandler;
+        clickHandlers[lblIcon] = mainClickHandler;
+        clickHandlers[lblText] = mainClickHandler;
+
+        // Gán sự kiện
+        panel.MouseEnter += enterHandler;
+        panel.MouseLeave += leaveHandler;
+        panel.Click += mainClickHandler;
+
+        lblIcon.MouseEnter += enterHandler;
+        lblIcon.MouseLeave += leaveHandler;
+        lblIcon.Click += mainClickHandler;
+
+        lblText.MouseEnter += enterHandler;
+        lblText.MouseLeave += leaveHandler;
+        lblText.Click += mainClickHandler;
 
         return panel;
     }
+
+    #region Click Handlers (Xử lý sự kiện)
 
     private void BtnWhiteboard_Click(object sender, EventArgs e)
     {
@@ -126,12 +141,12 @@ public class frmAssistiveMenu : frmDraggableRoundedPopup
         {
             settingsForm.Text = "Cài đặt Hẹn giờ";
             settingsForm.Size = new Size(450, 300);
-            settingsForm.StartPosition = FormStartPosition.CenterParent; // will work once owner is set
+            settingsForm.StartPosition = FormStartPosition.CenterParent;
             settingsForm.FormBorderStyle = FormBorderStyle.FixedDialog;
             settingsForm.MaximizeBox = false;
             settingsForm.MinimizeBox = false;
             settingsForm.ShowInTaskbar = false;
-            settingsForm.TopMost = this.TopMost; // ensure above owner which is TopMost
+            settingsForm.TopMost = this.TopMost;
 
             Label lblTitle = new Label
             {
@@ -155,7 +170,7 @@ public class frmAssistiveMenu : frmDraggableRoundedPopup
                 Width = 260,
                 Font = new Font("Segoe UI", 10F)
             };
-            // Cue banner for .NET Framework
+
             var _ = txtSubject.Handle;
             SendMessage(txtSubject.Handle, EM_SETCUEBANNER, 0, "VD: Toán, Ngữ văn...");
 
@@ -190,10 +205,39 @@ public class frmAssistiveMenu : frmDraggableRoundedPopup
                 Location = new Point(180, 148),
                 Width = 50,
                 Minimum = 1,
-                Maximum = 30,
+                Maximum = 30, // Sẽ được cập nhật ngay
                 Value = 5,
                 Font = new Font("Segoe UI", 10F)
             };
+
+            // ### BẮT ĐẦU SỬA LỖI ###
+
+            // 1. Đặt Maximum ban đầu một cách chính xác
+            numWarning.Maximum = numDuration.Value;
+
+            // 2. Thêm sự kiện ValueChanged cho numDuration
+            numDuration.ValueChanged += (s_duration, e_duration) =>
+            {
+                // Cập nhật Maximum của numWarning
+                numWarning.Maximum = numDuration.Value;
+
+                // (FIX) Chủ động kẹp giá trị của numWarning nếu nó vi phạm Maximum mới
+                if (numWarning.Value > numWarning.Maximum)
+                {
+                    numWarning.Value = numWarning.Maximum;
+                }
+            };
+
+            // 3. (Tùy chọn) Thêm sự kiện cho numWarning (để đảm bảo an toàn tuyệt đối)
+            numWarning.ValueChanged += (s_warning, e_warning) =>
+            {
+                if (numWarning.Value > numDuration.Value)
+                {
+                    numWarning.Value = numDuration.Value;
+                }
+            };
+
+            // ### KẾT THÚC SỬA LỖI ###
 
             Button btnStart = new Button
             {
@@ -217,8 +261,15 @@ public class frmAssistiveMenu : frmDraggableRoundedPopup
                 int minutes = (int)numDuration.Value;
                 int warning = (int)numWarning.Value;
 
+                // Kiểm tra logic một lần cuối trước khi bắt đầu
+                if (warning > minutes)
+                {
+                    MessageBox.Show("Thời gian cảnh báo không thể lớn hơn tổng thời lượng.", "Lỗi Logic", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return; // Ngăn không cho form chạy
+                }
+
                 var timerPopup = new frmTimerPopup(subject, minutes, warning);
-                timerPopup.Show(); // frmTimerPopup is TopMost via base
+                timerPopup.Show();
                 settingsForm.Close();
             };
 
@@ -230,10 +281,40 @@ public class frmAssistiveMenu : frmDraggableRoundedPopup
                 btnStart
             });
 
-            // IMPORTANT: pass owner so dialog is above the AssistiveMenu
             settingsForm.ShowDialog(this);
         }
 
         this.Close();
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Dọn dẹp tài nguyên.
+    /// </summary>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            // Gỡ bỏ tất cả các sự kiện đã gán động
+            foreach (var panel in menuButtons)
+            {
+                foreach (Control child in panel.Controls)
+                {
+                    if (clickHandlers.ContainsKey(child)) child.Click -= clickHandlers[child];
+                    if (mouseEnterHandlers.ContainsKey(child)) child.MouseEnter -= mouseEnterHandlers[child];
+                    if (mouseLeaveHandlers.ContainsKey(child)) child.MouseLeave -= mouseLeaveHandlers[child];
+                }
+                if (clickHandlers.ContainsKey(panel)) panel.Click -= clickHandlers[panel];
+                if (mouseEnterHandlers.ContainsKey(panel)) panel.MouseEnter -= mouseEnterHandlers[panel];
+                if (mouseLeaveHandlers.ContainsKey(panel)) panel.MouseLeave -= mouseLeaveHandlers[panel];
+            }
+            // Xóa các dictionary
+            menuButtons.Clear();
+            clickHandlers.Clear();
+            mouseEnterHandlers.Clear();
+            mouseLeaveHandlers.Clear();
+        }
+        base.Dispose(disposing);
     }
 }

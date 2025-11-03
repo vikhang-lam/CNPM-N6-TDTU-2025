@@ -50,7 +50,7 @@ public partial class frmGhiChuTKB : frmDraggableRoundedPopup
 
     private void LoadLopHoc()
     {
-        DataTable dt = DatabaseHelper.GetLopByGiaoVien(_maGV);
+        DataTable dt = DatabaseHelper.GetClassesByTeacher(_maGV);
         cbLop.DataSource = dt;
         cbLop.DisplayMember = "TenLop";
         cbLop.ValueMember = "MaLop";
@@ -67,11 +67,11 @@ public partial class frmGhiChuTKB : frmDraggableRoundedPopup
 
         try
         {
-            DatabaseHelper.AddGhiChuTKB(_maGV, maLop, dtpNgay.Value, tiet, txtGhiChu.Text);
+            DatabaseHelper.AddTimetableNote(_maGV, maLop, dtpNgay.Value, tiet, txtGhiChu.Text);
             MessageBox.Show("Đã lưu ghi chú thành công!");
 
             // ### UPDATED HERE: Phát tín hiệu báo TKB đã thay đổi ###
-            DatabaseHelper.RaiseThoiKhoaBieuChanged();
+            DatabaseHelper.RaiseTimetableChanged();
 
             this.Close();
         }

@@ -3016,6 +3016,17 @@ BEGIN
 
 END;
 GO
+Create PROCEDURE sp_GetTeacherAssignments
+    @MaGV VARCHAR(10)
+AS
+BEGIN
+    SELECT pc.MaMon, mh.TenMon, pc.MaLop
+    FROM PhanCongGiangDay pc
+    INNER JOIN MonHoc mh ON pc.MaMon = mh.MaMon
+    WHERE pc.MaGV = @MaGV;
+END;
+GO
+
 GO
 PRINT N'Tạo SP [sp_Admin_GetHoSoHocSinh]';
 GO
@@ -3274,6 +3285,16 @@ BEGIN
     SELECT * FROM DiemStats
     UNION ALL
     SELECT * FROM XepLoaiStats;
+END;
+GO
+CREATE PROCEDURE sp_UpdateTeacherSubjects
+    @MaGV VARCHAR(10),
+    @MonHocList ut_MaMonList READONLY
+AS
+BEGIN
+    DELETE FROM GiaoVien_MonHoc WHERE MaGV = @MaGV;
+    INSERT INTO GiaoVien_MonHoc (MaGV, MaMon)
+    SELECT @MaGV, MaMon FROM @MonHocList;
 END;
 GO
 CREATE PROCEDURE sp_RequestPasswordReset

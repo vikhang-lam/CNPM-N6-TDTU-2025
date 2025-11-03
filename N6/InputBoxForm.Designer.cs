@@ -4,15 +4,6 @@
     {
         private System.ComponentModel.IContainer components = null;
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
         #region Windows Form Designer generated code
 
         private void InitializeComponent()
@@ -42,7 +33,7 @@
             this.panelMain.Controls.Add(this.panelTitleBar);
             this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panelMain.Location = new System.Drawing.Point(0, 0);
-            this.panelMain.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.panelMain.Margin = new System.Windows.Forms.Padding(4);
             this.panelMain.Name = "panelMain";
             this.panelMain.Size = new System.Drawing.Size(533, 271);
             this.panelMain.TabIndex = 0;
@@ -68,7 +59,7 @@
             this.btnCancel.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnCancel.ForeColor = System.Drawing.Color.White;
             this.btnCancel.Location = new System.Drawing.Point(364, 197);
-            this.btnCancel.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnCancel.Margin = new System.Windows.Forms.Padding(4);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(125, 43);
             this.btnCancel.TabIndex = 3;
@@ -83,7 +74,7 @@
             this.btnSave.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnSave.ForeColor = System.Drawing.Color.White;
             this.btnSave.Location = new System.Drawing.Point(231, 197);
-            this.btnSave.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(4);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(125, 43);
             this.btnSave.TabIndex = 2;
@@ -96,7 +87,7 @@
             this.pnlTextboxBorder.BackColor = System.Drawing.Color.Gainsboro;
             this.pnlTextboxBorder.Controls.Add(this.txtInput);
             this.pnlTextboxBorder.Location = new System.Drawing.Point(44, 117);
-            this.pnlTextboxBorder.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pnlTextboxBorder.Margin = new System.Windows.Forms.Padding(4);
             this.pnlTextboxBorder.Name = "pnlTextboxBorder";
             this.pnlTextboxBorder.Padding = new System.Windows.Forms.Padding(1);
             this.pnlTextboxBorder.Size = new System.Drawing.Size(445, 39);
@@ -119,7 +110,7 @@
             this.panelTitleBar.Controls.Add(this.lblTitle);
             this.panelTitleBar.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelTitleBar.Location = new System.Drawing.Point(0, 0);
-            this.panelTitleBar.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.panelTitleBar.Margin = new System.Windows.Forms.Padding(4);
             this.panelTitleBar.Name = "panelTitleBar";
             this.panelTitleBar.Size = new System.Drawing.Size(531, 49);
             this.panelTitleBar.TabIndex = 0;
@@ -146,7 +137,7 @@
             this.Controls.Add(this.panelMain);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "InputBoxForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "InputBoxForm";

@@ -4,119 +4,123 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using PdfiumViewer;
+using System.Diagnostics; // Thêm
+using System.Linq; // Thêm
 
 namespace N6
 {
+    /// <summary>
+    /// UserControl quản lý việc tải lên, xem, chia sẻ và xóa tài liệu.
+    /// </summary>
     public partial class UC_QuanLyTaiLieu : UserControl
     {
         private string maGV;
-        private string storagePath;
+        private string storagePath; // Đường dẫn thư mục lưu trữ tài liệu
 
+        /// <summary>
+        /// Khởi tạo UserControl với mã giáo viên.
+        /// </summary>
+        /// <param name="maGVien">Mã của giáo viên đang đăng nhập.</param>
         public UC_QuanLyTaiLieu(string maGVien)
         {
             InitializeComponent();
             maGV = maGVien;
 
+            // Đảm bảo thư mục lưu trữ tồn tại
             storagePath = Path.Combine(Application.StartupPath, "TaiLieu");
             if (!Directory.Exists(storagePath))
                 Directory.CreateDirectory(storagePath);
 
-            LoadTaiLieu(false);
-            LoadTaiLieu(true);
+            // Tải danh sách tài liệu
+            LoadTaiLieu(false); // Tải tài liệu của tôi
+            LoadTaiLieu(true);  // Tải tài liệu được chia sẻ
         }
 
-        // ### REDESIGNED ### Toàn bộ phương thức này được thiết kế lại
+        /// <summary>
+        /// Tải (hoặc tải lại) danh sách tài liệu lên FlowLayoutPanel.
+        /// </summary>
+        /// <param name="shared">True để tải tài liệu được chia sẻ, False để tải tài liệu cá nhân.</param>
         private void LoadTaiLieu(bool shared = false)
         {
             FlowLayoutPanel targetPanel = shared ? flowSharedDocs : flowMyDocs;
-            targetPanel.Controls.Clear();
 
+            // Dọn dẹp các control cũ và gỡ sự kiện để tránh memory leak
+            foreach (Panel shadowPanel in targetPanel.Controls.OfType<Panel>().ToList())
+            {
+                // Truy cập vào card bên trong
+                var card = shadowPanel.Controls.OfType<Panel>().FirstOrDefault();
+                if (card != null)
+                {
+                    // Truy cập vào TableLayoutPanel chứa các nút
+                    var panelButtons = card.Controls.OfType<TableLayoutPanel>().FirstOrDefault();
+                    if (panelButtons != null)
+                    {
+                        // Gỡ sự kiện Click của tất cả các nút bên trong
+                        foreach (Button btn in panelButtons.Controls.OfType<Button>().ToList())
+                        {
+                            btn.Click -= ViewDocument_Click;
+                            btn.Click -= DownloadDocument_Click;
+                            btn.Click -= ShareDocument_Click;
+                            btn.Click -= UnshareDocument_Click;
+                            btn.Click -= DeleteDocument_Click;
+                        }
+                    }
+                }
+                targetPanel.Controls.Remove(shadowPanel); // Xóa control
+                shadowPanel.Dispose(); // Hủy control
+            }
+            targetPanel.Controls.Clear(); // Dọn dẹp lần cuối
+
+            // Lấy dữ liệu từ CSDL
             DataTable dt = shared
-                ? DatabaseHelper.GetTaiLieuSharedWithUploader()
-                : DatabaseHelper.GetTaiLieuByGV(maGV);
+                ? DatabaseHelper.GetSharedDocumentsWithUploader()
+                : DatabaseHelper.GetDocumentsByTeacher(maGV);
 
+            // Tạo các thẻ (card) cho từng tài liệu
             foreach (DataRow r in dt.Rows)
             {
-                // Card container with shadow effect
-                Panel shadowPanel = new Panel
-                {
-                    Width = 225,
-                    Height = 225,
-                    Margin = new Padding(15),
-                    BackColor = Color.Gainsboro // Shadow color
-                };
+                // Tạo bản sao của DataRow để tránh lỗi closure
+                DataRow rowCopy = r;
+                string maTL = rowCopy["MaTL"].ToString();
 
-                Panel card = new Panel
-                {
-                    Width = 220,
-                    Height = 220,
-                    BackColor = Color.White,
-                    Dock = DockStyle.Fill,
-                    Padding = new Padding(10)
-                };
-
-                Label lblIcon = new Label
-                {
-                    Text = GetFileIcon(r["Kieu"].ToString()),
-                    Font = new Font("Segoe UI Emoji", 36),
-                    Dock = DockStyle.Top,
-                    Height = 70,
-                    TextAlign = ContentAlignment.MiddleCenter
-                };
-
-                Label lblName = new Label
-                {
-                    Text = r["TenTL"].ToString(),
-                    Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold),
-                    Dock = DockStyle.Top,
-                    Height = 40,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    AutoEllipsis = true
-                };
-
-                Label lblSharedBy = new Label
-                {
-                    Dock = DockStyle.Top,
-                    Height = 20,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    ForeColor = Color.DarkGray,
-                    Font = new Font("Segoe UI", 8F, FontStyle.Italic)
-                };
+                Panel shadowPanel = new Panel { Width = 225, Height = 225, Margin = new Padding(15), BackColor = Color.Gainsboro };
+                Panel card = new Panel { Width = 220, Height = 220, BackColor = Color.White, Dock = DockStyle.Fill, Padding = new Padding(10) };
+                Label lblIcon = new Label { Text = GetFileIcon(rowCopy["Kieu"].ToString()), Font = new Font("Segoe UI Emoji", 36), Dock = DockStyle.Top, Height = 70, TextAlign = ContentAlignment.MiddleCenter };
+                Label lblName = new Label { Text = rowCopy["TenTL"].ToString(), Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold), Dock = DockStyle.Top, Height = 40, TextAlign = ContentAlignment.MiddleCenter, AutoEllipsis = true };
+                Label lblSharedBy = new Label { Dock = DockStyle.Top, Height = 20, TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.DarkGray, Font = new Font("Segoe UI", 8F, FontStyle.Italic) };
 
                 if (shared)
                 {
-                    lblSharedBy.Text = "bởi " + r["TenGV"].ToString();
+                    lblSharedBy.Text = "bởi " + rowCopy["TenGV"].ToString();
                 }
 
-                // Panel for buttons
-                TableLayoutPanel panelButtons = new TableLayoutPanel
-                {
-                    Dock = DockStyle.Bottom,
-                    Height = 40,
-                    ColumnCount = 3,
-                    RowCount = 1
-                };
+                TableLayoutPanel panelButtons = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = 40, ColumnCount = 3, RowCount = 1 };
                 panelButtons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
                 panelButtons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-                panelButtons.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 40)); // For delete button
+                panelButtons.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 40));
 
-                // ### REDESIGNED ### Các nút bấm được làm mới với icon và màu sắc
+                // Tạo các nút
                 Button btnView = CreateModernButton("👁️ Xem", Color.FromArgb(24, 119, 242));
-                btnView.Click += (s, e) => ViewDocument(r);
+                btnView.Tag = rowCopy; // Lưu DataRow vào Tag
+                btnView.Click += ViewDocument_Click;
 
                 Button btnDownload = CreateModernButton("📥 Tải", Color.FromArgb(24, 119, 242));
-                btnDownload.Click += (s, e) => DownloadDocument(r);
+                btnDownload.Tag = rowCopy;
+                btnDownload.Click += DownloadDocument_Click;
 
                 Button btnShare = CreateModernButton("🔗 Chia sẻ", Color.FromArgb(67, 181, 129));
-                btnShare.Click += (s, e) => ShareDocument(r["MaTL"].ToString());
+                btnShare.Tag = maTL;
+                btnShare.Click += ShareDocument_Click;
 
                 Button btnUnshare = CreateModernButton("🗑 Hủy", Color.FromArgb(114, 118, 125));
-                btnUnshare.Click += (s, e) => UnshareDocument(r["MaTL"].ToString());
+                btnUnshare.Tag = maTL;
+                btnUnshare.Click += UnshareDocument_Click;
 
                 Button btnDelete = CreateModernButton("❌", Color.FromArgb(237, 66, 69));
-                btnDelete.Click += (s, e) => DeleteDocument(r["MaTL"].ToString(), shared);
+                btnDelete.Tag = new Tuple<string, bool>(maTL, shared); // Lưu MaTL và context (tab nào)
+                btnDelete.Click += DeleteDocument_Click;
 
-                // Add buttons based on context
+                // Thêm các nút dựa trên ngữ cảnh (chung/cá nhân)
                 if (shared)
                 {
                     panelButtons.SetColumnSpan(btnView, 1);
@@ -127,7 +131,7 @@ namespace N6
                 else
                 {
                     panelButtons.Controls.Add(btnView, 0, 0);
-                    string trangThai = r["TrangThaiChiaSe"].ToString();
+                    string trangThai = rowCopy["TrangThaiChiaSe"].ToString();
                     if (trangThai == "Chia sẻ")
                     {
                         panelButtons.Controls.Add(btnUnshare, 1, 0);
@@ -149,9 +153,11 @@ namespace N6
             }
         }
 
-        #region New Helper Methods for Design & Actions
+        #region Helper Methods (Hàm hỗ trợ)
 
-        // ### NEW ### Tạo nút bấm theo phong cách hiện đại
+        /// <summary>
+        /// Tạo một Button với style hiện đại.
+        /// </summary>
         private Button CreateModernButton(string text, Color backColor)
         {
             return new Button
@@ -167,7 +173,9 @@ namespace N6
             };
         }
 
-        // ### NEW ### Lấy icon dựa trên đuôi file
+        /// <summary>
+        /// Lấy biểu tượng emoji dựa trên đuôi file.
+        /// </summary>
         private string GetFileIcon(string path)
         {
             switch (Path.GetExtension(path).ToLower())
@@ -181,9 +189,17 @@ namespace N6
             }
         }
 
-        // ### NEW ### Tách logic xử lý sự kiện ra các hàm riêng
-        private void ViewDocument(DataRow row)
+        #endregion
+
+        #region Actions (Xử lý sự kiện)
+
+        /// <summary>
+        /// Xử lý sự kiện xem tài liệu (PDF hoặc mở bằng app mặc định).
+        /// </summary>
+        private void ViewDocument_Click(object sender, EventArgs e)
         {
+            if (!((sender as Button)?.Tag is DataRow row)) return;
+
             try
             {
                 string path = row["Kieu"].ToString();
@@ -196,18 +212,21 @@ namespace N6
                 string ext = Path.GetExtension(path).ToLower();
                 if (ext == ".pdf")
                 {
+                    // Mở PDF bằng PdfiumViewer
                     using (Form viewer = new Form())
                     {
                         viewer.Text = "Xem PDF - " + row["TenTL"].ToString();
                         viewer.Size = new Size(900, 700);
                         viewer.StartPosition = FormStartPosition.CenterParent;
-                        var pdfViewer = new PdfViewer { Dock = DockStyle.Fill, Document = PdfDocument.Load(path) };
+                        var pdfViewer = new PdfViewer { Dock = DockStyle.Fill };
+                        pdfViewer.Document = PdfDocument.Load(path);
                         viewer.Controls.Add(pdfViewer);
                         viewer.ShowDialog();
                     }
                 }
                 else
                 {
+                    // Mở các file khác (Word, Excel...) bằng ứng dụng mặc định
                     System.Diagnostics.Process.Start(path);
                 }
             }
@@ -217,8 +236,13 @@ namespace N6
             }
         }
 
-        private void DownloadDocument(DataRow row)
+        /// <summary>
+        /// Xử lý sự kiện tải tài liệu về máy.
+        /// </summary>
+        private void DownloadDocument_Click(object sender, EventArgs e)
         {
+            if (!((sender as Button)?.Tag is DataRow row)) return;
+
             try
             {
                 string sourcePath = row["Kieu"].ToString();
@@ -245,13 +269,19 @@ namespace N6
             }
         }
 
-        private void ShareDocument(string maTL)
+        /// <summary>
+        /// Xử lý sự kiện chia sẻ tài liệu.
+        /// </summary>
+        private void ShareDocument_Click(object sender, EventArgs e)
         {
+            string maTL = (sender as Button)?.Tag?.ToString();
+            if (string.IsNullOrEmpty(maTL)) return;
+
             try
             {
-                DatabaseHelper.ShareTaiLieu(maTL);
+                DatabaseHelper.ShareDocument(maTL);
                 MessageBox.Show("Đã chia sẻ tài liệu thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                btnRefresh_Click(null, null);
+                btnRefresh_Click(null, null); // Tải lại cả 2 tab
             }
             catch (Exception ex)
             {
@@ -259,13 +289,19 @@ namespace N6
             }
         }
 
-        private void UnshareDocument(string maTL)
+        /// <summary>
+        /// Xử lý sự kiện hủy chia sẻ tài liệu.
+        /// </summary>
+        private void UnshareDocument_Click(object sender, EventArgs e)
         {
+            string maTL = (sender as Button)?.Tag?.ToString();
+            if (string.IsNullOrEmpty(maTL)) return;
+
             try
             {
-                DatabaseHelper.UnshareTaiLieu(maTL);
+                DatabaseHelper.UnshareDocument(maTL);
                 MessageBox.Show("Đã hủy chia sẻ tài liệu!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                btnRefresh_Click(null, null);
+                btnRefresh_Click(null, null); // Tải lại cả 2 tab
             }
             catch (Exception ex)
             {
@@ -273,14 +309,22 @@ namespace N6
             }
         }
 
-        private void DeleteDocument(string maTL, bool isSharedTab)
+        /// <summary>
+        /// Xử lý sự kiện xóa tài liệu.
+        /// </summary>
+        private void DeleteDocument_Click(object sender, EventArgs e)
         {
+            if (!((sender as Button)?.Tag is Tuple<string, bool> tag)) return;
+
+            string maTL = tag.Item1;
+            bool isSharedTab = tag.Item2; // Để biết cần load lại tab nào
+
             if (MessageBox.Show("Bạn có chắc chắn muốn xóa tài liệu này?", "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 try
                 {
-                    DatabaseHelper.DeleteTaiLieu(maTL);
-                    LoadTaiLieu(isSharedTab);
+                    DatabaseHelper.DeleteDocument(maTL);
+                    LoadTaiLieu(isSharedTab); // Chỉ tải lại tab hiện tại
                 }
                 catch (Exception ex)
                 {
@@ -289,8 +333,9 @@ namespace N6
             }
         }
 
-        #endregion
-
+        /// <summary>
+        /// Xử lý sự kiện click nút "Tải lên".
+        /// </summary>
         private void btnUpload_Click(object sender, EventArgs e)
         {
             try
@@ -306,10 +351,14 @@ namespace N6
                             MessageBox.Show("Không xác định được giáo viên hiện tại!");
                             return;
                         }
+
+                        // Copy file vào thư mục lưu trữ của ứng dụng
                         string destPath = Path.Combine(storagePath, fileName);
                         File.Copy(ofd.FileName, destPath, true);
-                        DatabaseHelper.InsertTaiLieu(maGV, fileName, "Tài liệu mới", destPath, "Riêng tư");
-                        LoadTaiLieu(false);
+
+                        // Lưu đường dẫn vào CSDL
+                        DatabaseHelper.InsertDocument(maGV, fileName, "Tài liệu mới", destPath, "Riêng tư");
+                        LoadTaiLieu(false); // Tải lại tab "Tài liệu của tôi"
                         MessageBox.Show("Tải tài liệu thành công!");
                     }
                 }
@@ -320,20 +369,84 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Xử lý sự kiện click nút "Làm mới".
+        /// </summary>
         private void btnRefresh_Click(object sender, EventArgs e)
         {
             LoadTaiLieu(false);
             LoadTaiLieu(true);
         }
 
-        // ### NEW ### Vẽ đường kẻ dưới cho toolbar
+        /// <summary>
+        /// Vẽ đường kẻ viền dưới cho thanh Toolbar.
+        /// </summary>
         private void panelToolbar_Paint(object sender, PaintEventArgs e)
         {
             ControlPaint.DrawBorder(e.Graphics, panelToolbar.ClientRectangle,
                 Color.White, 0, ButtonBorderStyle.None,
                 Color.White, 0, ButtonBorderStyle.None,
                 Color.White, 0, ButtonBorderStyle.None,
-                Color.Gainsboro, 1, ButtonBorderStyle.Solid);
+                Color.Gainsboro, 1, ButtonBorderStyle.Solid); // Chỉ vẽ viền dưới
         }
+
+        #endregion
+
+        #region Dispose
+
+        /// <summary>
+        /// Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
+        /// </summary>
+ 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Gỡ bỏ sự kiện của các control trong Designer
+                if (this.btnUpload != null) this.btnUpload.Click -= new System.EventHandler(this.btnUpload_Click);
+                if (this.btnRefresh != null) this.btnRefresh.Click -= new System.EventHandler(this.btnRefresh_Click);
+                if (this.panelToolbar != null) this.panelToolbar.Paint -= new System.Windows.Forms.PaintEventHandler(this.panelToolbar_Paint);
+
+                // ### PHẦN SỬA LỖI QUAN TRỌNG ###
+                // Dọn dẹp các control động (Card) trong cả 2 FlowLayoutPanel
+                foreach (FlowLayoutPanel targetPanel in new[] { flowMyDocs, flowSharedDocs })
+                {
+                    if (targetPanel != null)
+                    {
+                        // Dùng ToList() để tạo bản sao trước khi thay đổi collection
+                        foreach (Panel shadowPanel in targetPanel.Controls.OfType<Panel>().ToList())
+                        {
+                            var card = shadowPanel.Controls.OfType<Panel>().FirstOrDefault();
+                            if (card != null)
+                            {
+                                var panelButtons = card.Controls.OfType<TableLayoutPanel>().FirstOrDefault();
+                                if (panelButtons != null)
+                                {
+                                    // Gỡ sự kiện Click của tất cả các nút động
+                                    foreach (Button btn in panelButtons.Controls.OfType<Button>().ToList())
+                                    {
+                                        btn.Click -= ViewDocument_Click;
+                                        btn.Click -= DownloadDocument_Click;
+                                        btn.Click -= ShareDocument_Click;
+                                        btn.Click -= UnshareDocument_Click;
+                                        btn.Click -= DeleteDocument_Click;
+                                    }
+                                }
+                            }
+                            shadowPanel.Dispose(); // Hủy control
+                        }
+                    }
+                }
+                // ### KẾT THÚC PHẦN SỬA LỖI ###
+
+                if (components != null)
+                {
+                    components.Dispose();
+                }
+            }
+            base.Dispose(disposing);
+        }
+
+        #endregion
     }
 }

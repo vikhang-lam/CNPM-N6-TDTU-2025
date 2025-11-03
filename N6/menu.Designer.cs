@@ -1,6 +1,6 @@
 ﻿namespace N6
 {
-    partial class dashboard
+    partial class Dashboard
     {
         private System.ComponentModel.IContainer components = null;
 
@@ -10,7 +10,7 @@
 
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(dashboard));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Dashboard));
             this.panelTopBar = new System.Windows.Forms.Panel();
             this.labelAppTitle = new System.Windows.Forms.Label();
             this.btnThemeToggle = new System.Windows.Forms.Button();

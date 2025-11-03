@@ -5,11 +5,24 @@ using System.Windows.Forms;
 
 namespace N6
 {
+    /// <summary>
+    /// UserControl hiển thị màn hình trang chủ với các thẻ chức năng.
+    /// </summary>
     public partial class UC_Home : UserControl
     {
-        public event Action<string> ChonChucNang;
+        /// <summary>
+        /// Sự kiện được kích hoạt khi người dùng chọn một thẻ chức năng.
+        /// Trả về một chuỗi (string) là mã của chức năng đó (ví dụ: "CN1", "CN2").
+        /// </summary>
+        // CHUẨN HÓA: Đổi tên sự kiện sang Tiếng Anh (PascalCase)
+        public event Action<string> FunctionSelected;
+
         private readonly PaintEventHandler _cardPaintHandler;
 
+        /// <summary>
+        /// Hàm khởi tạo, thiết lập lời chào và tạo các thẻ chức năng.
+        /// </summary>
+        /// <param name="tenGV">Tên của giáo viên để hiển thị lời chào.</param>
         public UC_Home(string tenGV = "Giáo viên")
         {
             InitializeComponent();
@@ -17,16 +30,18 @@ namespace N6
             lblLoiChao.Text = $"Xin chào, {tenGV}! 👋";
             CreateFunctionCards();
 
-            // === THAY ĐỔI 1: Gán sự kiện cho UserControl thay vì FlowLayoutPanel ===
             this.Resize += new System.EventHandler(this.UC_Home_Resize);
         }
 
         private void UC_Home_Load(object sender, EventArgs e)
         {
-            // === THAY ĐỔI 2: Gọi phương thức resize của UserControl khi tải ===
+            // Kích hoạt Resize khi tải để sắp xếp các thẻ
             UC_Home_Resize(this, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// Vẽ một lớp bóng mờ đơn giản cho các thẻ.
+        /// </summary>
         private void Card_PaintShadow(object sender, PaintEventArgs e)
         {
             var card = sender as Control;
@@ -36,6 +51,9 @@ namespace N6
                 g.FillRectangle(shadow, 3, 3, card.Width - 3, card.Height - 3);
         }
 
+        /// <summary>
+        /// Tạo động các thẻ chức năng và thêm chúng vào FlowLayoutPanel.
+        /// </summary>
         private void CreateFunctionCards()
         {
             string[] cnTen = {
@@ -55,7 +73,7 @@ namespace N6
                     Margin = new Padding(20),
                     BackColor = Color.White,
                     BorderStyle = BorderStyle.None,
-                    Tag = $"CN{i + 1}",
+                    Tag = $"CN{i + 1}", // Gán mã chức năng vào Tag
                     Cursor = Cursors.Hand,
                 };
 
@@ -79,13 +97,13 @@ namespace N6
                 };
 
                 // Đăng ký các sự kiện
-                card.Resize += Card_Resize;
+                // CHUẨN HÓA: Xóa bỏ sự kiện card.Resize vì hàm Card_Resize rỗng.
                 card.Paint += _cardPaintHandler;
                 card.MouseEnter += Card_MouseEnter;
                 card.MouseLeave += Card_MouseLeave;
                 card.Click += Card_Click;
-                pic.Click += Card_Click;
-                lbl.Click += Card_Click;
+                pic.Click += Card_Click; // Gán cùng sự kiện Click
+                lbl.Click += Card_Click; // Gán cùng sự kiện Click
 
                 card.Controls.Add(lbl);
                 card.Controls.Add(pic);
@@ -93,53 +111,72 @@ namespace N6
             }
         }
 
+        #region Card Events (Hover, Click)
+
+        /// <summary>
+        /// Xử lý hiệu ứng khi di chuột vào thẻ.
+        /// </summary>
         private void Card_MouseEnter(object sender, EventArgs e)
         {
             Control control = sender as Control;
-            Panel card = control is Panel ? control as Panel : control.Parent as Panel;
+            Panel card = (control is Panel) ? (control as Panel) : (control.Parent as Panel);
             if (card == null) return;
             card.BorderStyle = BorderStyle.FixedSingle;
             card.Refresh();
         }
 
+        /// <summary>
+        /// Xử lý hiệu ứng khi di chuột ra khỏi thẻ.
+        /// </summary>
         private void Card_MouseLeave(object sender, EventArgs e)
         {
             Control control = sender as Control;
-            Panel card = control is Panel ? control as Panel : control.Parent as Panel;
+            Panel card = (control is Panel) ? (control as Panel) : (control.Parent as Panel);
             if (card == null) return;
             card.BorderStyle = BorderStyle.None;
         }
 
+        /// <summary>
+        /// Xử lý khi click vào thẻ, kích hoạt sự kiện FunctionSelected.
+        /// </summary>
         private void Card_Click(object sender, EventArgs e)
         {
             Control control = sender as Control;
             Panel p = control as Panel ?? control.Parent as Panel;
             if (p != null && p.Tag != null)
             {
-                ChonChucNang?.Invoke(p.Tag.ToString());
+                // CHUẨN HÓA: Gọi sự kiện đã đổi tên
+                FunctionSelected?.Invoke(p.Tag.ToString());
             }
         }
 
-        // === THAY ĐỔI 3: Đổi tên phương thức và giữ nguyên logic ===
+        #endregion
+
+        /// <summary>
+        /// Xử lý logic responsive, sắp xếp lại kích thước các thẻ dựa trên kích thước của FlowPanel.
+        /// </summary>
         private void UC_Home_Resize(object sender, EventArgs e)
         {
+            // Tạm dừng layout để tránh giật/lag khi thay đổi kích thước nhiều control
             flowPanel.SuspendLayout();
 
             try
             {
                 const int idealCardWidth = 250;
-                const int cardHorizontalMargins = 40;
+                const int cardHorizontalMargins = 40; // (Padding 20 mỗi bên)
 
                 int panelWidth = flowPanel.ClientSize.Width;
+                if (panelWidth <= 0) return;
 
+                // Tính toán số cột
                 int columns = Math.Max(1, panelWidth / (idealCardWidth + cardHorizontalMargins));
 
+                // Tính toán chiều rộng mới cho mỗi thẻ
                 int widthPerColumn = panelWidth / columns;
+                int newCardWidth = widthPerColumn - cardHorizontalMargins - 4; // Trừ lề và 1 chút lỗi
+                int newCardHeight = (int)(newCardWidth * 0.7) + 50; // Tính chiều cao (tỷ lệ 0.7) + chiều cao label
 
-                int newCardWidth = widthPerColumn - cardHorizontalMargins - 4;
-
-                int newCardHeight = (int)(newCardWidth * 0.7) + 50;
-
+                // Áp dụng kích thước mới cho tất cả các thẻ
                 foreach (Control ctrl in flowPanel.Controls)
                 {
                     if (ctrl is Panel card)
@@ -151,28 +188,30 @@ namespace N6
             }
             finally
             {
+                // Tiếp tục layout
                 flowPanel.ResumeLayout(true);
             }
         }
 
-        private void Card_Resize(object sender, EventArgs e)
-        {
-            // Không cần làm gì vì PictureBox đã được Dock = Fill
-        }
+        // CHUẨN HÓA: Xóa phương thức Card_Resize() rỗng.
 
+        /// <summary>
+        /// Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
+        /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                // === THAY ĐỔI 4: Hủy đăng ký sự kiện Resize của UserControl ===
+                // Gỡ sự kiện của UserControl
                 this.Resize -= this.UC_Home_Resize;
 
+                // Gỡ sự kiện của các control động (các thẻ)
                 if (flowPanel != null && flowPanel.Controls != null)
                 {
                     var cards = flowPanel.Controls.OfType<Panel>().ToArray();
                     foreach (var card in cards)
                     {
-                        card.Resize -= Card_Resize;
+                        
                         card.Paint -= _cardPaintHandler;
                         card.MouseEnter -= Card_MouseEnter;
                         card.MouseLeave -= Card_MouseLeave;
@@ -181,6 +220,7 @@ namespace N6
                         {
                             child.Click -= Card_Click;
                         }
+                        // Không cần gọi card.Dispose() vì flowPanel.Dispose() sẽ làm việc đó
                     }
                 }
 

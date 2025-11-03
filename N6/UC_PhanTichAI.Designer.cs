@@ -18,14 +18,6 @@
         private System.Windows.Forms.Label lblHocKy;
         private System.Windows.Forms.ComboBox cbHocKy;
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
 
         private void InitializeComponent()
         {
@@ -167,8 +159,10 @@
             // tableLayoutPanelMain
             // 
             this.tableLayoutPanelMain.ColumnCount = 2;
-            this.tableLayoutPanelMain.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanelMain.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 300F));
+            // Cột 1 (Biểu đồ) chiếm 65%
+            this.tableLayoutPanelMain.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 65F));
+            // Cột 2 (Thẻ) chiếm 35%
+            this.tableLayoutPanelMain.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 35F));
             this.tableLayoutPanelMain.Controls.Add(this.panelFilters, 0, 0);
             this.tableLayoutPanelMain.Controls.Add(this.formsPlot1, 0, 1);
             this.tableLayoutPanelMain.Controls.Add(this.flowLayoutPanelCards, 1, 1);

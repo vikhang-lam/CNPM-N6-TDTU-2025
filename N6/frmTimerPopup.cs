@@ -5,6 +5,9 @@ using System.Media;
 using System.Windows.Forms;
 using N6;
 
+/// <summary>
+/// Form popup hiển thị đồng hồ đếm ngược, hỗ trợ tạm dừng, cảnh báo và báo thức.
+/// </summary>
 public partial class frmTimerPopup : frmDraggableRoundedPopup
 {
     private Timer countdownTimer;
@@ -21,26 +24,28 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
     private bool isPaused = false;
     private TimeSpan? pausedRemaining = null;
 
-    // Large centered toggle button
     private RoundedButton btnToggle;
-
-    // NEW: button to stop/mute the warning alarm
     private RoundedButton btnMuteAlarm;
+    private Panel bottomPanel; // Thêm biến để gỡ sự kiện Resize
 
-    // Warning alarm resources (loop until user stops)
     private SoundPlayer _warningPlayer;
-    private Timer _warningBeepTimer; // fallback repeating beeps
+    private Timer _warningBeepTimer;
     private bool _isWarningRinging = false;
+
+    // Biến lưu trữ sự kiện để gỡ bỏ
+    private EventHandler btnToggleClickHandler;
+    private EventHandler btnMuteAlarmClickHandler;
+    private EventHandler bottomPanelResizeHandler;
+    private EventHandler countdownTimerTickHandler;
+    private EventHandler warningBeepTimerTickHandler;
 
     public frmTimerPopup() : base()
     {
-        InitializeComponent();
+        InitializeComponent(); // Gọi Designer (nếu có)
     }
 
     public frmTimerPopup(string subjectName, int durationMinutes, int warningBeforeEnd = 5) : base()
     {
-        InitializeComponent();
-
         this.warningMinutes = warningBeforeEnd;
         this.totalSeconds = durationMinutes * 60;
         this.endTime = DateTime.Now.AddMinutes(durationMinutes);
@@ -55,124 +60,45 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
         StartCountdown();
     }
 
+    /// <summary>
+    /// Khởi tạo và sắp xếp các control động.
+    /// </summary>
     private void InitializeTimerComponent(string subjectName)
     {
-        lblSubjectName = new Label
-        {
-            Text = "📚 " + subjectName,
-            Dock = DockStyle.Top,
-            Height = 35,
-            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = Color.FromArgb(52, 73, 94)
-        };
+        lblSubjectName = new Label { Text = "📚 " + subjectName, Dock = DockStyle.Top, Height = 35, Font = new Font("Segoe UI", 12F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.FromArgb(52, 73, 94) };
+        lblTimeDisplay = new Label { Text = "00:00", Dock = DockStyle.Top, Height = 80, Font = new Font("Consolas", 42F, FontStyle.Bold), TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.FromArgb(41, 128, 185) };
+        progressBar = new ProgressBar { Dock = DockStyle.Top, Height = 15, Maximum = totalSeconds, Value = 0, Style = ProgressBarStyle.Continuous, Margin = new Padding(20, 10, 20, 10) };
+        lblStatus = new Label { Text = "⏳ Đang đếm ngược...", Dock = DockStyle.Top, Height = 26, Font = new Font("Segoe UI", 10F, FontStyle.Italic), TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.Gray };
 
-        lblTimeDisplay = new Label
-        {
-            Text = "00:00",
-            Dock = DockStyle.Top,
-            Height = 80,
-            Font = new Font("Consolas", 42F, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = Color.FromArgb(41, 128, 185)
-        };
+        bottomPanel = new Panel { Dock = DockStyle.Bottom, Height = 78 };
 
-        progressBar = new ProgressBar
-        {
-            Dock = DockStyle.Top,
-            Height = 15,
-            Maximum = totalSeconds,
-            Value = 0,
-            Style = ProgressBarStyle.Continuous,
-            Margin = new Padding(20, 10, 20, 10)
-        };
+        btnToggle = new RoundedButton { Text = "⏸", Width = 120, Height = 48, BackColor = Color.FromArgb(231, 76, 60), ForeColor = Color.White, CornerRadius = 24, Font = new Font("Segoe UI", 18F, FontStyle.Bold), Anchor = AnchorStyles.None };
+        btnMuteAlarm = new RoundedButton { Text = "🔕", Width = 50, Height = 48, BackColor = Color.FromArgb(149, 165, 166), ForeColor = Color.White, CornerRadius = 18, Font = new Font("Segoe UI", 10F, FontStyle.Bold), Visible = false };
 
-        lblStatus = new Label
+        // Định nghĩa các handler
+        bottomPanelResizeHandler = (s, e) =>
         {
-            Text = "⏳ Đang đếm ngược...",
-            Dock = DockStyle.Top,
-            Height = 26,
-            Font = new Font("Segoe UI", 10F, FontStyle.Italic),
-            TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = Color.Gray
+            btnToggle.Left = (bottomPanel.Width - btnToggle.Width) / 2;
+            btnToggle.Top = (bottomPanel.Height - btnToggle.Height) / 2;
+            btnMuteAlarm.Left = bottomPanel.Width - btnMuteAlarm.Width - 12;
+            btnMuteAlarm.Top = (bottomPanel.Height - btnMuteAlarm.Height) / 2;
         };
+        bottomPanel.Resize += bottomPanelResizeHandler;
+        bottomPanelResizeHandler(bottomPanel, EventArgs.Empty); // Gọi lần đầu
 
-        // Bottom container to center the big toggle button
-        var bottomPanel = new Panel
-        {
-            Dock = DockStyle.Bottom,
-            Height = 78
-        };
+        btnToggleClickHandler = (s, e) => { TogglePause(); };
+        btnToggle.Click += btnToggleClickHandler;
 
-        btnToggle = new RoundedButton
-        {
-            Text = "⏸",
-            Width = 120,
-            Height = 48,
-            BackColor = Color.FromArgb(231, 76, 60),
-            ForeColor = Color.White,
-            CornerRadius = 24,
-            Font = new Font("Segoe UI", 18F, FontStyle.Bold)
-        };
-        btnToggle.Anchor = AnchorStyles.None;
-
-        btnMuteAlarm = new RoundedButton
-        {
-            Text = "🔕",
-            Width = 50,
-            Height = 48,
-            BackColor = Color.FromArgb(149, 165, 166),
-            ForeColor = Color.White,
-            CornerRadius = 18,
-            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            Visible = false
-        };
-        btnMuteAlarm.Click += (s, e) =>
+        btnMuteAlarmClickHandler = (s, e) =>
         {
             StopWarningAlarm();
             lblStatus.Text = "🔕 Đã tắt chuông cảnh báo";
         };
-
-        bottomPanel.Resize += (s, e) =>
-        {
-            btnToggle.Left = (bottomPanel.Width - btnToggle.Width) / 2;
-            btnToggle.Top = (bottomPanel.Height - btnToggle.Height) / 2;
-
-            btnMuteAlarm.Left = bottomPanel.Width - btnMuteAlarm.Width - 12;
-            btnMuteAlarm.Top = (bottomPanel.Height - btnMuteAlarm.Height) / 2;
-        };
-
-        btnToggle.Click += (s, e) =>
-        {
-            if (!isPaused)
-            {
-                pausedRemaining = endTime - DateTime.Now;
-                if (pausedRemaining.Value.TotalSeconds < 0) pausedRemaining = TimeSpan.Zero;
-                countdownTimer?.Stop();
-                isPaused = true;
-                lblStatus.Text = "⏸️ Đã tạm dừng";
-                btnToggle.Text = "▶";
-                btnToggle.BackColor = Color.FromArgb(46, 204, 113);
-            }
-            else
-            {
-                if (pausedRemaining.HasValue)
-                {
-                    endTime = DateTime.Now + pausedRemaining.Value;
-                    pausedRemaining = null;
-                }
-                countdownTimer?.Start();
-                isPaused = false;
-                lblStatus.Text = "⏳ Đang đếm ngược...";
-                btnToggle.Text = "⏸";
-                btnToggle.BackColor = Color.FromArgb(231, 76, 60);
-            }
-        };
+        btnMuteAlarm.Click += btnMuteAlarmClickHandler;
 
         bottomPanel.Controls.Add(btnToggle);
         bottomPanel.Controls.Add(btnMuteAlarm);
 
-        // Build layout
         this.ContentPanel.Controls.Add(bottomPanel);
         this.ContentPanel.Controls.Add(lblStatus);
         this.ContentPanel.Controls.Add(progressBar);
@@ -180,13 +106,52 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
         this.ContentPanel.Controls.Add(lblSubjectName);
     }
 
+    /// <summary>
+    /// Bật/Tắt tạm dừng đồng hồ.
+    /// </summary>
+    private void TogglePause()
+    {
+        if (!isPaused)
+        {
+            pausedRemaining = endTime - DateTime.Now;
+            if (pausedRemaining.Value.TotalSeconds < 0) pausedRemaining = TimeSpan.Zero;
+            countdownTimer?.Stop();
+            isPaused = true;
+            lblStatus.Text = "⏸️ Đã tạm dừng";
+            btnToggle.Text = "▶";
+            btnToggle.BackColor = Color.FromArgb(46, 204, 113);
+        }
+        else
+        {
+            if (pausedRemaining.HasValue)
+            {
+                endTime = DateTime.Now + pausedRemaining.Value;
+                pausedRemaining = null;
+            }
+            countdownTimer?.Start();
+            isPaused = false;
+            lblStatus.Text = "⏳ Đang đếm ngược...";
+            btnToggle.Text = "⏸";
+            btnToggle.BackColor = Color.FromArgb(231, 76, 60);
+        }
+    }
+
+    #region Countdown Logic (Logic đếm ngược)
+
+    /// <summary>
+    /// Khởi tạo và bắt đầu Timer đếm ngược.
+    /// </summary>
     private void StartCountdown()
     {
         countdownTimer = new Timer { Interval = 1000 };
-        countdownTimer.Tick += CountdownTimer_Tick;
+        countdownTimerTickHandler = new EventHandler(CountdownTimer_Tick);
+        countdownTimer.Tick += countdownTimerTickHandler;
         countdownTimer.Start();
     }
 
+    /// <summary>
+    /// Xử lý sự kiện Tick mỗi giây của đồng hồ.
+    /// </summary>
     private void CountdownTimer_Tick(object sender, EventArgs e)
     {
         if (isPaused) return;
@@ -196,7 +161,6 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
         if (remaining.TotalSeconds <= 0)
         {
             countdownTimer.Stop();
-
             StopWarningAlarm();
 
             lblTimeDisplay.Text = "00:00";
@@ -204,7 +168,7 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
             lblStatus.Text = "🔔 Đã hết giờ!";
             progressBar.Value = progressBar.Maximum;
 
-            StartWarningAlarm();
+            StartWarningAlarm(true); // Bắt đầu báo thức Hết giờ
             return;
         }
 
@@ -218,19 +182,18 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
             progressBar.Value = elapsed;
         }
 
-        if (remaining.TotalMinutes <= warningMinutes &&
-            remaining.TotalMinutes > (warningMinutes - 0.05) &&
-            !hasWarned)
+        // Cảnh báo (ví dụ: 5 phút cuối)
+        if (remaining.TotalMinutes <= warningMinutes && !hasWarned)
         {
             hasWarned = true;
             lblTimeDisplay.ForeColor = Color.FromArgb(241, 196, 15);
             lblStatus.Text = $"⚠️ Còn {warningMinutes} phút!";
             this.BackColor = Color.FromArgb(254, 249, 231);
-
             ShowWarning(warningMinutes);
         }
 
-        if (remaining.TotalMinutes <= 1)
+        // Cảnh báo (1 phút cuối)
+        if (remaining.TotalMinutes < 1 && hasWarned) // Đảm bảo chỉ đổi màu sau cảnh báo đầu
         {
             lblTimeDisplay.ForeColor = Color.FromArgb(231, 76, 60);
             lblStatus.Text = "🔴 Sắp hết giờ!";
@@ -238,23 +201,36 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
         }
     }
 
+    #endregion
+
+    #region Alarm & Warning (Báo thức & Cảnh báo)
+
+    /// <summary>
+    /// Kích hoạt cảnh báo (âm thanh, nháy màn hình).
+    /// </summary>
     private void ShowWarning(int minutesLeft)
     {
-        StartWarningAlarm();
+        StartWarningAlarm(false); // Bắt đầu báo thức Cảnh báo
         btnMuteAlarm.Visible = true;
         BlinkForm();
     }
 
-    private void StartWarningAlarm()
+    /// <summary>
+    /// Bắt đầu phát âm thanh báo thức (Cảnh báo hoặc Hết giờ).
+    /// </summary>
+    private void StartWarningAlarm(bool isFinalAlarm)
     {
         if (_isWarningRinging) return;
         _isWarningRinging = true;
 
-        StopWarningAlarmInternal(disposeOnly: true);
+        StopWarningAlarmInternal(disposeOnly: true); // Dọn dẹp timer/player cũ
 
         try
         {
-            string wavPath = @"..\..\Resources\alarm-clock-warning.wav";
+            // Ưu tiên file wav
+            string wavPath = isFinalAlarm
+                ? @"..\..\Resources\alarm-clock-warning.wav" // Thay bằng file báo hết giờ
+                : @"..\..\Resources\alarm-clock-warning.wav";
 
             if (File.Exists(wavPath))
             {
@@ -265,15 +241,19 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
         }
         catch { }
 
-        // Fallback: beep repeatedly until stopped
-        _warningBeepTimer = new Timer { Interval = 600 };
-        _warningBeepTimer.Tick += (s, e) =>
+        // Nếu không có file wav, dùng tiếng Beep
+        _warningBeepTimer = new Timer { Interval = isFinalAlarm ? 400 : 800 }; // Hết giờ kêu nhanh hơn
+        warningBeepTimerTickHandler = (s, e) =>
         {
             try { SystemSounds.Exclamation.Play(); } catch { }
         };
+        _warningBeepTimer.Tick += warningBeepTimerTickHandler;
         _warningBeepTimer.Start();
     }
 
+    /// <summary>
+    /// Dừng báo thức (khi người dùng nhấn nút Mute).
+    /// </summary>
     private void StopWarningAlarm()
     {
         StopWarningAlarmInternal(disposeOnly: false);
@@ -281,12 +261,18 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
         _isWarningRinging = false;
     }
 
+    /// <summary>
+    /// Lõi xử lý dừng âm thanh.
+    /// </summary>
     private void StopWarningAlarmInternal(bool disposeOnly)
     {
         if (_warningBeepTimer != null)
         {
             _warningBeepTimer.Stop();
-            _warningBeepTimer.Tick -= (s, e) => { }; // safe detach no-op
+            if (warningBeepTimerTickHandler != null)
+            {
+                _warningBeepTimer.Tick -= warningBeepTimerTickHandler;
+            }
             _warningBeepTimer.Dispose();
             _warningBeepTimer = null;
         }
@@ -297,44 +283,67 @@ public partial class frmTimerPopup : frmDraggableRoundedPopup
             if (!disposeOnly)
             {
                 _warningPlayer.Dispose();
+                _warningPlayer = null;
             }
-            _warningPlayer = null;
         }
     }
-    // ===========================================
 
-    private void ShowEndNotification()
-    {
-        try { SystemSounds.Asterisk.Play(); } catch { }
-
-        MessageBox.Show(
-            "🔔 Đã hết giờ tiết học!\n\nChúc các bạn học tốt!",
-            "Kết thúc",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Information
-        );
-    }
-
+    /// <summary>
+    /// Làm Form nhấp nháy 3 lần.
+    /// </summary>
     private async void BlinkForm()
     {
         for (int i = 0; i < 3; i++)
         {
+            if (this.IsDisposed) return;
             this.Opacity = 0.5;
             await System.Threading.Tasks.Task.Delay(200);
+            if (this.IsDisposed) return;
             this.Opacity = 1.0;
             await System.Threading.Tasks.Task.Delay(200);
         }
     }
 
+    #endregion
+
+    /// <summary>
+    /// Dọn dẹp tài nguyên (Timers, SoundPlayers, Sự kiện).
+    /// </summary>
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        countdownTimer?.Stop();
-        countdownTimer?.Dispose();
-        countdownTimer = null;
+        StopWarningAlarmInternal(disposeOnly: true); // Dừng và dọn dẹp âm thanh
 
-        // Ensure alarm is stopped/cleaned
-        StopWarningAlarm();
+        if (countdownTimer != null)
+        {
+            countdownTimer.Stop();
+            countdownTimer.Tick -= countdownTimerTickHandler;
+            countdownTimer.Dispose();
+            countdownTimer = null;
+        }
 
-        base.OnFormClosing(e);
+        base.OnFormClosing(e); // Gọi base.OnFormClosing
+    }
+
+    // Ghi đè Dispose (từ frmDraggableRoundedPopup)
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            // Dọn dẹp Timer và SoundPlayer (đảm bảo)
+            if (countdownTimer != null)
+            {
+                countdownTimer.Stop();
+                countdownTimer.Tick -= countdownTimerTickHandler;
+                countdownTimer.Dispose();
+                countdownTimer = null;
+            }
+            StopWarningAlarmInternal(disposeOnly: true);
+
+            // Gỡ bỏ sự kiện
+            if (btnToggle != null) btnToggle.Click -= btnToggleClickHandler;
+            if (btnMuteAlarm != null) btnMuteAlarm.Click -= btnMuteAlarmClickHandler;
+            if (bottomPanel != null) bottomPanel.Resize -= bottomPanelResizeHandler;
+        }
+        base.Dispose(disposing);
     }
 }

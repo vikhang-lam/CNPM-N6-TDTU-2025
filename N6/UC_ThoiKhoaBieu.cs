@@ -4,19 +4,35 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using System.Diagnostics; // Thêm
 
 namespace N6
 {
+    /// <summary>
+    /// UserControl hiển thị và quản lý Thời khóa biểu cho giáo viên.
+    /// Hỗ trợ xem theo tuần, tô màu, thêm/xóa ghi chú và import.
+    /// </summary>
     public partial class UC_ThoiKhoaBieu : UserControl
     {
+        #region Fields (Biến thành viên)
+
         private string maGV;
-        private DateTime currentMonday;
+        private DateTime currentMonday; // Luôn là ngày Thứ 2 của tuần đang xem
 
+        // Cache màu nền của các ô
         private Dictionary<Point, Color> cellColors = new Dictionary<Point, Color>();
-        private Point selectedCellForContextMenu; // Đổi tên biến để rõ ràng hơn
+        private Point selectedCellForContextMenu; // Tọa độ ô được click chuột phải
 
-        private Timer refreshTimer;
+        private Timer refreshTimer; // Timer để tự động làm mới TKB
 
+        #endregion
+
+        #region Constructor & Load
+
+        /// <summary>
+        /// Khởi tạo UserControl Thời khóa biểu cho một giáo viên cụ thể.
+        /// </summary>
+        /// <param name="maGVien">Mã giáo viên (lấy từ form cha).</param>
         public UC_ThoiKhoaBieu(string maGVien)
         {
             InitializeComponent();
@@ -25,46 +41,43 @@ namespace N6
 
             SetCurrentWeek(DateTime.Today);
 
+            // Gán các sự kiện (sẽ được gỡ trong Dispose)
             dgvTKB.CellPainting += DgvTKB_CellPainting;
+            dgvTKB.CellMouseDown += dgvTKB_CellMouseDown;
+
+            // Giả định các control này tồn tại trong file Designer
+            btnPrevWeek.Click += btnPrevWeek_Click;
+            btnNextWeek.Click += btnNextWeek_Click;
+            btnImportTKB.Click += btnImportTKB_Click;
+            btnXoaTKB.Click += btnXoaTKB_Click;
+            doiMauMenuItem.Click += doiMauMenuItem_Click;
+            xoaGhiChuMenuItem.Click += xoaGhiChuMenuItem_Click;
+            xoaTKBMenuItem.Click += xoaTKBMenuItem_Click;
+
+            // Đăng ký nhận thông báo nếu TKB thay đổi ở nơi khác
+            DatabaseHelper.TimetableChanged += OnThoiKhoaBieuChanged;
 
             LoadThoiKhoaBieu();
-
             InitializeTimer();
-            DatabaseHelper.ThoiKhoaBieuChanged += OnThoiKhoaBieuChanged;
-
-            // Gắn sự kiện cho nút Xóa TKB Tuần (nút này đã được tạo trong Designer)
-            if (this.Controls.Find("btnXoaTKB", true).FirstOrDefault() is Button btnXoa)
-            {
-                btnXoa.Click += new System.EventHandler(this.btnXoaTKB_Click);
-            }
         }
 
-        private void SetCurrentWeek(DateTime dateInWeek)
-        {
-            int diff = (int)DayOfWeek.Monday - (int)dateInWeek.DayOfWeek;
-            if (diff > 0) diff -= 7;
-            currentMonday = dateInWeek.AddDays(diff).Date;
-        }
-
-        private void OnThoiKhoaBieuChanged(object sender, EventArgs e)
-        {
-            // Cân nhắc: Chỉ load lại nếu tuần hiện tại bị ảnh hưởng?
-            // Hiện tại cứ load lại cho đơn giản.
-            LoadThoiKhoaBieu();
-        }
-
+        /// <summary>
+        /// Khởi tạo và khởi động Timer để tự động làm mới TKB (mỗi 60 giây).
+        /// </summary>
         private void InitializeTimer()
         {
-            refreshTimer = new Timer { Interval = 60000 }; // Làm mới mỗi phút
+            refreshTimer = new Timer { Interval = 60000 };
             refreshTimer.Tick += RefreshTimer_Tick;
             refreshTimer.Start();
         }
 
-        private void RefreshTimer_Tick(object sender, EventArgs e)
-        {
-            LoadThoiKhoaBieu(); // Tải lại TKB định kỳ
-        }
+        #endregion
 
+        #region Grid & UI Initialization
+
+        /// <summary>
+        /// Cài đặt cấu trúc cột, hàng, và header ban đầu cho DataGridView TKB.
+        /// </summary>
         private void InitGrid()
         {
             dgvTKB.Columns.Clear();
@@ -77,7 +90,7 @@ namespace N6
                 dgvTKB.Columns[i].DefaultCellStyle.WrapMode = DataGridViewTriState.True; // Cho phép xuống dòng
             }
 
-            dgvTKB.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells; // Tự chỉnh chiều cao dòng
+            dgvTKB.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
             dgvTKB.RowTemplate.MinimumHeight = 60; // Chiều cao tối thiểu
 
             dgvTKB.RowCount = 10; // 10 tiết
@@ -88,9 +101,12 @@ namespace N6
             dgvTKB.RowHeadersWidth = 100; // Độ rộng cột Tiết
 
             dgvTKB.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
-            dgvTKB.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize; // Tự chỉnh chiều cao header
+            dgvTKB.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
         }
 
+        /// <summary>
+        /// Cập nhật tiêu đề các cột (Thứ 2 [dd/MM]...) dựa trên tuần hiện tại.
+        /// </summary>
         private void UpdateColumnHeaders()
         {
             string[] thu = { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật" };
@@ -100,6 +116,23 @@ namespace N6
             }
         }
 
+        #endregion
+
+        #region Data Loading & Week Navigation
+
+        /// <summary>
+        /// Đặt ngày thứ 2 đầu tuần hiện tại dựa trên một ngày bất kỳ.
+        /// </summary>
+        private void SetCurrentWeek(DateTime dateInWeek)
+        {
+            int diff = (int)DayOfWeek.Monday - (int)dateInWeek.DayOfWeek;
+            if (diff > 0) diff -= 7;
+            currentMonday = dateInWeek.AddDays(diff).Date;
+        }
+
+        /// <summary>
+        /// Tải (hoặc tải lại) toàn bộ dữ liệu TKB cho tuần hiện tại từ CSDL và hiển thị lên lưới.
+        /// </summary>
         private void LoadThoiKhoaBieu()
         {
             UpdateColumnHeaders();
@@ -113,57 +146,99 @@ namespace N6
                     cell.ToolTipText = ""; // Xóa tooltip
                 }
             }
-
             cellColors.Clear(); // Xóa bộ nhớ màu cũ
 
             DateTime weekEnd = currentMonday.AddDays(6);
             lblWeek.Text = $"Thời khóa biểu: {currentMonday:dd/MM} - {weekEnd:dd/MM/yyyy}";
 
-            DataTable dt = DatabaseHelper.GetTKBByGV(maGV, currentMonday); // Lấy TKB tuần hiện tại từ DB
+            // Lấy TKB tuần hiện tại từ DB
+            DataTable dt = DatabaseHelper.GetTimetableByTeacher(maGV, currentMonday);
 
             // Điền dữ liệu mới vào grid
             foreach (DataRow r in dt.Rows)
             {
-                DateTime ngay = Convert.ToDateTime(r["Ngay"]);
-                int tiet = Convert.ToInt32(r["Tiet"]) - 1; // Index bắt đầu từ 0
-                string mon = r["TenMon"].ToString();
-                string lop = r["TenLop"].ToString();
-                string ghichu = r["GhiChu"].ToString();
-                string mauSac = r["MauSac"].ToString(); // Mã màu hex (#RRGGBB)
-
-                // Tính toán cột dựa trên ngày trong tuần (Thứ 2 = 0, CN = 6)
-                int col = (int)ngay.DayOfWeek - (int)DayOfWeek.Monday;
-                if (col < 0) col = 6; // Chủ nhật là 0, chuyển thành 6
-
-                // Kiểm tra xem tiết và cột có hợp lệ không
-                if (tiet >= 0 && tiet < dgvTKB.RowCount && col >= 0 && col < dgvTKB.ColumnCount)
+                try
                 {
-                    Point cellPosition = new Point(col, tiet); // Tọa độ ô
+                    DateTime ngay = Convert.ToDateTime(r["Ngay"]);
+                    int tiet = Convert.ToInt32(r["Tiet"]) - 1; // Index bắt đầu từ 0
+                    string mon = r["TenMon"].ToString();
+                    string lop = r["TenLop"].ToString();
+                    string ghichu = r["GhiChu"].ToString();
+                    string mauSac = r["MauSac"].ToString(); // Mã màu hex (#RRGGBB)
 
-                    // Tạo chuỗi hiển thị (Môn - Lớp \n (Ghi chú))
-                    string displayValue = !string.IsNullOrEmpty(mon) ? $"{mon} - {lop}" : "";
-                    if (!string.IsNullOrEmpty(ghichu))
+                    int col = (int)ngay.DayOfWeek - (int)DayOfWeek.Monday;
+                    if (col < 0) col = 6; // Chủ nhật (0) -> 6
+
+                    if (tiet >= 0 && tiet < dgvTKB.RowCount && col >= 0 && col < dgvTKB.ColumnCount)
                     {
-                        displayValue += (string.IsNullOrEmpty(displayValue) ? "" : "\n") + $"({ghichu})";
-                    }
+                        Point cellPosition = new Point(col, tiet); // Tọa độ ô
 
-                    dgvTKB[col, tiet].Value = displayValue;
-                    dgvTKB[col, tiet].ToolTipText = displayValue; // Tooltip khi hover
+                        // Tạo chuỗi hiển thị
+                        string displayValue = !string.IsNullOrEmpty(mon) ? $"{mon} - {lop}" : "";
+                        if (!string.IsNullOrEmpty(ghichu))
+                        {
+                            displayValue += (string.IsNullOrEmpty(displayValue) ? "" : "\n") + $"({ghichu})";
+                        }
 
-                    // Lưu màu nền vào dictionary
-                    if (!string.IsNullOrEmpty(mauSac))
-                    {
-                        try { cellColors[cellPosition] = ColorTranslator.FromHtml(mauSac); }
-                        catch { /* Bỏ qua nếu mã màu không hợp lệ */ }
+                        dgvTKB[col, tiet].Value = displayValue;
+                        dgvTKB[col, tiet].ToolTipText = displayValue;
+
+                        // Lưu màu nền
+                        if (!string.IsNullOrEmpty(mauSac))
+                        {
+                            cellColors[cellPosition] = ColorTranslator.FromHtml(mauSac);
+                        }
                     }
-                    // Nếu không có màu nhưng có ghi chú, dùng màu xám nhạt (đã bỏ logic này vì SP tự gán màu mặc định)
-                    // else if (!string.IsNullOrEmpty(ghichu)) { cellColors[cellPosition] = Color.FromArgb(230, 230, 230); }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Lỗi khi tải 1 tiết TKB: {ex.Message}");
                 }
             }
             dgvTKB.Invalidate(); // Vẽ lại grid để hiển thị màu
         }
 
-        // Sự kiện click nút Import
+        /// <summary>
+        /// Xử lý sự kiện khi TKB thay đổi (được gọi từ nơi khác qua event).
+        /// </summary>
+        private void OnThoiKhoaBieuChanged(object sender, EventArgs e)
+        {
+            LoadThoiKhoaBieu();
+        }
+
+        /// <summary>
+        /// Xử lý sự kiện Tick của Timer, tự động tải lại TKB.
+        /// </summary>
+        private void RefreshTimer_Tick(object sender, EventArgs e)
+        {
+            LoadThoiKhoaBieu();
+        }
+
+        #endregion
+
+        #region Event Handlers (Buttons & Menu)
+
+        /// <summary>
+        /// Tải TKB của tuần trước.
+        /// </summary>
+        private void btnPrevWeek_Click(object sender, EventArgs e)
+        {
+            currentMonday = currentMonday.AddDays(-7); // Lùi lại 1 tuần
+            LoadThoiKhoaBieu();
+        }
+
+        /// <summary>
+        /// Tải TKB của tuần sau.
+        /// </summary>
+        private void btnNextWeek_Click(object sender, EventArgs e)
+        {
+            currentMonday = currentMonday.AddDays(7); // Tiến tới 1 tuần
+            LoadThoiKhoaBieu();
+        }
+
+        /// <summary>
+        /// Mở form Import TKB từ Excel.
+        /// </summary>
         private void btnImportTKB_Click(object sender, EventArgs e)
         {
             string tenGV = DatabaseHelper.GetTeacherNameById(this.maGV);
@@ -182,7 +257,9 @@ namespace N6
             }
         }
 
-        // Sự kiện click nút Xóa TKB Tuần
+        /// <summary>
+        /// Xóa toàn bộ TKB của tuần hiện tại.
+        /// </summary>
         private void btnXoaTKB_Click(object sender, EventArgs e)
         {
             DateTime weekEnd = currentMonday.AddDays(6);
@@ -198,7 +275,7 @@ namespace N6
             {
                 try
                 {
-                    DatabaseHelper.DeleteTKBByWeek(maGV, currentMonday); // Gọi hàm xóa theo tuần
+                    DatabaseHelper.DeleteTimetableByWeek(maGV, currentMonday); // Gọi hàm xóa theo tuần
                     LoadThoiKhoaBieu(); // Tải lại TKB (bây giờ sẽ trống)
                     MessageBox.Show("Đã xóa TKB tuần thành công.", "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -209,67 +286,49 @@ namespace N6
             }
         }
 
-        // Sự kiện nhấn chuột phải vào ô
-        private void dgvTKB_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Right && e.RowIndex >= 0 && e.ColumnIndex >= 0)
-            {
-                dgvTKB.CurrentCell = dgvTKB[e.ColumnIndex, e.RowIndex]; // Chọn ô được click
-                selectedCellForContextMenu = new Point(e.ColumnIndex, e.RowIndex); // Lưu lại tọa độ ô
-                string cellValue = dgvTKB.CurrentCell.Value as string ?? string.Empty;
-
-                // Bật/tắt các menu item dựa trên nội dung ô
-                bool coTKB = !string.IsNullOrEmpty(cellValue); // Có TKB nếu ô không rỗng
-                bool coGhiChu = cellValue.Contains("(");     // Có ghi chú nếu chứa dấu '('
-
-                doiMauMenuItem.Enabled = coTKB;          // Chỉ đổi màu khi có TKB
-                xoaGhiChuMenuItem.Enabled = coGhiChu;      // Chỉ xóa ghi chú khi có ghi chú
-                xoaTKBMenuItem.Enabled = coTKB;           // Chỉ xóa TKB khi có TKB
-            }
-        }
-
-        // Sự kiện click menu "Đổi màu nền"
+        /// <summary>
+        /// Xử lý sự kiện click menu "Đổi màu nền".
+        /// </summary>
         private void doiMauMenuItem_Click(object sender, EventArgs e)
         {
             using (ColorDialog colorDialog = new ColorDialog())
             {
-                // Lấy màu hiện tại (nếu có) để hiển thị trong dialog
+                // Lấy màu hiện tại (nếu có)
                 colorDialog.Color = cellColors.ContainsKey(selectedCellForContextMenu) ? cellColors[selectedCellForContextMenu] : Color.White;
 
-                if (colorDialog.ShowDialog() == DialogResult.OK) // Nếu người dùng chọn màu và nhấn OK
+                if (colorDialog.ShowDialog() == DialogResult.OK)
                 {
-                    cellColors[selectedCellForContextMenu] = colorDialog.Color; // Cập nhật màu trong dictionary
+                    cellColors[selectedCellForContextMenu] = colorDialog.Color;
                     DateTime cellDate = currentMonday.AddDays(selectedCellForContextMenu.X);
                     int tiet = selectedCellForContextMenu.Y + 1;
-                    string colorHex = ColorTranslator.ToHtml(colorDialog.Color); // Chuyển màu thành mã hex
+                    string colorHex = ColorTranslator.ToHtml(colorDialog.Color);
                     DatabaseHelper.UpdateCellColor(maGV, cellDate, tiet, colorHex); // Lưu màu vào DB
-                    dgvTKB.Invalidate(); // Vẽ lại ô với màu mới
+                    dgvTKB.Invalidate(); // Vẽ lại ô
                 }
             }
         }
 
-        // Sự kiện click menu "Xóa ghi chú"
+        /// <summary>
+        /// Xử lý sự kiện click menu "Xóa ghi chú".
+        /// </summary>
         private void xoaGhiChuMenuItem_Click(object sender, EventArgs e)
         {
             DateTime cellDate = currentMonday.AddDays(selectedCellForContextMenu.X);
             int tiet = selectedCellForContextMenu.Y + 1;
 
-            // Gọi SP xóa ghi chú. SP này chỉ set GhiChu = NULL.
-            DatabaseHelper.DeleteGhiChuTKB(maGV, cellDate, tiet);
-
-            // Tải lại TKB. LoadThoiKhoaBieu sẽ đọc lại màu từ DB
-            // (là màu gốc hoặc màu mặc định do Import gán)
+            DatabaseHelper.DeleteTimetableNote(maGV, cellDate, tiet);
             LoadThoiKhoaBieu();
         }
 
-        // *** HÀM MỚI: Xử lý sự kiện click cho menu "Xóa TKB tiết này" ***
+        /// <summary>
+        /// Xử lý sự kiện click menu "Xóa TKB tiết này".
+        /// </summary>
         private void xoaTKBMenuItem_Click(object sender, EventArgs e)
         {
             DateTime cellDate = currentMonday.AddDays(selectedCellForContextMenu.X);
             int tiet = selectedCellForContextMenu.Y + 1;
             string cellValue = dgvTKB[selectedCellForContextMenu.X, selectedCellForContextMenu.Y].Value?.ToString() ?? "Tiết trống";
 
-            // Tách lấy phần môn học - lớp để hiển thị xác nhận
             string tkbInfo = cellValue.Split('\n')[0];
 
             var confirm = MessageBox.Show(
@@ -282,9 +341,8 @@ namespace N6
             {
                 try
                 {
-                    DatabaseHelper.DeleteTKBEntry(maGV, cellDate, tiet); // Gọi hàm xóa TKB cụ thể
-                    LoadThoiKhoaBieu(); // Tải lại TKB (ô này sẽ trống)
-                    // Không cần thông báo thành công cho từng tiết
+                    DatabaseHelper.DeleteTimetableEntry(maGV, cellDate, tiet);
+                    LoadThoiKhoaBieu();
                 }
                 catch (Exception ex)
                 {
@@ -293,55 +351,78 @@ namespace N6
             }
         }
 
+        #endregion
 
-        // Sự kiện vẽ ô (để tô màu)
+        #region Grid Event Handlers (Painting, Clicks)
+
+        /// <summary>
+        /// Xử lý sự kiện nhấn chuột phải vào ô, chuẩn bị cho ContextMenu.
+        /// </summary>
+        private void dgvTKB_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right && e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                dgvTKB.CurrentCell = dgvTKB[e.ColumnIndex, e.RowIndex]; // Chọn ô
+                selectedCellForContextMenu = new Point(e.ColumnIndex, e.RowIndex);
+                string cellValue = dgvTKB.CurrentCell.Value as string ?? string.Empty;
+
+                bool coTKB = !string.IsNullOrEmpty(cellValue);
+                bool coGhiChu = cellValue.Contains("(");
+
+                doiMauMenuItem.Enabled = coTKB;
+                xoaGhiChuMenuItem.Enabled = coGhiChu;
+                xoaTKBMenuItem.Enabled = coTKB;
+            }
+        }
+
+        /// <summary>
+        /// Tùy chỉnh việc vẽ ô (CellPainting) để tô màu nền đã lưu.
+        /// </summary>
         private void DgvTKB_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
             if (e.RowIndex < 0 || e.ColumnIndex < 0) return; // Bỏ qua header
 
-            e.PaintBackground(e.ClipBounds, true); // Vẽ nền mặc định
+            e.PaintBackground(e.ClipBounds, true); // 1. Vẽ nền mặc định
 
             Point cellPosition = new Point(e.ColumnIndex, e.RowIndex);
-            // Nếu có màu đã lưu cho ô này và không phải màu trắng
-            if (cellColors.TryGetValue(cellPosition, out Color cellColor) && cellColor != Color.White)
+            Color cellColor = Color.White; // Màu mặc định
+
+            // 2. Lấy màu tùy chỉnh (nếu có)
+            if (cellColors.TryGetValue(cellPosition, out Color customColor) && customColor != Color.White)
             {
+                cellColor = customColor;
                 using (Brush backBrush = new SolidBrush(cellColor))
                 {
                     e.Graphics.FillRectangle(backBrush, e.CellBounds); // Tô màu nền
                 }
             }
 
-            // Vẽ lại đường viền ô
+            // 3. Vẽ lại đường viền ô
             e.Graphics.DrawRectangle(Pens.LightGray, e.CellBounds.X, e.CellBounds.Y, e.CellBounds.Width - 1, e.CellBounds.Height - 1);
 
-            // Vẽ text
+            // 4. Vẽ text
             if (e.Value is string cellValue && !string.IsNullOrEmpty(cellValue))
             {
                 // Xác định màu chữ (trắng nếu nền tối, đen nếu nền sáng)
-                bool isDark = (cellColor != Color.Empty && cellColor.GetBrightness() < 0.6 && cellColor != Color.White);
+                bool isDark = (cellColor != Color.White && cellColor.GetBrightness() < 0.6);
                 Color fontColor = isDark ? Color.White : Color.Black;
 
                 Rectangle textBounds = e.CellBounds;
                 textBounds.Inflate(-10, -10); // Thụt lề text
                 TextRenderer.DrawText(e.Graphics, cellValue, e.CellStyle.Font, textBounds, fontColor,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak); // Căn giữa, trên, xuống dòng
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.WordBreak);
             }
             e.Handled = true; // Báo rằng đã tự vẽ xong
         }
 
-        // Sự kiện double-click vào ô (để sửa ghi chú)
+        /// <summary>
+        /// Xử lý sự kiện double-click vào ô (để sửa ghi chú).
+        /// </summary>
         private void DgvTKB_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0 || e.ColumnIndex < 0) return; // Bỏ qua header
 
-            // Chỉ cho phép sửa ghi chú nếu ô đó có TKB (không phải ô trống)
             string currentValue = dgvTKB[e.ColumnIndex, e.RowIndex].Value?.ToString() ?? "";
-            if (string.IsNullOrEmpty(currentValue))
-            {
-                MessageBox.Show("Không thể thêm ghi chú cho tiết trống.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
 
             DateTime cellDate = currentMonday.AddDays(e.ColumnIndex);
             int tiet = e.RowIndex + 1;
@@ -368,43 +449,60 @@ namespace N6
                 if (inputForm.ShowDialog() == DialogResult.OK)
                 {
                     string note = txt.Text.Trim();
-                    // Gọi SP Upsert Ghi chú (SP này chỉ cập nhật cột GhiChu)
-                    DatabaseHelper.UpsertGhiChuTKB(maGV, cellDate, tiet, note);
-                    LoadThoiKhoaBieu(); // Tải lại TKB để hiển thị ghi chú mới
+                    DatabaseHelper.UpsertTimetableNote(maGV, cellDate, tiet, note);
+                    LoadThoiKhoaBieu(); // Tải lại TKB
                 }
             }
         }
 
-        // Sự kiện click nút "< Trước"
-        private void btnPrevWeek_Click(object sender, EventArgs e)
-        {
-            currentMonday = currentMonday.AddDays(-7); // Lùi lại 1 tuần
-            LoadThoiKhoaBieu();
-        }
+        #endregion
 
-        // Sự kiện click nút "Sau >"
-        private void btnNextWeek_Click(object sender, EventArgs e)
-        {
-            currentMonday = currentMonday.AddDays(7); // Tiến tới 1 tuần
-            LoadThoiKhoaBieu();
-        }
+        #region Dispose
 
-        // Dọn dẹp khi UserControl bị hủy
+        /// <summary>
+        /// Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
+        /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                // Hủy đăng ký sự kiện để tránh memory leak
-                DatabaseHelper.ThoiKhoaBieuChanged -= OnThoiKhoaBieuChanged;
+                // Hủy đăng ký sự kiện của DatabaseHelper
+                DatabaseHelper.TimetableChanged -= OnThoiKhoaBieuChanged;
+
+                // Dừng và hủy Timer
                 if (refreshTimer != null)
                 {
                     refreshTimer.Stop();
+                    refreshTimer.Tick -= RefreshTimer_Tick;
                     refreshTimer.Dispose();
                     refreshTimer = null;
                 }
+
+                // Gỡ bỏ sự kiện của DataGridView (giả sử là Designer field)
+                if (dgvTKB != null)
+                {
+                    dgvTKB.CellPainting -= DgvTKB_CellPainting;
+                    dgvTKB.CellMouseDown -= dgvTKB_CellMouseDown;
+                    dgvTKB.CellDoubleClick -= DgvTKB_CellDoubleClick;
+                }
+
+                // Gỡ bỏ sự kiện của các nút (giả sử là Designer fields)
+                if (btnPrevWeek != null) btnPrevWeek.Click -= btnPrevWeek_Click;
+                if (btnNextWeek != null) btnNextWeek.Click -= btnNextWeek_Click;
+                if (btnImportTKB != null) btnImportTKB.Click -= btnImportTKB_Click;
+                if (btnXoaTKB != null) btnXoaTKB.Click -= btnXoaTKB_Click;
+
+                // Gỡ bỏ sự kiện của ContextMenu (giả sử là Designer fields)
+                if (doiMauMenuItem != null) doiMauMenuItem.Click -= doiMauMenuItem_Click;
+                if (xoaGhiChuMenuItem != null) xoaGhiChuMenuItem.Click -= xoaGhiChuMenuItem_Click;
+                if (xoaTKBMenuItem != null) xoaTKBMenuItem.Click -= xoaTKBMenuItem_Click;
+
+                // Dọn dẹp components (của Designer)
                 components?.Dispose();
             }
             base.Dispose(disposing);
         }
+
+        #endregion
     }
 }

@@ -11,13 +11,6 @@ namespace N6
         private Label lblPhuDe;
         private FlowLayoutPanel flowPanel;
 
-        //protected override void Dispose(bool disposing)
-        //{
-        //    if (disposing && (components != null))
-        //        components.Dispose();
-        //    base.Dispose(disposing);
-        //}
-
         private void InitializeComponent()
         {
             this.lblLoiChao = new System.Windows.Forms.Label();

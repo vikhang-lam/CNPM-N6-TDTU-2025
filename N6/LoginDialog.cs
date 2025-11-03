@@ -2,12 +2,23 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using System.Diagnostics; // Thêm
 
 namespace N6
 {
+    /// <summary>
+    /// Form dialog tùy chỉnh để xử lý đăng nhập (Admin và Giáo viên).
+    /// </summary>
     public partial class LoginDialog : Form
     {
+        /// <summary>
+        /// Lấy tên đăng nhập đã được trim và validate (loại bỏ placeholder).
+        /// </summary>
         public string Username => (txtUsername.Text == "Nhập tên đăng nhập") ? "" : txtUsername.Text.Trim();
+
+        /// <summary>
+        /// Lấy mật khẩu (loại bỏ placeholder).
+        /// </summary>
         public string Password => (txtPassword.Text == "Nhập mật khẩu") ? "" : txtPassword.Text.Trim();
 
         private Color usernameBorderColor = Color.RoyalBlue;
@@ -23,10 +34,12 @@ namespace N6
             this.DoubleBuffered = true;
             _usernameBorderPaintHandler = new PaintEventHandler(PnlUsernameBorder_Paint);
             _passwordBorderPaintHandler = new PaintEventHandler(PnlPasswordBorder_Paint);
+
             pictureBoxAvatar.Image = MakeAvatar();
             SetPlaceholder(txtUsername, "Nhập tên đăng nhập");
             SetPlaceholder(txtPassword, "Nhập mật khẩu");
             txtPassword.UseSystemPasswordChar = false;
+
             if (!string.IsNullOrEmpty(presetUsername))
             {
                 txtUsername.Text = presetUsername;
@@ -34,7 +47,7 @@ namespace N6
                 if (!requireUsername)
                 {
                     txtUsername.ReadOnly = true;
-                    this.ActiveControl = txtPassword;
+                    this.ActiveControl = txtPassword; // Focus vào mật khẩu
                 }
             }
             else
@@ -50,6 +63,7 @@ namespace N6
                 pictureBoxBackground.SizeMode = PictureBoxSizeMode.CenterImage;
             }
 
+            // Gán sự kiện (để gỡ trong Dispose)
             txtUsername.GotFocus += TxtUsername_GotFocus;
             txtUsername.LostFocus += TxtUsername_LostFocus;
             txtPassword.GotFocus += TxtPassword_GotFocus;
@@ -67,14 +81,19 @@ namespace N6
             pnlUsernameBorder.Paint += _usernameBorderPaintHandler;
             pnlPasswordBorder.Paint += _passwordBorderPaintHandler;
             this.Resize += LoginDialog_Resize;
+
             SetRoundedRegion(12);
         }
 
+        /// <summary>
+        /// Xử lý logic chính khi nhấn nút "Đăng nhập" (hoặc OK).
+        /// </summary>
         private void BtnOK_Click(object sender, EventArgs e)
         {
             string username = this.Username;
             string password = this.Password;
 
+            // --- Validation ---
             if (string.IsNullOrWhiteSpace(username))
             {
                 MessageBox.Show("Vui lòng nhập tên đăng nhập!", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -90,6 +109,7 @@ namespace N6
 
             try
             {
+                // --- Xử lý Admin Login ---
                 if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
                 {
                     if (DatabaseHelper.CheckAdminLogin(username, password))
@@ -107,6 +127,7 @@ namespace N6
                     return;
                 }
 
+                // --- Xử lý Teacher Login ---
                 LoginStatus status = DatabaseHelper.CheckTeacherLogin(username, password);
                 switch (status)
                 {
@@ -129,9 +150,15 @@ namespace N6
             catch (Exception ex)
             {
                 MessageBox.Show("Lỗi đăng nhập: " + ex.Message, "Lỗi hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Debug.WriteLine(ex.ToString()); // Ghi log lỗi chi tiết
             }
         }
 
+        #region UI Helpers (Hỗ trợ Giao diện)
+
+        /// <summary>
+        /// Ẩn/hiện mật khẩu trong TextBox.
+        /// </summary>
         private void TogglePassword(object sender, EventArgs e)
         {
             if (txtPassword.Text == "Nhập mật khẩu") return;
@@ -139,12 +166,18 @@ namespace N6
             picEye.Image = MakeEye(!txtPassword.UseSystemPasswordChar);
         }
 
+        /// <summary>
+        /// Cài đặt văn bản placeholder cho TextBox.
+        /// </summary>
         private void SetPlaceholder(TextBox tb, string text)
         {
             tb.Text = text;
             tb.ForeColor = Color.Gray;
         }
 
+        /// <summary>
+        /// Xử lý khi TextBox nhận Focus.
+        /// </summary>
         private void FocusTextBox(TextBox tb, Panel panel, ref Color borderColor, string placeholder)
         {
             borderColor = Color.RoyalBlue;
@@ -153,10 +186,16 @@ namespace N6
             {
                 tb.Text = "";
                 tb.ForeColor = Color.Black;
-                if (tb == txtPassword) txtPassword.UseSystemPasswordChar = true;
+                if (tb == txtPassword)
+                {
+                    txtPassword.UseSystemPasswordChar = true;
+                }
             }
         }
 
+        /// <summary>
+        /// Xử lý khi TextBox mất Focus.
+        /// </summary>
         private void UnfocusTextBox(TextBox tb, Panel panel, ref Color borderColor, string placeholder)
         {
             borderColor = Color.Lavender;
@@ -165,21 +204,29 @@ namespace N6
             {
                 tb.Text = placeholder;
                 tb.ForeColor = Color.Gray;
-                if (tb == txtPassword) txtPassword.UseSystemPasswordChar = false;
+                if (tb == txtPassword)
+                {
+                    txtPassword.UseSystemPasswordChar = false;
+                }
             }
         }
 
+        /// <summary>
+        /// Vẽ viền bo góc tùy chỉnh.
+        /// </summary>
         private void DrawBorder(Graphics g, Rectangle rect, Color color)
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
             using (Pen pen = new Pen(color, 2))
             using (GraphicsPath path = RoundedRect(rect, 8))
             {
-                // g.Clear(Color.White); // Đã loại bỏ để sửa lỗi GDI handle leak
                 g.DrawPath(pen, path);
             }
         }
 
+        /// <summary>
+        /// Tạo một GraphicsPath hình chữ nhật bo góc.
+        /// </summary>
         private GraphicsPath RoundedRect(Rectangle r, int radius)
         {
             r.Width--; r.Height--;
@@ -193,6 +240,9 @@ namespace N6
             return path;
         }
 
+        /// <summary>
+        /// Áp dụng bo góc cho toàn bộ Form.
+        /// </summary>
         private void SetRoundedRegion(int radius)
         {
             if (this.Width > 0 && this.Height > 0)
@@ -205,6 +255,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Tạo ảnh avatar mặc định bằng GDI+.
+        /// </summary>
         private Bitmap MakeAvatar()
         {
             int size = 100;
@@ -225,6 +278,9 @@ namespace N6
             return bmp;
         }
 
+        /// <summary>
+        /// Tạo icon con mắt (đóng/mở) bằng GDI+.
+        /// </summary>
         private Bitmap MakeEye(bool open)
         {
             int size = 18;
@@ -235,12 +291,22 @@ namespace N6
                 using (Pen p = new Pen(Color.DimGray, 2))
                 {
                     g.DrawEllipse(p, 2, 5, 14, 8);
-                    if (open) g.FillEllipse(Brushes.DimGray, 7, 8, 4, 4);
-                    else g.DrawLine(p, 3, 13, 15, 5);
+                    if (open)
+                    {
+                        g.FillEllipse(Brushes.DimGray, 7, 8, 4, 4);
+                    }
+                    else
+                    {
+                        g.DrawLine(p, 3, 13, 15, 5);
+                    }
                 }
             }
             return bmp;
         }
+
+        #endregion
+
+        #region Event Handlers (Focus, Click, Paint, Resize)
 
         private void TxtUsername_GotFocus(object sender, EventArgs e) => FocusTextBox(txtUsername, pnlUsernameBorder, ref usernameBorderColor, "Nhập tên đăng nhập");
         private void TxtUsername_LostFocus(object sender, EventArgs e) => UnfocusTextBox(txtUsername, pnlUsernameBorder, ref usernameBorderColor, "Nhập tên đăng nhập");
@@ -255,38 +321,64 @@ namespace N6
 
         private void LoginDialog_Resize(object sender, EventArgs e) => SetRoundedRegion(12);
 
+        /// <summary>
+        /// Xử lý click "Đăng ký": Trả về DialogResult.Retry.
+        /// </summary>
         private void LblNewTeacherLink_Click(object sender, EventArgs e)
         {
             this.DialogResult = DialogResult.Retry;
             this.Close();
         }
 
+        /// <summary>
+        /// Xử lý click "Quên mật khẩu": Trả về DialogResult.Ignore.
+        /// </summary>
         private void LblForgotPassword_Click(object sender, EventArgs e)
         {
             this.DialogResult = DialogResult.Ignore;
             this.Close();
         }
+
+        // --- Hiệu ứng Hover cho các liên kết ---
         private void Link_MouseEnter(object sender, EventArgs e) { if (sender is Label label) { label.ForeColor = linkHoverColor; } }
         private void Link_MouseLeave(object sender, EventArgs e) { if (sender is Label label) { label.ForeColor = linkIdleColor; } }
 
+        #endregion
+
+        /// <summary>
+        /// Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
+        /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                txtUsername.GotFocus -= TxtUsername_GotFocus;
-                txtUsername.LostFocus -= TxtUsername_LostFocus;
-                txtPassword.GotFocus -= TxtPassword_GotFocus;
-                txtPassword.LostFocus -= TxtPassword_LostFocus;
-                picEye.Click -= TogglePassword;
-                btnOK.Click -= BtnOK_Click;
-                btnCancel.Click -= BtnCancel_Click;
-                lblClose.Click -= LblClose_Click;
-                lblNewTeacherLink.Click -= LblNewTeacherLink_Click;
-                lblForgotPassword.Click -= LblForgotPassword_Click;
-                lblNewTeacherLink.MouseEnter -= Link_MouseEnter;
-                lblNewTeacherLink.MouseLeave -= Link_MouseLeave;
-                lblForgotPassword.MouseEnter -= Link_MouseEnter;
-                lblForgotPassword.MouseLeave -= Link_MouseLeave;
+                // Gỡ bỏ sự kiện (đã được gán trong Constructor)
+                if (txtUsername != null)
+                {
+                    txtUsername.GotFocus -= TxtUsername_GotFocus;
+                    txtUsername.LostFocus -= TxtUsername_LostFocus;
+                }
+                if (txtPassword != null)
+                {
+                    txtPassword.GotFocus -= TxtPassword_GotFocus;
+                    txtPassword.LostFocus -= TxtPassword_LostFocus;
+                }
+                if (picEye != null) picEye.Click -= TogglePassword;
+                if (btnOK != null) btnOK.Click -= BtnOK_Click;
+                if (btnCancel != null) btnCancel.Click -= BtnCancel_Click;
+                if (lblClose != null) lblClose.Click -= LblClose_Click;
+                if (lblNewTeacherLink != null)
+                {
+                    lblNewTeacherLink.Click -= LblNewTeacherLink_Click;
+                    lblNewTeacherLink.MouseEnter -= Link_MouseEnter;
+                    lblNewTeacherLink.MouseLeave -= Link_MouseLeave;
+                }
+                if (lblForgotPassword != null)
+                {
+                    lblForgotPassword.Click -= LblForgotPassword_Click;
+                    lblForgotPassword.MouseEnter -= Link_MouseEnter;
+                    lblForgotPassword.MouseLeave -= Link_MouseLeave;
+                }
 
                 if (pnlUsernameBorder != null)
                 {

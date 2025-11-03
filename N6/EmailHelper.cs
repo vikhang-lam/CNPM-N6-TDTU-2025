@@ -3,29 +3,27 @@ using System.Net;
 using System.Net.Mail;
 using System.Configuration;
 using System.Diagnostics;
-using System.Windows.Forms;
+// XÓA: 'using System.Windows.Forms;' (Vi phạm Tách biệt Luồng quan tâm)
 
 namespace N6
 {
+    /// <summary>
+    /// Cung cấp các phương thức tĩnh để gửi email qua SMTP.
+    /// Đọc cấu hình từ App.config (SmtpEmail, SmtpPassword).
+    /// </summary>
     public static class EmailHelper
     {
-        // Cấu hình email server (SMTP)
         private static readonly string SmtpServer = "smtp.gmail.com";
         private static readonly int SmtpPort = 587;
 
-        // Đọc cấu hình từ App.config
         private static readonly string SenderEmail = ConfigurationManager.AppSettings["SmtpEmail"];
         private static readonly string SenderPassword = ConfigurationManager.AppSettings["SmtpPassword"];
         private static readonly string SenderName = "Hệ Thống Quản Lý Trường Học";
 
-        // (Không còn đọc AdminEmail từ App.config)
-
         /// <summary>
-        /// Gửi email thông báo trạng thái tài khoản cho giáo viên
+        /// Gửi email thông báo trạng thái tài khoản cho giáo viên (được duyệt hoặc từ chối).
         /// </summary>
-        // =================================================================
-        // ### CẬP NHẬT 1: Thêm tham số "string adminEmail" ###
-        // =================================================================
+        /// <exception cref="Exception">Ném ra khi gửi email thất bại.</exception>
         public static bool SendAccountStatusEmail(string recipientEmail, string teacherName, bool isApproved, string adminEmail)
         {
             try
@@ -34,9 +32,6 @@ namespace N6
                     ? "✅ Tài khoản của bạn đã được kích hoạt"
                     : "❌ Yêu cầu tạo tài khoản bị từ chối";
 
-                // =================================================================
-                // ### CẬP NHẬT 2: Sửa nội dung email từ chối theo yêu cầu của bạn ###
-                // =================================================================
                 string body = isApproved
                     ? $@"
                         <html>
@@ -54,9 +49,7 @@ namespace N6
                             <h2 style='color: #dc3545;'>Thông báo từ Hệ Thống</h2>
                             <p>Kính gửi {teacherName},</p>
                             <p>Yêu cầu tạo tài khoản giáo viên của bạn <b>đã bị từ chối</b>.</p>
-                            
                             <p>Nếu có câu hỏi gì, hãy liên hệ với quản trị viên qua email: <b>{adminEmail}</b></p>
-                            
                             <hr/>
                             <small>Email này được gửi tự động từ Hệ Thống Quản Lý Trường Học</small>
                         </body>
@@ -83,14 +76,15 @@ namespace N6
             {
                 string errorMsg = $"Lỗi gửi email: {ex.Message}";
                 Debug.WriteLine(errorMsg);
-                MessageBox.Show(errorMsg, "Lỗi Gửi Email", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
+                // CHUẨN HÓA: Ném ngoại lệ thay vì hiển thị MessageBox
+                throw new Exception(errorMsg, ex);
             }
         }
 
         /// <summary>
-        /// Gửi email chứa mã OTP để khôi phục mật khẩu (Giữ nguyên)
+        /// Gửi email chứa mã OTP để khôi phục mật khẩu.
         /// </summary>
+        /// <exception cref="Exception">Ném ra khi gửi email thất bại.</exception>
         public static bool SendOtpEmail(string recipientEmail, string otp)
         {
             try
@@ -134,14 +128,15 @@ namespace N6
                 string errorMsg = $"Lỗi gửi email OTP: {ex.Message}\n\n" +
                                   $"Hãy đảm bảo App.config đã được cấu hình đúng với Email và 'Mật khẩu ứng dụng' (App Password).";
                 Debug.WriteLine(errorMsg);
-                MessageBox.Show(errorMsg, "Lỗi Gửi Email", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
+                // CHUẨN HÓA: Ném ngoại lệ thay vì hiển thị MessageBox
+                throw new Exception(errorMsg, ex);
             }
         }
 
-        // =================================================================
-        // ### HÀM MỚI: Gửi email xác nhận cho giáo viên ###
-        // =================================================================
+        /// <summary>
+        /// Gửi email xác nhận cho giáo viên ngay sau khi họ đăng ký.
+        /// </summary>
+        /// <exception cref="Exception">Ném ra khi gửi email thất bại.</exception>
         public static bool SendRegistrationConfirmationEmail(string recipientEmail, string teacherName)
         {
             try
@@ -177,14 +172,17 @@ namespace N6
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Lỗi gửi email xác nhận đăng ký: {ex.Message}");
-                return false;
+                string errorMsg = $"Lỗi gửi email xác nhận đăng ký: {ex.Message}";
+                Debug.WriteLine(errorMsg);
+                // CHUẨN HÓA: Ném ngoại lệ
+                throw new Exception(errorMsg, ex);
             }
         }
 
-        // =================================================================
-        // ### HÀM ĐÃ SỬA: Gửi email thông báo cho Admin (nhận email làm tham số) ###
-        // =================================================================
+        /// <summary>
+        /// Gửi email thông báo cho Admin (nhận email làm tham số) khi có đăng ký mới.
+        /// </summary>
+        /// <exception cref="Exception">Ném ra khi gửi email thất bại.</exception>
         public static bool SendAdminNotificationEmail(string adminRecipientEmail, string newTeacherName, string newTeacherUsername, string newTeacherEmail)
         {
             try
@@ -223,8 +221,9 @@ namespace N6
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Lỗi gửi email thông báo cho admin: {ex.Message}");
-                return false;
+                string errorMsg = $"Lỗi gửi email thông báo cho admin: {ex.Message}";
+                Debug.WriteLine(errorMsg);
+                throw new Exception(errorMsg, ex);
             }
         }
     }

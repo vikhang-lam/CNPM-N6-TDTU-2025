@@ -4,15 +4,6 @@
     {
         private System.ComponentModel.IContainer components = null;
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
         #region Windows Form Designer generated code
 
         private void InitializeComponent()
@@ -45,7 +36,7 @@
             // 
             // panelMain
             // 
-            this.panelMain.BackColor = System.Drawing.Color.White;
+            this.panelMain.BackColor = System.Drawing.Color.WhiteSmoke;
             this.panelMain.Controls.Add(this.panelSeparator);
             this.panelMain.Controls.Add(this.btnChangeEmail);
             this.panelMain.Controls.Add(this.btnClose);

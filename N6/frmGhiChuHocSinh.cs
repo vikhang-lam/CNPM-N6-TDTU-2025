@@ -1,13 +1,16 @@
-﻿// File: frmGhiChuHocSinh.cs - PHIÊN BẢN CẬP NHẬT
-using System;
+﻿using System;
 using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
 using N6;
-using System.Speech.Recognition; // THÊM MỚI
-using System.Globalization;     // THÊM MỚI
-using System.Linq;              // THÊM MỚI
+using System.Speech.Recognition;
+using System.Globalization;
+using System.Linq;
 
+/// <summary>
+/// Form cho phép giáo viên thêm ghi chú cho một học sinh cụ thể
+/// về một môn học cụ thể, hỗ trợ nhập liệu bằng giọng nói.
+/// </summary>
 public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
 {
     private string _maGV;
@@ -15,23 +18,24 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
     private ComboBox cbMonHoc;
     private ComboBox cbHocSinh;
     private TextBox txtGhiChu;
-    private RoundedButton btnLuu;       // THÊM MỚI: Di chuyển ra biến class
-    private RoundedButton btnRecord;    // THÊM MỚI: Nút ghi âm
+    private RoundedButton btnLuu;
+    private RoundedButton btnRecord;
 
-    // THÊM MỚI: Các biến cho Speech Recognition
     private SpeechRecognitionEngine _speechEngine;
     private bool _isListening = false;
 
-    // Sửa lại Constructor, không cần truyền MaMon vào nữa
     public frmGhiChuHocSinh(string maGV) : base()
     {
         _maGV = maGV;
         this.Text = "Ghi chú cho Học sinh";
-        this.Size = new Size(400, 470); // SỬA ĐỔI: Tăng chiều cao cho nút mới
+        this.Size = new Size(400, 470);
         InitializeModernComponent();
         LoadLopHoc();
     }
 
+    /// <summary>
+    /// Khởi tạo và sắp xếp các control động.
+    /// </summary>
     private void InitializeModernComponent()
     {
         cbLop = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0, 0, 0, 10) };
@@ -42,11 +46,9 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         txtGhiChu = new TextBox { Dock = DockStyle.Fill, Multiline = true, Font = new Font("Segoe UI", 10F), BorderStyle = BorderStyle.None };
         txtPanel.Controls.Add(txtGhiChu);
 
-        // SỬA ĐỔI: Khởi tạo nút Lưu (đã chuyển thành biến class)
         btnLuu = new RoundedButton { Dock = DockStyle.Bottom, Text = "Lưu Ghi Chú", Height = 40, CornerRadius = 12, BackColor = Color.MediumSeaGreen, Margin = new Padding(0, 10, 0, 0) };
         btnLuu.Click += BtnLuu_Click;
 
-        // THÊM MỚI: Nút Ghi Âm
         btnRecord = new RoundedButton { Dock = DockStyle.Bottom, Text = "🎤 Ghi Âm (Tiếng Việt)", Height = 40, CornerRadius = 12, BackColor = Color.RoyalBlue, Margin = new Padding(0, 5, 0, 0) };
         btnRecord.Click += BtnRecord_Click;
 
@@ -54,20 +56,22 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         this.ContentPanel.Controls.Add(cbHocSinh);
         this.ContentPanel.Controls.Add(cbMonHoc);
         this.ContentPanel.Controls.Add(cbLop);
-
-        // SỬA ĐỔI: Thêm 2 nút vào
-        this.ContentPanel.Controls.Add(btnRecord); // Nút Ghi Âm
-        this.ContentPanel.Controls.Add(btnLuu);      // Nút Lưu
+        this.ContentPanel.Controls.Add(btnRecord);
+        this.ContentPanel.Controls.Add(btnLuu);
 
         cbLop.SelectedIndexChanged += CbLop_SelectedIndexChanged;
     }
 
-    // THÊM MỚI: Khởi tạo bộ nhận diện giọng nói
+    #region Speech Recognition (Nhận diện giọng nói)
+
+    /// <summary>
+    /// Khởi tạo bộ nhận diện giọng nói (SpeechRecognitionEngine) của Windows.
+    /// </summary>
+    /// <returns>True nếu tìm thấy bộ nhận diện Tiếng Việt (vi-VN).</returns>
     private bool InitializeSpeechEngine()
     {
         try
         {
-            // Tìm bộ nhận diện "vi-VN" đã cài đặt trên Windows
             var culture = new CultureInfo("vi-VN");
             var recognizer = SpeechRecognitionEngine.InstalledRecognizers()
                                 .FirstOrDefault(r => r.Culture.Equals(culture));
@@ -80,9 +84,8 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
 
             _speechEngine = new SpeechRecognitionEngine(recognizer);
             _speechEngine.SetInputToDefaultAudioDevice();
-            _speechEngine.LoadGrammar(new DictationGrammar()); // Tải ngữ pháp mặc định
+            _speechEngine.LoadGrammar(new DictationGrammar());
 
-            // Đăng ký sự kiện
             _speechEngine.SpeechRecognized += SpeechEngine_SpeechRecognized;
             _speechEngine.RecognizeCompleted += SpeechEngine_RecognizeCompleted;
 
@@ -95,7 +98,9 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         }
     }
 
-    // THÊM MỚI: Sự kiện khi nhấn nút Ghi Âm
+    /// <summary>
+    /// Xử lý sự kiện click nút Ghi Âm (Bắt đầu hoặc Dừng).
+    /// </summary>
     private void BtnRecord_Click(object sender, EventArgs e)
     {
         if (_isListening)
@@ -111,16 +116,14 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
             // Bắt đầu ghi âm
             if (_speechEngine == null)
             {
-                // Khởi tạo lần đầu
                 if (!InitializeSpeechEngine())
                 {
-                    return; // Khởi tạo thất bại, đã báo lỗi
+                    return; // Khởi tạo thất bại
                 }
             }
 
             try
             {
-                // Bắt đầu nhận diện (chế độ multiple để nhận diện liên tục)
                 _speechEngine.RecognizeAsync(RecognizeMode.Multiple);
                 _isListening = true;
                 btnRecord.Text = "🎧 Đang nghe... (Nhấn để dừng)";
@@ -133,10 +136,13 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         }
     }
 
-    // THÊM MỚI: Xử lý khi nhận diện xong (dừng, lỗi, hoặc timeout)
+    /// <summary>
+    /// Sự kiện khi việc nhận diện hoàn tất (do dừng, lỗi, hoặc timeout).
+    /// </summary>
     private void SpeechEngine_RecognizeCompleted(object sender, RecognizeCompletedEventArgs e)
     {
         // Đảm bảo cập nhật UI trên đúng luồng (thread)
+        if (this.IsDisposed || !this.IsHandleCreated) return;
         this.Invoke(new Action(() =>
         {
             _isListening = false;
@@ -145,10 +151,12 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         }));
     }
 
-    // THÊM MỚI: Xử lý khi có kết quả nhận diện
+    /// <summary>
+    /// Sự kiện khi nhận diện được một đoạn văn bản.
+    /// </summary>
     private void SpeechEngine_SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
     {
-        // Đảm bảo cập nhật UI trên đúng luồng (thread)
+        if (this.IsDisposed || !this.IsHandleCreated) return;
         this.Invoke(new Action(() =>
         {
             if (txtGhiChu.Text.Length > 0 && !txtGhiChu.Text.EndsWith(" "))
@@ -159,9 +167,16 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         }));
     }
 
+    #endregion
+
+    #region Data Loading & Saving
+
+    /// <summary>
+    /// Tải danh sách lớp học mà giáo viên này dạy.
+    /// </summary>
     private void LoadLopHoc()
     {
-        DataTable dt = DatabaseHelper.GetLopByGiaoVien(_maGV);
+        DataTable dt = DatabaseHelper.GetClassesByTeacher(_maGV);
         cbLop.DataSource = dt;
         cbLop.DisplayMember = "TenLop";
         cbLop.ValueMember = "MaLop";
@@ -169,6 +184,9 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         cbLop.Text = "Chọn lớp học";
     }
 
+    /// <summary>
+    /// Xử lý khi chọn lớp: tải lại danh sách môn học và học sinh.
+    /// </summary>
     private void CbLop_SelectedIndexChanged(object sender, EventArgs e)
     {
         if (cbLop.SelectedValue != null)
@@ -176,7 +194,7 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
             string maLop = cbLop.SelectedValue.ToString();
 
             // Load danh sách môn học mà GV dạy ở lớp này
-            DataTable dtMon = DatabaseHelper.GetMonHocByGiaoVienAndLop(_maGV, maLop);
+            DataTable dtMon = DatabaseHelper.GetSubjectsByTeacherAndClass(_maGV, maLop);
             cbMonHoc.DataSource = dtMon;
             cbMonHoc.DisplayMember = "TenMon";
             cbMonHoc.ValueMember = "MaMon";
@@ -184,7 +202,7 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
             cbMonHoc.Text = "Chọn môn học";
 
             // Load danh sách học sinh của lớp
-            DataTable dtHS = DatabaseHelper.GetHocSinhByLop(maLop);
+            DataTable dtHS = DatabaseHelper.GetStudentsByClass(maLop);
             cbHocSinh.DataSource = dtHS;
             cbHocSinh.DisplayMember = "HoTen";
             cbHocSinh.ValueMember = "MaHS";
@@ -198,21 +216,27 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         }
     }
 
+    /// <summary>
+    /// Xử lý sự kiện click nút "Lưu Ghi Chú".
+    /// </summary>
     private void BtnLuu_Click(object sender, EventArgs e)
     {
-        // Thêm kiểm tra đã chọn Môn học chưa
+        // Kiểm tra
         if (cbLop.SelectedValue == null) { MessageBox.Show("Vui lòng chọn lớp."); return; }
         if (cbMonHoc.SelectedValue == null) { MessageBox.Show("Vui lòng chọn môn học."); return; }
         if (cbHocSinh.SelectedValue == null) { MessageBox.Show("Vui lòng chọn học sinh."); return; }
-        if (string.IsNullOrWhiteSpace(txtGhiChu.Text)) { MessageBox.Show("Vui lòng nhập nội dung ghi chú."); return; }
+        if (string.IsNullOrWhiteSpace(txtGhiChu.Text) || txtGhiChu.ForeColor == Color.Gray) // Kiểm tra placeholder
+        {
+            MessageBox.Show("Vui lòng nhập nội dung ghi chú.");
+            return;
+        }
 
         try
         {
             string maHS = cbHocSinh.SelectedValue.ToString();
-            // Lấy MaMon từ ComboBox đã chọn, không gọi hàm cũ nữa
             string maMon = cbMonHoc.SelectedValue.ToString();
 
-            DatabaseHelper.AddGhiChuChoHocSinh(maHS, maMon, txtGhiChu.Text);
+            DatabaseHelper.AddNoteForStudent(maHS, maMon, txtGhiChu.Text);
             MessageBox.Show("Đã lưu ghi chú thành công!");
             this.Close();
         }
@@ -222,7 +246,11 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         }
     }
 
-    // THÊM MỚI: Ghi đè phương thức Dispose để giải phóng _speechEngine
+    #endregion
+
+    /// <summary>
+    /// Dọn dẹp tài nguyên (quan trọng: gỡ bỏ SpeechEngine).
+    /// </summary>
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -230,11 +258,17 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
             // Giải phóng tài nguyên speech
             if (_speechEngine != null)
             {
+                _speechEngine.RecognizeAsyncStop(); // Dừng nếu đang chạy
                 _speechEngine.SpeechRecognized -= SpeechEngine_SpeechRecognized;
                 _speechEngine.RecognizeCompleted -= SpeechEngine_RecognizeCompleted;
                 _speechEngine.Dispose();
                 _speechEngine = null;
             }
+
+            // Gỡ bỏ các sự kiện khác
+            if (btnLuu != null) btnLuu.Click -= BtnLuu_Click;
+            if (btnRecord != null) btnRecord.Click -= BtnRecord_Click;
+            if (cbLop != null) cbLop.SelectedIndexChanged -= CbLop_SelectedIndexChanged;
         }
         base.Dispose(disposing);
     }

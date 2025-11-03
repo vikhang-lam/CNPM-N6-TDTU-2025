@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
+using System.Diagnostics; 
 
 namespace N6
 {
@@ -13,6 +14,7 @@ namespace N6
         private float baseHeight = 782f;
         private Dictionary<Control, float> baseFonts = new Dictionary<Control, float>();
 
+        // --- P/Invoke để di chuyển Form không viền ---
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HT_CAPTION = 0x2;
 
@@ -29,6 +31,7 @@ namespace N6
                 SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
             }
         }
+        // --- Kết thúc P/Invoke ---
 
         public login()
         {
@@ -61,41 +64,36 @@ namespace N6
 
         private void login_Load(object sender, EventArgs e)
         {
-            paneluser1.BorderStyle = BorderStyle.None;
-            paneluser2.BorderStyle = BorderStyle.None;
-            paneluser3.BorderStyle = BorderStyle.None;
-            paneluser4.BorderStyle = BorderStyle.None;
+            Panel[] panels = { paneluser1, paneluser2, paneluser3, paneluser4 };
+            foreach (var panel in panels)
+            {
+                panel.BorderStyle = BorderStyle.None;
+                MakePanelRound(panel);
+                // CHUẨN HÓA: Gán một sự kiện Click duy nhất
+                panel.Click += panelUser_Click;
+                // Gán sự kiện Resize
+                panel.Resize += paneluser_Resize;
+            }
 
             labelGreeting.BackColor = Color.Transparent;
             labelInstruction.BackColor = Color.Transparent;
 
-            MakePanelRound(paneluser1);
-            MakePanelRound(paneluser2);
-            MakePanelRound(paneluser3);
-            MakePanelRound(paneluser4);
-
             LoadAndDisplaySavedUsers();
             StoreBaseFonts(this);
 
-            this.paneluser1.Resize += paneluser_Resize;
-            this.paneluser2.Resize += paneluser_Resize;
-            this.paneluser3.Resize += paneluser_Resize;
-            this.paneluser4.Resize += paneluser_Resize;
+            this.pictureBoxAppIcon.MouseClick += pictureBoxAppIcon_MouseClick;
 
-            this.paneluser1.Click += new System.EventHandler(this.paneluser1_Click);
-            this.paneluser2.Click += new System.EventHandler(this.paneluser2_Click);
-            this.paneluser3.Click += new System.EventHandler(this.paneluser3_Click);
-            this.paneluser4.Click += new System.EventHandler(this.paneluser4_Click);
-
-            this.pictureBoxAppIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pictureBoxAppIcon_MouseClick);
-
-            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
-            this.labelGreeting.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
-            this.labelInstruction.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
-            this.pictureBoxAppIcon.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
-            this.panelTopBar.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form_MouseDown);
+            // Gán sự kiện MouseDown để di chuyển Form
+            this.MouseDown += Form_MouseDown;
+            this.labelGreeting.MouseDown += Form_MouseDown;
+            this.labelInstruction.MouseDown += Form_MouseDown;
+            this.pictureBoxAppIcon.MouseDown += Form_MouseDown;
+            this.panelTopBar.MouseDown += Form_MouseDown;
         }
 
+        /// <summary>
+        /// Xử lý khi click chuột phải vào icon: Xóa cache đăng nhập.
+        /// </summary>
         private void pictureBoxAppIcon_MouseClick(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
@@ -116,6 +114,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Tải 3 người dùng gần nhất từ Settings và hiển thị lên các panel.
+        /// </summary>
         private void LoadAndDisplaySavedUsers()
         {
             string u1 = Properties.Settings.Default["User1"]?.ToString();
@@ -128,6 +129,9 @@ namespace N6
             AddPlusSignToPanel(paneluser4);
         }
 
+        /// <summary>
+        /// Xử lý logic responsive khi panel thay đổi kích thước.
+        /// </summary>
         private void paneluser_Resize(object sender, EventArgs e)
         {
             Panel pnl = sender as Panel;
@@ -154,6 +158,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Bo tròn các góc của panel.
+        /// </summary>
         private void MakePanelRound(Panel panel)
         {
             if (panel.Width <= 0 || panel.Height <= 0) return;
@@ -171,6 +178,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Thêm avatar và tên vào một panel người dùng.
+        /// </summary>
         private void AddContentToPanel(Panel panel, string name, Image avatar = null)
         {
             panel.Controls.Clear();
@@ -194,6 +204,9 @@ namespace N6
             paneluser_Resize(panel, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// Tạo một ảnh avatar mặc định.
+        /// </summary>
         private Bitmap MakeAvatar()
         {
             int size = 120;
@@ -218,6 +231,9 @@ namespace N6
             return bmp;
         }
 
+        /// <summary>
+        /// Thêm dấu cộng vào panel "Người dùng khác".
+        /// </summary>
         private void AddPlusSignToPanel(Panel panel)
         {
             panel.Controls.Clear();
@@ -232,7 +248,7 @@ namespace N6
 
             Label otherTeacherLabel = new Label
             {
-                Text = "",
+                Text = "Giáo viên khác", // Bổ sung Text
                 Font = new Font("Segoe UI", 12),
                 ForeColor = Color.FromArgb(97, 97, 97),
                 AutoSize = true
@@ -242,11 +258,13 @@ namespace N6
             panel.Controls.Add(otherTeacherLabel);
         }
 
+        // --- Xử lý các nút trên Title Bar ---
         private void labelClose_Click(object sender, EventArgs e) => this.Close();
         private void labelMinimize_Click(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
         private void labelMaximize_Click(object sender, EventArgs e) =>
             this.WindowState = this.WindowState == FormWindowState.Normal ? FormWindowState.Maximized : FormWindowState.Normal;
 
+        // --- Logic Responsive cho Form ---
         private void login_Resize(object sender, EventArgs e)
         {
             if (this.WindowState == FormWindowState.Minimized) return;
@@ -286,11 +304,22 @@ namespace N6
             }
         }
 
-        private void paneluser1_Click(object sender, EventArgs e) => HandleUserPanelClick(1);
-        private void paneluser2_Click(object sender, EventArgs e) => HandleUserPanelClick(2);
-        private void paneluser3_Click(object sender, EventArgs e) => HandleUserPanelClick(3);
-        private void paneluser4_Click(object sender, EventArgs e) => HandleUserPanelClick(4);
+        // --- Logic xử lý Đăng nhập ---
 
+        /// <summary>
+        /// CHUẨN HÓA: Một trình xử lý sự kiện duy nhất cho cả 4 panel người dùng.
+        /// </summary>
+        private void panelUser_Click(object sender, EventArgs e)
+        {
+            if (sender == paneluser1) HandleUserPanelClick(1);
+            else if (sender == paneluser2) HandleUserPanelClick(2);
+            else if (sender == paneluser3) HandleUserPanelClick(3);
+            else if (sender == paneluser4) HandleUserPanelClick(4);
+        }
+
+        /// <summary>
+        /// Cập nhật danh sách người dùng đã lưu (MRU - Most Recently Used).
+        /// </summary>
         private void UpdateSavedUsers(string username)
         {
             var users = new List<string>
@@ -309,17 +338,23 @@ namespace N6
             Properties.Settings.Default["User3"] = finalUsers.ElementAtOrDefault(2) ?? "";
             Properties.Settings.Default.Save();
         }
+
+        /// <summary>
+        /// Hiển thị Form Quên Mật Khẩu dưới dạng Dialog.
+        /// </summary>
         private void ShowForgotPasswordForm()
         {
-            // Form login (this) sẽ tự động bị vô hiệu hóa 
+            // Form login (this) sẽ tự động bị vô hiệu hóa
             // cho đến khi form quên mật khẩu đóng lại.
             using (var forgotForm = new ForgotPasswordForm())
             {
                 forgotForm.ShowDialog(this);
             }
-            // Sau khi form này đóng, người dùng sẽ quay lại
-            // màn hình chọn user (form login)
         }
+
+        /// <summary>
+        /// Xử lý logic chính khi một panel người dùng được click.
+        /// </summary>
         private void HandleUserPanelClick(int panelIndex)
         {
             try
@@ -356,29 +391,30 @@ namespace N6
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi hệ thống: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // CHUẨN HÓA: Không "nuốt" lỗi. Phải thông báo cho người dùng.
+                MessageBox.Show("Đã xảy ra lỗi không mong muốn: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Debug.WriteLine($"Lỗi HandleUserPanelClick: {ex}");
             }
         }
 
-        // === PHƯƠNG THỨC ĐÃ ĐƯỢC CẬP NHẬT ===
+        /// <summary>
+        /// Hiển thị Form Đăng Ký Giáo Viên dưới dạng Dialog.
+        /// </summary>
         private void ShowRegistrationForm()
         {
-            // Không ẩn form login nữa
-            // this.Visible = false; 
-
             using (var registrationForm = new TeacherRegistrationForm())
             {
                 // Hiển thị form đăng ký. Form login sẽ tự động bị vô hiệu hóa cho đến khi form này đóng.
                 registrationForm.ShowDialog(this);
             }
 
-            // Không cần hiện lại form login
-            // this.Visible = true;
-
-            // Chỉ cần tải lại danh sách người dùng
+            // Tải lại danh sách người dùng phòng trường hợp admin duyệt luôn
             LoadAndDisplaySavedUsers();
         }
 
+        /// <summary>
+        /// Xử lý logic kiểm tra đăng nhập với DatabaseHelper.
+        /// </summary>
         private void ProcessLogin(string username, string password)
         {
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
@@ -392,23 +428,25 @@ namespace N6
 
             try
             {
+                // Xử lý đăng nhập Admin
                 if (cleanUsername.Equals("admin", StringComparison.OrdinalIgnoreCase))
                 {
                     if (DatabaseHelper.CheckAdminLogin(cleanUsername, cleanPassword))
                     {
                         this.DialogResult = DialogResult.OK;
-                        Properties.Settings.Default["CurrentUser"] = "Admin";
+                        Properties.Settings.Default["CurrentUser"] = "admin";
                         Properties.Settings.Default["isAdmin"] = true;
                         Properties.Settings.Default.Save();
                         this.Close();
                     }
                     else
                     {
-                        MessageBox.Show("Sai tài khoản hoặc mật khẩu của Admin.", "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("Sai tài khoản hoặc mật khẩu ", "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                     return;
                 }
 
+                // Xử lý đăng nhập Giáo viên
                 LoginStatus status = DatabaseHelper.CheckTeacherLogin(cleanUsername, cleanPassword);
                 switch (status)
                 {
@@ -434,32 +472,38 @@ namespace N6
                 MessageBox.Show("Lỗi trong quá trình đăng nhập: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        /// <summary>
+        /// Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
+        /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
             {
+                // Gỡ các sự kiện của Form
                 this.Resize -= login_Resize;
                 this.MouseDown -= Form_MouseDown;
 
+                // Gỡ các sự kiện của Control
                 if (paneluser1 != null)
                 {
                     paneluser1.Resize -= paneluser_Resize;
-                    paneluser1.Click -= paneluser1_Click;
+                    paneluser1.Click -= panelUser_Click; 
                 }
                 if (paneluser2 != null)
                 {
                     paneluser2.Resize -= paneluser_Resize;
-                    paneluser2.Click -= paneluser2_Click;
+                    paneluser2.Click -= panelUser_Click; 
                 }
                 if (paneluser3 != null)
                 {
                     paneluser3.Resize -= paneluser_Resize;
-                    paneluser3.Click -= paneluser3_Click;
+                    paneluser3.Click -= panelUser_Click; 
                 }
                 if (paneluser4 != null)
                 {
-                    paneluser4.Resize -= paneluser_Resize;
-                    paneluser4.Click -= paneluser4_Click;
+                    paneluser4.Resize -= paneluser_Resize; 
+                    paneluser4.Click -= panelUser_Click;
                 }
                 if (pictureBoxAppIcon != null)
                 {

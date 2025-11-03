@@ -1,15 +1,18 @@
 ﻿using System;
-using System.Collections.Generic; // Cần thêm cái này
+using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.Diagnostics; // Thêm
 
 namespace N6
 {
-    // Lớp helper nhỏ để lưu MaHS trong CheckedListBox
+    /// <summary>
+    /// Lớp helper nhỏ để lưu trữ MaHS và HoTen trong CheckedListBox.
+    /// </summary>
     public class StudentItem
     {
         public string HoTen { get; set; }
@@ -20,64 +23,78 @@ namespace N6
         }
     }
 
+    /// <summary>
+    /// UserControl quản lý nghiệp vụ Lớp học (chi tiết học sinh, phân công giảng dạy, chuyển lớp).
+    /// </summary>
     public partial class UC_QuanLyLopHocSinh : UserControl
     {
         private DataTable allLopHoc;
         private DataTable allGiaoVien;
-        private bool isProgrammaticChange = false;
+        private bool isProgrammaticChange = false; // Cờ để chặn các sự kiện thay đổi lồng nhau
 
-        // ### MỚI: Khai báo các control cho panel chuyển lớp ###
+        // Controls cho panel chuyển lớp (được tạo động)
         private CheckedListBox clbHocSinhChuyen;
         private ComboBox cboLopMoi_Inline;
         private Button btnXacNhanChuyen;
         private Button btnHuyChuyen;
 
+        // Biến lưu trữ sự kiện động để gỡ bỏ (Dispose)
+        private EventHandler btnXacNhanChuyenClickHandler;
+        private EventHandler btnHuyChuyenClickHandler;
+        private PaintEventHandler pnlFilterPaintHandler;
+        private PaintEventHandler pnlClassInfoCardPaintHandler;
+        private PaintEventHandler pnlAssignGvcnPaintHandler;
+        private DataGridViewEditingControlShowingEventHandler dgvEditingControlShowingHandler;
+        private DataGridViewCellEventHandler dgvCellValueChangedHandler;
+        private DataGridViewDataErrorEventHandler dgvDataErrorHandler;
+
+
         public UC_QuanLyLopHocSinh()
         {
             InitializeComponent();
-
             AttachEventHandlers();
-
-            // ### MỚI: Khởi tạo panel chuyển lớp ###
             InitializeChuyenLopPanel();
-            // #####################################
-
             LoadInitialData();
             StyleControls();
         }
 
-        // ### MỚI: Hàm khởi tạo các control trong pnlChuyenLop ###
+        /// <summary>
+        /// Gán các sự kiện cho các control đã có trong Designer.
+        /// </summary>
+        private void AttachEventHandlers()
+        {
+            this.cboKhoi.SelectedIndexChanged += new System.EventHandler(this.cboKhoi_SelectedIndexChanged);
+            this.dgvLopHoc.SelectionChanged += new System.EventHandler(this.dgvLopHoc_SelectionChanged);
+            this.btnLuuHS.Click += new System.EventHandler(this.btnLuuHS_Click);
+            this.btnXoaHS.Click += new System.EventHandler(this.btnXoaHS_Click);
+            this.btnImportHS.Click += new System.EventHandler(this.btnImportHS_Click);
+            this.btnAssignGvcn.Click += new System.EventHandler(this.btnAssignGvcn_Click);
+            this.btnImportPhanCong.Click += new System.EventHandler(this.btnImportPhanCong_Click);
+
+            if (this.btnChuyenLop != null)
+            {
+                this.btnChuyenLop.Click += new System.EventHandler(this.btnChuyenLop_Click);
+            }
+        }
+
+        /// <summary>
+        /// Khởi tạo các control động bên trong pnlChuyenLop.
+        /// </summary>
         private void InitializeChuyenLopPanel()
         {
-            // Kiểm tra xem pnlChuyenLop đã được thêm từ Designer chưa
+            // Kiểm tra nếu pnlChuyenLop không tồn tại (an toàn)
             if (this.pnlChuyenLop == null)
             {
-                // Nếu không, tạo một cái (dự phòng)
-                this.pnlChuyenLop = new Panel
-                {
-                    Name = "pnlChuyenLop",
-                    Dock = DockStyle.Right,
-                    Width = 300,
-                    Visible = false,
-                    BorderStyle = BorderStyle.FixedSingle,
-                    BackColor = Color.White,
-                    Padding = new Padding(10)
-                };
-                this.Controls.Add(this.pnlChuyenLop);
+                Debug.WriteLine("Lỗi: pnlChuyenLop chưa được khởi tạo trong Designer.");
+                return;
             }
 
-            // --- Tạo các controls ---
             var lblTitle = new Label { Text = "Chuyển Lớp Hàng Loạt", Dock = DockStyle.Top, Font = new Font("Segoe UI", 12F, FontStyle.Bold), Height = 30, ForeColor = Color.FromArgb(0, 123, 255) };
             var lblChonHS = new Label { Text = "1. Chọn học sinh cần chuyển:", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9F), Height = 20 };
-
             clbHocSinhChuyen = new CheckedListBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10F), BorderStyle = BorderStyle.FixedSingle };
-
             var lblChonLop = new Label { Text = "2. Chọn lớp chuyển đến:", Dock = DockStyle.Bottom, Font = new Font("Segoe UI", 9F), Height = 20 };
-
             cboLopMoi_Inline = new ComboBox { Dock = DockStyle.Bottom, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Height = 28 };
-
             var pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 40, Padding = new Padding(0, 5, 0, 0) };
-
             btnXacNhanChuyen = new Button { Text = "Xác nhận", Dock = DockStyle.Right, Width = 100, BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnHuyChuyen = new Button { Text = "Hủy", Dock = DockStyle.Right, Width = 80, FlatStyle = FlatStyle.Flat };
 
@@ -85,64 +102,32 @@ namespace N6
             pnlButtons.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 10 }); // Spacer
             pnlButtons.Controls.Add(btnHuyChuyen);
 
-            // Gán sự kiện
-            btnXacNhanChuyen.Click += new EventHandler(this.btnXacNhanChuyen_Click);
-            btnHuyChuyen.Click += new EventHandler(this.btnHuyChuyen_Click);
+            // Gán sự kiện (và lưu handler để Dispose)
+            btnXacNhanChuyenClickHandler = new EventHandler(this.btnXacNhanChuyen_Click);
+            btnHuyChuyenClickHandler = new EventHandler(this.btnHuyChuyen_Click);
+            btnXacNhanChuyen.Click += btnXacNhanChuyenClickHandler;
+            btnHuyChuyen.Click += btnHuyChuyenClickHandler;
 
             // Thêm controls vào panel (thứ tự quan trọng)
-            this.pnlChuyenLop.Controls.Add(clbHocSinhChuyen); // Thêm listbox vào giữa
+            this.pnlChuyenLop.Controls.Add(clbHocSinhChuyen);
             this.pnlChuyenLop.Controls.Add(lblChonHS);
             this.pnlChuyenLop.Controls.Add(lblTitle);
-            this.pnlChuyenLop.Controls.Add(pnlButtons); // Thêm panel nút ở dưới
+            this.pnlChuyenLop.Controls.Add(pnlButtons);
             this.pnlChuyenLop.Controls.Add(cboLopMoi_Inline);
             this.pnlChuyenLop.Controls.Add(lblChonLop);
         }
 
-        private void AttachEventHandlers()
-        {
-            // Sự kiện lọc Khối
-            this.cboKhoi.SelectedIndexChanged -= new System.EventHandler(this.cboKhoi_SelectedIndexChanged);
-            this.cboKhoi.SelectedIndexChanged += new System.EventHandler(this.cboKhoi_SelectedIndexChanged);
-
-            // Sự kiện chọn Lớp
-            this.dgvLopHoc.SelectionChanged -= new System.EventHandler(this.dgvLopHoc_SelectionChanged);
-            this.dgvLopHoc.SelectionChanged += new System.EventHandler(this.dgvLopHoc_SelectionChanged);
-
-            // Sự kiện các nút quản lý Học Sinh
-            this.btnLuuHS.Click -= new System.EventHandler(this.btnLuuHS_Click);
-            this.btnLuuHS.Click += new System.EventHandler(this.btnLuuHS_Click);
-
-            this.btnXoaHS.Click -= new System.EventHandler(this.btnXoaHS_Click);
-            this.btnXoaHS.Click += new System.EventHandler(this.btnXoaHS_Click);
-
-            this.btnImportHS.Click -= new System.EventHandler(this.btnImportHS_Click);
-            this.btnImportHS.Click += new System.EventHandler(this.btnImportHS_Click);
-
-            // Sự kiện nút Phân công GVCN
-            this.btnAssignGvcn.Click -= new System.EventHandler(this.btnAssignGvcn_Click);
-            this.btnAssignGvcn.Click += new System.EventHandler(this.btnAssignGvcn_Click);
-
-            // Sự kiện nút Import Phân công (Môn học)
-            this.btnImportPhanCong.Click -= new System.EventHandler(this.btnImportPhanCong_Click);
-            this.btnImportPhanCong.Click += new System.EventHandler(this.btnImportPhanCong_Click);
-
-            // Sự kiện nút Chuyển Lớp (NÚT MỚI)
-            if (this.btnChuyenLop != null)
-            {
-                this.btnChuyenLop.Click -= new System.EventHandler(this.btnChuyenLop_Click);
-                this.btnChuyenLop.Click += new System.EventHandler(this.btnChuyenLop_Click);
-            }
-        }
-
-
         #region SETUP GIAO DIỆN & DỮ LIỆU
 
+        /// <summary>
+        /// Tải dữ liệu ban đầu (cache Lớp, GV) và cài đặt giao diện.
+        /// </summary>
         private void LoadInitialData()
         {
             try
             {
-                allLopHoc = DatabaseHelper.GetAllLopHoc();
-                allGiaoVien = DatabaseHelper.GetAllGiaoVien();
+                allLopHoc = DatabaseHelper.GetAllClasses();
+                allGiaoVien = DatabaseHelper.GetAllTeachers();
 
                 var khoiList = allLopHoc.AsEnumerable()
                                         .Select(row => row.Field<string>("Khoi"))
@@ -154,11 +139,14 @@ namespace N6
 
                 LoadUnassignedGvcn();
 
-                DatabaseHelper.StyleDataGridView(dgvHocSinh);
-                DatabaseHelper.StyleDataGridView(dgvPhanCong);
-                StyleClassListGrid();
+                // Style các DataGridView động (phải gọi trước khi gán sự kiện)
+                StyleDataGridView(dgvHocSinh);
+                StyleDataGridView(dgvPhanCong);
+                StyleClassListGrid(); // Style cho dgvLopHoc (từ Designer)
 
-                dgvPhanCong.DataError += new DataGridViewDataErrorEventHandler(dgvPhanCong_DataError);
+                // Gán sự kiện DataError (để gỡ trong Dispose)
+                dgvDataErrorHandler = new DataGridViewDataErrorEventHandler(dgvPhanCong_DataError);
+                dgvPhanCong.DataError += dgvDataErrorHandler;
             }
             catch (Exception ex)
             {
@@ -166,6 +154,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Tải danh sách GV chưa làm chủ nhiệm vào ComboBox.
+        /// </summary>
         private void LoadUnassignedGvcn()
         {
             cboGvcn.DataSource = DatabaseHelper.GetUnassignedHomeroomTeachers();
@@ -175,16 +166,25 @@ namespace N6
             cboGvcn.Text = "Chọn giáo viên...";
         }
 
+        /// <summary>
+        /// Áp dụng style cho các panel và nút bấm.
+        /// </summary>
         private void StyleControls()
         {
-            pnlFilter.Paint += (s, e) => DrawShadow(s, e, 12, Color.White);
-            pnlClassInfoCard.Paint += (s, e) => DrawShadow(s, e, 12, Color.White);
-            pnlAssignGvcn.Paint += (s, e) => DrawShadow(s, e, 8, Color.FromArgb(248, 249, 250), true);
+            // Gán sự kiện Paint (để gỡ trong Dispose)
+            pnlFilterPaintHandler = (s, e) => DrawShadow(s, e, 12, Color.White);
+            pnlClassInfoCardPaintHandler = (s, e) => DrawShadow(s, e, 12, Color.White);
+            pnlAssignGvcnPaintHandler = (s, e) => DrawShadow(s, e, 8, Color.FromArgb(248, 249, 250), true);
 
+            pnlFilter.Paint += pnlFilterPaintHandler;
+            pnlClassInfoCard.Paint += pnlClassInfoCardPaintHandler;
+            pnlAssignGvcn.Paint += pnlAssignGvcnPaintHandler;
+
+            // Style các nút
             Button[] buttons = { btnThemHS, btnLuuHS, btnAssignGvcn, btnImportHS, btnImportPhanCong };
             foreach (var btn in buttons)
             {
-                if (btn == null) continue; // Bỏ qua nếu nút không tồn tại
+                if (btn == null) continue;
                 btn.BackColor = Color.FromArgb(0, 123, 255);
                 btn.ForeColor = Color.White;
                 btn.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
@@ -208,9 +208,12 @@ namespace N6
                 btnChuyenLop.Text = "Chuyển Lớp";
             }
 
-            btnAssignGvcn.BackColor = Color.FromArgb(40, 167, 69);
+            btnAssignGvcn.BackColor = Color.FromArgb(40, 167, 69); // Xanh lá
         }
 
+        /// <summary>
+        /// Áp dụng style cho lưới danh sách lớp (dgvLopHoc).
+        /// </summary>
         private void StyleClassListGrid()
         {
             isProgrammaticChange = true;
@@ -218,8 +221,7 @@ namespace N6
             if (dgvLopHoc.Columns["TenLop"] != null) dgvLopHoc.Columns["TenLop"].HeaderText = "DANH SÁCH LỚP HỌC";
             if (dgvLopHoc.Columns["MaLop"] != null) dgvLopHoc.Columns["MaLop"].Visible = false;
             if (dgvLopHoc.Columns["Khoi"] != null) dgvLopHoc.Columns["Khoi"].Visible = false;
-            DatabaseHelper.StyleDataGridView(dgvLopHoc);
-
+            StyleDataGridView(dgvLopHoc); // Áp dụng style chung
             isProgrammaticChange = false;
         }
 
@@ -227,6 +229,9 @@ namespace N6
 
         #region XỬ LÝ SỰ KIỆN CHUNG
 
+        /// <summary>
+        /// Lọc danh sách lớp theo khối.
+        /// </summary>
         private void cboKhoi_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (cboKhoi.SelectedItem == null) return;
@@ -236,16 +241,18 @@ namespace N6
             ClearAllDetails();
         }
 
+        /// <summary>
+        /// Tải chi tiết lớp khi chọn một lớp trong lưới.
+        /// </summary>
         private void dgvLopHoc_SelectionChanged(object sender, EventArgs e)
         {
             if (isProgrammaticChange || dgvLopHoc.CurrentRow == null) return;
 
-            // ### SỬA LỖI: Khi đổi lớp, phải ẩn panel chuyển lớp
+            // Khi đổi lớp, ẩn panel chuyển lớp
             if (pnlChuyenLop.Visible)
             {
                 pnlChuyenLop.Visible = false;
             }
-            // ###############################################
 
             string selectedMaLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
             LoadClassDetails(selectedMaLop);
@@ -255,6 +262,9 @@ namespace N6
 
         #region HỌC SINH: THÊM, SỬA, XÓA, IMPORT, CHUYỂN LỚP
 
+        /// <summary>
+        /// Xử lý nút Xóa Học Sinh.
+        /// </summary>
         private void btnXoaHS_Click(object sender, EventArgs e)
         {
             if (dgvHocSinh.CurrentRow == null)
@@ -272,7 +282,7 @@ namespace N6
             {
                 try
                 {
-                    DatabaseHelper.DeleteHocSinh(maHS);
+                    DatabaseHelper.DeleteStudent(maHS);
                     MessageBox.Show("Xóa học sinh thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     string selectedMaLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
@@ -285,6 +295,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Xử lý nút Lưu thay đổi (inline) trên lưới Học Sinh.
+        /// </summary>
         private void btnLuuHS_Click(object sender, EventArgs e)
         {
             DataTable dt = (dgvHocSinh.DataSource as DataTable);
@@ -311,7 +324,7 @@ namespace N6
                     string diaChi = row["DiaChi"].ToString();
                     string danToc = row["DanToc"].ToString();
 
-                    DatabaseHelper.UpdateHocSinh(maHS, hoTen, ngaySinh, gioiTinh, sdtPH, diaChi, danToc);
+                    DatabaseHelper.UpdateStudent(maHS, hoTen, ngaySinh, gioiTinh, sdtPH, diaChi, danToc);
                     successCount++;
                 }
 
@@ -325,6 +338,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Xử lý nút Import Học Sinh (mở dialog chọn kiểu Import).
+        /// </summary>
         private void btnImportHS_Click(object sender, EventArgs e)
         {
             string selectedKhoi = (cboKhoi.SelectedItem ?? "Tất cả các khối").ToString();
@@ -362,17 +378,17 @@ namespace N6
             }
         }
 
-        // ### THAY THẾ HÀM CŨ BẰNG HÀM MỚI NÀY ###
+        /// <summary>
+        /// Hiển thị panel "Chuyển Lớp Hàng Loạt".
+        /// </summary>
         private void btnChuyenLop_Click(object sender, EventArgs e)
         {
-            // 1. Kiểm tra đã chọn lớp chưa
             if (dgvLopHoc.CurrentRow == null)
             {
                 MessageBox.Show("Vui lòng chọn một lớp trước khi thực hiện chuyển lớp.", "Chưa chọn lớp", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // 2. Lấy thông tin lớp hiện tại
             string maLopHienTai = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
             DataTable dtHocSinh = dgvHocSinh.DataSource as DataTable;
 
@@ -382,7 +398,7 @@ namespace N6
                 return;
             }
 
-            // 3. Lọc danh sách lớp đến (loại bỏ lớp hiện tại)
+            // Lọc danh sách lớp đến (loại bỏ lớp hiện tại)
             var filteredRows = allLopHoc.AsEnumerable()
                                 .Where(row => row.Field<string>("MaLop") != maLopHienTai);
 
@@ -392,8 +408,6 @@ namespace N6
                 return;
             }
             DataTable dtLopDen = filteredRows.CopyToDataTable();
-
-            // 4. Đổ dữ liệu vào các control trong panel
 
             // Đổ dữ liệu Học sinh vào CheckedListBox
             clbHocSinhChuyen.Items.Clear();
@@ -412,12 +426,14 @@ namespace N6
             cboLopMoi_Inline.ValueMember = "MaLop";
             cboLopMoi_Inline.SelectedIndex = 0;
 
-            // 5. Hiển thị panel
+            // Hiển thị panel
             pnlChuyenLop.Visible = true;
             pnlChuyenLop.BringToFront();
         }
 
-        // ### MỚI: Sự kiện cho nút "Hủy" trên panel
+        /// <summary>
+        /// Xử lý nút "Hủy" trên panel chuyển lớp.
+        /// </summary>
         private void btnHuyChuyen_Click(object sender, EventArgs e)
         {
             pnlChuyenLop.Visible = false;
@@ -428,10 +444,11 @@ namespace N6
             }
         }
 
-        // ### MỚI: Sự kiện cho nút "Xác nhận" trên panel
+        /// <summary>
+        /// Xử lý nút "Xác nhận" trên panel chuyển lớp (gọi SP).
+        /// </summary>
         private void btnXacNhanChuyen_Click(object sender, EventArgs e)
         {
-            // 1. Lấy danh sách học sinh được chọn
             List<string> maHocSinhList = new List<string>();
             foreach (object itemChecked in clbHocSinhChuyen.CheckedItems)
             {
@@ -447,7 +464,6 @@ namespace N6
                 return;
             }
 
-            // 2. Lấy lớp chuyển đến
             if (cboLopMoi_Inline.SelectedValue == null)
             {
                 MessageBox.Show("Lỗi: Không xác định được lớp chuyển đến.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -457,14 +473,12 @@ namespace N6
             string tenLopMoi = cboLopMoi_Inline.Text;
             string maLopHienTai = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
 
-            // 3. Thực hiện chuyển
             try
             {
-                int soHocSinhDaChuyen = DatabaseHelper.UpdateHocSinhLop_Multi(maHocSinhList, maLopMoi);
+                int soHocSinhDaChuyen = DatabaseHelper.UpdateStudentClass_Multi(maHocSinhList, maLopMoi);
 
                 MessageBox.Show($"Đã chuyển thành công {soHocSinhDaChuyen} học sinh sang lớp '{tenLopMoi}'.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // 4. Ẩn panel và tải lại dữ liệu
                 pnlChuyenLop.Visible = false;
                 LoadClassDetails(maLopHienTai); // Tải lại lớp hiện tại (sĩ số giảm)
             }
@@ -474,11 +488,13 @@ namespace N6
             }
         }
 
-
         #endregion
 
         #region PHÂN CÔNG GIẢNG DẠY: GVCN, MÔN HỌC, IMPORT
 
+        /// <summary>
+        /// Xử lý nút Gán GVCN.
+        /// </summary>
         private void btnAssignGvcn_Click(object sender, EventArgs e)
         {
             if (dgvLopHoc.CurrentRow == null)
@@ -498,30 +514,19 @@ namespace N6
                 string maLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
                 string maGV = cboGvcn.SelectedValue.ToString();
 
-                DatabaseHelper.UpdateGvcnForLop(maLop, maGV);
+                DatabaseHelper.UpdateHomeroomTeacherForClass(maLop, maGV);
 
                 MessageBox.Show("Cập nhật giáo viên chủ nhiệm thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // --- BẮT ĐẦU SỬA LỖI ---
-
-                // 1. Lưu lại bộ lọc khối hiện tại
+                // Sửa lỗi: Tải lại cache và áp dụng lại filter
                 string selectedKhoi = (cboKhoi.SelectedItem ?? "Tất cả các khối").ToString();
-
-                // 2. Tải lại cache (tạo ra bảng mới)
-                allLopHoc = DatabaseHelper.GetAllLopHoc();
-
-                // 3. (FIX) Gán lại DataSource của Grid vào DefaultView của Bảng MỚI
+                allLopHoc = DatabaseHelper.GetAllClasses();
                 isProgrammaticChange = true;
                 dgvLopHoc.DataSource = allLopHoc.DefaultView;
                 isProgrammaticChange = false;
-
-                // 4. (FIX) Áp dụng lại bộ lọc khối cho Bảng Mới
                 allLopHoc.DefaultView.RowFilter = (selectedKhoi == "Tất cả các khối") ? string.Empty : $"Khoi = '{selectedKhoi}'";
 
-                // 5. Tải lại chi tiết lớp
                 LoadClassDetails(maLop);
-
-                // --- KẾT THÚC SỬA LỖI ---
             }
             catch (Exception ex)
             {
@@ -529,6 +534,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Xử lý khi ComboBox trong lưới Phân Công được hiển thị.
+        /// </summary>
         private void dgvPhanCong_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
         {
             if (dgvPhanCong.CurrentCell.ColumnIndex == dgvPhanCong.Columns["AssignTeacherColumn"].Index && e.Control is ComboBox comboBox)
@@ -536,7 +544,6 @@ namespace N6
                 comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
 
                 string tenMon = dgvPhanCong.CurrentRow.Cells["TenMon"].Value.ToString();
-
                 DataView dv = new DataView(allGiaoVien);
 
                 if (string.IsNullOrEmpty(tenMon))
@@ -545,16 +552,17 @@ namespace N6
                 }
                 else
                 {
+                    // Lọc GV dựa trên môn học
                     string safeTenMon = tenMon.Replace("'", "''");
                     dv.RowFilter = $"CacMonDay LIKE '%{safeTenMon}%'";
                 }
 
                 DataTable filteredTeachers = dv.ToTable();
 
+                // Thêm dòng "(Trống)"
                 DataRow emptyRow = filteredTeachers.NewRow();
                 emptyRow["Ten"] = "(Trống)";
                 emptyRow["MaGV"] = "";
-
                 foreach (DataColumn col in filteredTeachers.Columns)
                 {
                     if (emptyRow.IsNull(col) && col.DataType == typeof(string))
@@ -570,7 +578,9 @@ namespace N6
             }
         }
 
-
+        /// <summary>
+        /// Xử lý khi giá trị trong ComboBox (lưới Phân Công) thay đổi -> Lưu ngay lập tức.
+        /// </summary>
         private void dgvPhanCong_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
             if (isProgrammaticChange || e.RowIndex < 0 || dgvPhanCong.Columns[e.ColumnIndex].Name != "AssignTeacherColumn") return;
@@ -581,11 +591,12 @@ namespace N6
                 object newMaGVObj = dgvPhanCong.Rows[e.RowIndex].Cells["AssignTeacherColumn"].Value;
                 string newMaGV = (newMaGVObj == DBNull.Value || newMaGVObj == null) ? null : newMaGVObj.ToString();
 
-                DatabaseHelper.UpdatePhanCong(maLop, maMon, newMaGV);
+                DatabaseHelper.UpdateTeachingAssignment(maLop, maMon, newMaGV);
 
+                // Cập nhật lại cột "Tên GV hiện tại"
                 var gv = allGiaoVien.AsEnumerable().FirstOrDefault(r => r.Field<string>("MaGV") == newMaGV);
                 isProgrammaticChange = true;
-                dgvPhanCong.Rows[e.RowIndex].Cells["TenGV"].Value = gv != null ? gv.Field<string>("Ten") : "Trống";
+                dgvPhanCong.Rows[e.RowIndex].Cells["TenGV"].Value = gv != null ? gv.Field<string>("Ten") : "(Trống)";
                 isProgrammaticChange = false;
             }
             catch (Exception ex)
@@ -594,11 +605,17 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Bắt lỗi DataError (ví dụ: khi ComboBox bị lỗi binding).
+        /// </summary>
         private void dgvPhanCong_DataError(object sender, DataGridViewDataErrorEventArgs e)
         {
-            e.ThrowException = false;
+            e.ThrowException = false; // Ngăn không cho crash
         }
 
+        /// <summary>
+        /// Xử lý nút Import Phân công (Môn học).
+        /// </summary>
         private void btnImportPhanCong_Click(object sender, EventArgs e)
         {
             if (dgvLopHoc.CurrentRow == null)
@@ -613,7 +630,8 @@ namespace N6
             {
                 if (importForm.ShowDialog() == DialogResult.OK)
                 {
-                    dgvPhanCong.DataSource = DatabaseHelper.GetPhanCongGiangDayByLop(maLop);
+                    // Tải lại lưới phân công
+                    dgvPhanCong.DataSource = DatabaseHelper.GetTeachingAssignmentsByClass(maLop);
                     CustomizeAssignmentGrid();
                 }
             }
@@ -621,14 +639,17 @@ namespace N6
 
         #endregion
 
-        #region HÀM TẢI DỮ LIỆU & TÙY CHỈNH GIAO DIỆN
+        #region HÀM TẢI DỮ LIỆU & TÙY CHỈNH GIAO DIỆN (Helper)
 
+        /// <summary>
+        /// Tải toàn bộ chi tiết của lớp (Info, HS, Phân công).
+        /// </summary>
         private void LoadClassDetails(string maLop)
         {
             isProgrammaticChange = true;
             try
             {
-                DataRow classInfo = DatabaseHelper.GetLopHocDetails(maLop);
+                DataRow classInfo = DatabaseHelper.GetClassDetails(maLop);
                 if (classInfo != null)
                 {
                     lblTenLop.Text = classInfo["TenLop"].ToString();
@@ -643,11 +664,13 @@ namespace N6
                     string currentMaGVCN = classInfo["MaGVCN"]?.ToString() ?? "";
                     string currentTenGVCN = classInfo["TenGVCN"]?.ToString() ?? "Chưa có";
 
+                    // Thêm dòng "(Trống)"
                     DataRow emptyRow = dtAvailableTeachers.NewRow();
                     emptyRow["Ten"] = "(Trống)";
                     emptyRow["MaGV"] = "";
                     dtAvailableTeachers.Rows.InsertAt(emptyRow, 0);
 
+                    // Nếu GVCN hiện tại vẫn còn (đang CN lớp khác?), thêm họ vào list
                     if (!string.IsNullOrEmpty(currentMaGVCN))
                     {
                         bool exists = dtAvailableTeachers.AsEnumerable()
@@ -664,27 +687,30 @@ namespace N6
                     cboGvcn.DataSource = dtAvailableTeachers;
                     cboGvcn.DisplayMember = "Ten";
                     cboGvcn.ValueMember = "MaGV";
+                    cboGvcn.SelectedValue = currentMaGVCN; // Đặt giá trị đã chọn
 
-                    cboGvcn.SelectedValue = currentMaGVCN;
-
-                    if (currentTenGVCN == "Chưa có")
-                    {
-                        lblGVCN.ForeColor = Color.FromArgb(220, 53, 69);
-                    }
-                    else
-                    {
-                        lblGVCN.ForeColor = Color.FromArgb(108, 117, 125);
-                    }
+                    lblGVCN.ForeColor = (currentTenGVCN == "Chưa có") ? Color.FromArgb(220, 53, 69) : Color.FromArgb(108, 117, 125);
                 }
-                dgvHocSinh.DataSource = DatabaseHelper.GetHocSinhByLop(maLop);
+
+                // Tải lưới
+                dgvHocSinh.DataSource = DatabaseHelper.GetStudentsByClass(maLop);
                 CustomizeStudentGrid();
-                dgvPhanCong.DataSource = DatabaseHelper.GetPhanCongGiangDayByLop(maLop);
+                dgvPhanCong.DataSource = DatabaseHelper.GetTeachingAssignmentsByClass(maLop);
                 CustomizeAssignmentGrid();
             }
-            catch (Exception ex) { MessageBox.Show("Lỗi khi tải chi tiết lớp: " + ex.Message); }
-            finally { isProgrammaticChange = false; }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi tải chi tiết lớp: " + ex.Message);
+            }
+            finally
+            {
+                isProgrammaticChange = false;
+            }
         }
 
+        /// <summary>
+        /// Xóa chi tiết khi không có lớp nào được chọn.
+        /// </summary>
         private void ClearAllDetails()
         {
             lblTenLop.Text = "Chọn lớp để xem thông tin";
@@ -696,18 +722,20 @@ namespace N6
             dgvPhanCong.DataSource = null;
             pnlAssignGvcn.Visible = false;
 
-            // ### MỚI: Ẩn panel chuyển lớp khi clear
             if (pnlChuyenLop != null)
             {
                 pnlChuyenLop.Visible = false;
             }
         }
 
+        /// <summary>
+        /// Tùy chỉnh cột lưới Học Sinh.
+        /// </summary>
         private void CustomizeStudentGrid()
         {
             if (dgvHocSinh.DataSource == null || dgvHocSinh.Columns.Count == 0) return;
 
-            dgvHocSinh.ReadOnly = false;
+            dgvHocSinh.ReadOnly = false; // Cho phép sửa
 
             if (dgvHocSinh.Columns.Contains("STT"))
             {
@@ -740,6 +768,9 @@ namespace N6
             dgvHocSinh.Columns["DiaChi"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
         }
 
+        /// <summary>
+        /// Tùy chỉnh cột lưới Phân Công (thêm ComboBox động).
+        /// </summary>
         private void CustomizeAssignmentGrid()
         {
             if (dgvPhanCong.DataSource == null || dgvPhanCong.Columns.Count == 0) return;
@@ -752,11 +783,11 @@ namespace N6
             dgvPhanCong.Columns["TenGV"].HeaderText = "Giáo Viên Hiện Tại";
             dgvPhanCong.Columns["TenGV"].ReadOnly = true;
 
+            // Nguồn dữ liệu cho ComboBox (copy từ cache)
             DataTable dtColumnSource = allGiaoVien.Copy();
             DataRow emptyRowCol = dtColumnSource.NewRow();
             emptyRowCol["Ten"] = "(Trống)";
             emptyRowCol["MaGV"] = "";
-
             foreach (DataColumn col in dtColumnSource.Columns)
             {
                 if (emptyRowCol.IsNull(col) && col.DataType == typeof(string))
@@ -778,21 +809,29 @@ namespace N6
 
             dgvPhanCong.Columns.Add(comboBoxColumn);
 
+            // Gán giá trị ban đầu cho ComboBox
             foreach (DataGridViewRow row in dgvPhanCong.Rows)
             {
                 row.Cells["AssignTeacherColumn"].Value = row.Cells["MaGV"].Value;
             }
 
-            dgvPhanCong.EditingControlShowing -= dgvPhanCong_EditingControlShowing;
-            dgvPhanCong.EditingControlShowing += dgvPhanCong_EditingControlShowing;
-            dgvPhanCong.CellValueChanged -= dgvPhanCong_CellValueChanged;
-            dgvPhanCong.CellValueChanged += dgvPhanCong_CellValueChanged;
+            // Gán sự kiện (lưu handler để Dispose)
+            dgvEditingControlShowingHandler = new DataGridViewEditingControlShowingEventHandler(dgvPhanCong_EditingControlShowing);
+            dgvCellValueChangedHandler = new DataGridViewCellEventHandler(dgvPhanCong_CellValueChanged);
+
+            dgvPhanCong.EditingControlShowing -= dgvEditingControlShowingHandler;
+            dgvPhanCong.EditingControlShowing += dgvEditingControlShowingHandler;
+            dgvPhanCong.CellValueChanged -= dgvCellValueChangedHandler;
+            dgvPhanCong.CellValueChanged += dgvCellValueChangedHandler;
         }
 
         #endregion
 
-        #region HÀM VẼ GIAO DIỆN PHỤ
+        #region HÀM VẼ GIAO DIỆN PHỤ (Helpers)
 
+        /// <summary>
+        /// Vẽ hiệu ứng bo góc và đổ bóng (hoặc viền).
+        /// </summary>
         private void DrawShadow(object sender, PaintEventArgs e, int radius, Color color, bool border = false)
         {
             Control control = sender as Control;
@@ -800,14 +839,47 @@ namespace N6
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             using (GraphicsPath path = CreateRoundedRect(control.ClientRectangle, radius))
             {
-                using (SolidBrush brush = new SolidBrush(color)) { e.Graphics.FillPath(brush, path); }
+                using (SolidBrush brush = new SolidBrush(color))
+                {
+                    e.Graphics.FillPath(brush, path);
+                }
                 if (border)
                 {
-                    using (Pen pen = new Pen(Color.FromArgb(222, 226, 230))) { e.Graphics.DrawPath(pen, path); }
+                    using (Pen pen = new Pen(Color.FromArgb(222, 226, 230)))
+                    {
+                        e.Graphics.DrawPath(pen, path);
+                    }
                 }
             }
         }
 
+        /// <summary>
+        /// Áp dụng style chung cho DataGridView (đã được gọi từ hàm cha).
+        /// </summary>
+        private void StyleDataGridView(DataGridView dgv)
+        {
+            dgv.BorderStyle = BorderStyle.None;
+            dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(242, 245, 250);
+            dgv.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(210, 230, 255);
+            dgv.DefaultCellStyle.SelectionForeColor = Color.DimGray;
+            dgv.BackgroundColor = Color.White;
+            dgv.EnableHeadersVisualStyles = false;
+            dgv.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+            dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.White;
+            dgv.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(45, 45, 65);
+            dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            dgv.ColumnHeadersDefaultCellStyle.Padding = new Padding(0, 5, 0, 5);
+            dgv.RowHeadersVisible = false;
+            dgv.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F);
+            dgv.DefaultCellStyle.ForeColor = Color.DimGray;
+            dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgv.RowTemplate.Height = 40;
+        }
+
+        /// <summary>
+        /// Tạo GraphicsPath bo góc (helper).
+        /// </summary>
         private GraphicsPath CreateRoundedRect(Rectangle r, int radius)
         {
             r.Width--; r.Height--;
@@ -820,6 +892,54 @@ namespace N6
             path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
             path.CloseFigure();
             return path;
+        }
+
+        #endregion
+
+        #region Dispose
+
+        /// <summary>
+        /// CHUẨN HÓA: Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
+        /// </summary>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Gỡ sự kiện của control trong Designer
+                if (cboKhoi != null) this.cboKhoi.SelectedIndexChanged -= new System.EventHandler(this.cboKhoi_SelectedIndexChanged);
+                if (dgvLopHoc != null) this.dgvLopHoc.SelectionChanged -= new System.EventHandler(this.dgvLopHoc_SelectionChanged);
+                if (btnLuuHS != null) this.btnLuuHS.Click -= new System.EventHandler(this.btnLuuHS_Click);
+                if (btnXoaHS != null) this.btnXoaHS.Click -= new System.EventHandler(this.btnXoaHS_Click);
+                if (btnImportHS != null) this.btnImportHS.Click -= new System.EventHandler(this.btnImportHS_Click);
+                if (btnAssignGvcn != null) this.btnAssignGvcn.Click -= new System.EventHandler(this.btnAssignGvcn_Click);
+                if (btnImportPhanCong != null) this.btnImportPhanCong.Click -= new System.EventHandler(this.btnImportPhanCong_Click);
+                if (btnChuyenLop != null) this.btnChuyenLop.Click -= new System.EventHandler(this.btnChuyenLop_Click);
+
+                // Gỡ sự kiện gán động
+                if (btnXacNhanChuyen != null) btnXacNhanChuyen.Click -= btnXacNhanChuyenClickHandler;
+                if (btnHuyChuyen != null) btnHuyChuyen.Click -= btnHuyChuyenClickHandler;
+                if (pnlFilter != null) pnlFilter.Paint -= pnlFilterPaintHandler;
+                if (pnlClassInfoCard != null) pnlClassInfoCard.Paint -= pnlClassInfoCardPaintHandler;
+                if (pnlAssignGvcn != null) pnlAssignGvcn.Paint -= pnlAssignGvcnPaintHandler;
+                if (dgvPhanCong != null)
+                {
+                    dgvPhanCong.DataError -= dgvDataErrorHandler;
+                    dgvPhanCong.EditingControlShowing -= dgvEditingControlShowingHandler;
+                    dgvPhanCong.CellValueChanged -= dgvCellValueChangedHandler;
+                }
+
+                // Hủy các control động
+                clbHocSinhChuyen?.Dispose();
+                cboLopMoi_Inline?.Dispose();
+                btnXacNhanChuyen?.Dispose();
+                btnHuyChuyen?.Dispose();
+
+                if (components != null)
+                {
+                    components.Dispose();
+                }
+            }
+            base.Dispose(disposing);
         }
 
         #endregion

@@ -23,7 +23,7 @@ namespace N6
                 if (loginChoiceResult == DialogResult.OK)
                 {
                     bool isAdmin = Properties.Settings.Default.isAdmin;
-                    Form mainForm = isAdmin ? (Form)new MenuAdmin() : new dashboard();
+                    Form mainForm = isAdmin ? (Form)new MenuAdmin() : new Dashboard();
 
                     Application.Run(mainForm);
 

@@ -25,11 +25,7 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.CheckedListBox clbMonHoc;
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null)) components.Dispose();
-            base.Dispose(disposing);
-        }
+
 
         private void InitializeComponent()
         {

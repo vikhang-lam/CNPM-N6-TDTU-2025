@@ -7,12 +7,19 @@ using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Linq;
 using System.Globalization;
-using System.Collections.Generic; // Thêm thư viện này
+using System.Collections.Generic;
+using System.ComponentModel; // Thêm cho BackgroundWorker
 
 namespace N6
 {
+    /// <summary>
+    /// Form xử lý việc Import dữ liệu từ file Excel/CSV cho các chức năng khác nhau.
+    /// </summary>
     public partial class frmImportExcel : Form
     {
+        /// <summary>
+        /// Xác định loại dữ liệu đang được import.
+        /// </summary>
         public enum ImportType
         {
             HocSinhTheoLop,
@@ -21,20 +28,25 @@ namespace N6
             ThoiKhoaBieu
         }
 
+        /// <summary>
+        /// Nếu Import TKB, lưu lại ngày đầu tiên để UserControl có thể điều hướng đến.
+        /// </summary>
         public DateTime? FirstImportedDate { get; private set; }
 
         private readonly ImportType _importType;
-        private readonly string _contextId;
-        private readonly string _contextName;
+        private readonly string _contextId; // Mã (MaLop hoặc MaGV)
+        private readonly string _contextName; // Tên (TenLop hoặc TenGV)
         private readonly string _khoi;
         private string _selectedFilePath;
 
+        // --- P/Invoke để di chuyển Form ---
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HT_CAPTION = 0x2;
         [DllImport("user32.dll")]
         public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
+        // ---------------------------------
 
         public frmImportExcel(ImportType type, string contextId, string contextName, string khoi = null)
         {
@@ -47,6 +59,7 @@ namespace N6
 
         private void frmImportExcel_Load(object sender, EventArgs e)
         {
+            // Cài đặt tiêu đề và nút bấm dựa trên loại Import
             switch (_importType)
             {
                 case ImportType.HocSinhTheoLop:
@@ -67,10 +80,25 @@ namespace N6
                     break;
             }
             ShowState_SelectFile();
+
+            // Gán sự kiện (để có thể gỡ trong Dispose)
+            this.Paint += frmImportExcel_Paint;
+            this.pnlTopBar.MouseDown += pnlTopBar_MouseDown;
+            this.lblClose.Click += lblClose_Click;
+            this.btnDownloadTemplate.Click += btnDownloadTemplate_Click;
+            this.btnImport.Click += btnImport_Click;
+            this.pnlDropZone.Click += pnlDropZone_Click;
+            this.pnlDropZone.DragEnter += pnlDropZone_DragEnter;
+            this.pnlDropZone.DragDrop += pnlDropZone_DragDrop;
+            this.backgroundWorker.DoWork += backgroundWorker_DoWork;
+            this.backgroundWorker.RunWorkerCompleted += backgroundWorker_RunWorkerCompleted;
         }
 
         #region UI States & Events
 
+        /// <summary>
+        /// Trạng thái ban đầu: chờ chọn file.
+        /// </summary>
         private void ShowState_SelectFile()
         {
             pnlDropZone.Visible = true;
@@ -80,6 +108,9 @@ namespace N6
             btnImport.Enabled = false;
         }
 
+        /// <summary>
+        /// Trạng thái đang xử lý: hiển thị ProgressBar.
+        /// </summary>
         private void ShowState_InProgress()
         {
             progressBar.Visible = true;
@@ -88,6 +119,9 @@ namespace N6
             btnDownloadTemplate.Enabled = false;
         }
 
+        /// <summary>
+        /// Trạng thái kết quả: hiển thị thông báo thành công hoặc thất bại.
+        /// </summary>
         private void ShowState_Results(bool success, string message, string errorLog = "")
         {
             progressBar.Visible = false;
@@ -95,7 +129,6 @@ namespace N6
             pnlResults.Visible = true;
             picResultIcon.Image = success ? Properties.Resources.success_icon : Properties.Resources.error_icon;
 
-            // CẬP NHẬT: Thay đổi màu chữ dựa trên thành công/thất bại
             lblResultStatus.Text = message;
             lblResultStatus.ForeColor = success ? Color.ForestGreen : Color.Red;
             txtErrorLog.ForeColor = success ? Color.Black : Color.Red;
@@ -109,7 +142,6 @@ namespace N6
             {
                 this.DialogResult = DialogResult.OK;
             }
-            // Không set DialogResult nếu thất bại, để form không tự động đóng
         }
 
         private void pnlDropZone_Click(object sender, EventArgs e)
@@ -123,15 +155,23 @@ namespace N6
         private void pnlDropZone_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
                 e.Effect = DragDropEffects.Copy;
+            }
         }
 
         private void pnlDropZone_DragDrop(object sender, DragEventArgs e)
         {
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-            if (files.Length > 0) ProcessFile(files[0]);
+            if (files.Length > 0)
+            {
+                ProcessFile(files[0]);
+            }
         }
 
+        /// <summary>
+        /// Xử lý file đã chọn (hiển thị tên file và kích hoạt nút Import).
+        /// </summary>
         private void ProcessFile(string filePath)
         {
             _selectedFilePath = filePath;
@@ -143,6 +183,9 @@ namespace N6
 
         #region Button Clicks
 
+        /// <summary>
+        /// Xử lý sự kiện tải file mẫu (template) về máy.
+        /// </summary>
         private void btnDownloadTemplate_Click(object sender, EventArgs e)
         {
             saveFileDialog.Filter = "CSV (Phân cách bằng dấu chấm phẩy)|*.csv";
@@ -151,7 +194,6 @@ namespace N6
 
             switch (_importType)
             {
-                // **FIXED HERE:** Wrapped each string in `new DataColumn()`
                 case ImportType.HocSinhTheoLop:
                     saveFileDialog.FileName = $"Mau_Import_HS_{_contextName}.csv";
                     template.Columns.AddRange(new DataColumn[] {
@@ -171,7 +213,6 @@ namespace N6
                 case ImportType.PhanCong:
                     saveFileDialog.FileName = $"Mau_PhanCong_{_contextName}.csv";
                     template.Columns.AddRange(new DataColumn[] { new DataColumn("TenMon"), new DataColumn("TenGV") });
-                    // *** CẬP NHẬT DỮ LIỆU MẪU CHO KHỚP DATABASE ***
                     template.Rows.Add("Toán", "Thầy Quốc Hưng");
                     template.Rows.Add("Tiếng Việt", "Cô Minh Anh");
                     break;
@@ -181,10 +222,6 @@ namespace N6
                         new DataColumn("Ngay"), new DataColumn("Tiet"), new DataColumn("TenMon"),
                         new DataColumn("TenLop"), new DataColumn("GhiChu"), new DataColumn("MauSac")
                     });
-
-                    // *** ĐÂY LÀ THAY ĐỔI CHÍNH ***
-                    // Dùng "Lớp 5A1" và "Toán", "Lớp 1A1" và "Tiếng Việt"
-                    // vì chúng tồn tại trong data.sql
                     template.Rows.Add("06/10/2025", "1", "Tiếng Việt", "Lớp 5A1", "Ghi chú tiết học", "#FFDDC1");
                     template.Rows.Add("06/10/2025", "2", "Toán", "Lớp 1A1", "", "");
                     break;
@@ -201,13 +238,20 @@ namespace N6
                         var fields = row.ItemArray.Select(field => $"\"{field.ToString().Replace("\"", "\"\"")}\"");
                         sb.AppendLine(string.Join(listSeparator, fields));
                     }
+                    // Ghi file với UTF-8 BOM để Excel đọc đúng tiếng Việt
                     File.WriteAllText(saveFileDialog.FileName, sb.ToString(), new UTF8Encoding(true));
                     MessageBox.Show("Đã lưu file mẫu thành công!", "Thành công");
                 }
-                catch (Exception ex) { MessageBox.Show("Lỗi khi tạo file mẫu: " + ex.Message, "Lỗi"); }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi khi tạo file mẫu: " + ex.Message, "Lỗi");
+                }
             }
         }
 
+        /// <summary>
+        /// Xử lý sự kiện click nút "Import" (hoặc "Đóng").
+        /// </summary>
         private void btnImport_Click(object sender, EventArgs e)
         {
             if (btnImport.Text == "Đóng")
@@ -215,16 +259,19 @@ namespace N6
                 this.Close();
                 return;
             }
-            if (string.IsNullOrEmpty(_selectedFilePath)) { MessageBox.Show("Vui lòng chọn một file để import."); return; }
+            if (string.IsNullOrEmpty(_selectedFilePath))
+            {
+                MessageBox.Show("Vui lòng chọn một file để import.");
+                return;
+            }
             ShowState_InProgress();
             backgroundWorker.RunWorkerAsync();
         }
 
         #endregion
 
-        // *** THÊM MỚI: Hàm kiểm tra cột ***
         /// <summary>
-        /// Kiểm tra xem DataTable có chứa tất cả các cột bắt buộc hay không.
+        /// Kiểm tra xem DataTable có chứa tất cả các cột bắt buộc hay không (không phân biệt hoa thường).
         /// </summary>
         private bool ValidateColumns(DataTable dt, string[] requiredColumns, out string missingColumns)
         {
@@ -232,7 +279,6 @@ namespace N6
             var missing = new List<string>();
             foreach (var col in requiredColumns)
             {
-                // Kiểm tra không phân biệt chữ hoa/thường
                 if (!columns.Any(c => c.Equals(col, StringComparison.OrdinalIgnoreCase)))
                 {
                     missing.Add(col);
@@ -248,12 +294,13 @@ namespace N6
             return true;
         }
 
+        #region Background Worker (Xử lý đa luồng)
 
-        #region Background Worker
-
+        /// <summary>
+        /// Luồng chạy ngầm để đọc và xử lý file Excel, tránh treo giao diện.
+        /// </summary>
         private void backgroundWorker_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
         {
-            // CẬP NHẬT: Thông báo lỗi cụ thể hơn
             DataTable dt = null;
             try
             {
@@ -261,7 +308,7 @@ namespace N6
             }
             catch (Exception ex)
             {
-                // Bắt lỗi nếu ExcelHelper không đọc được file (ví dụ: file không phải Excel)
+                // Bắt lỗi nếu ExcelHelper không đọc được file
                 e.Result = new { Success = false, Message = "Không thể đọc file!", Log = $"Lỗi: {ex.Message}\nFile có thể bị hỏng hoặc không đúng định dạng Excel." };
                 return;
             }
@@ -274,31 +321,30 @@ namespace N6
 
             try
             {
-                // CẬP NHẬT: Thêm logic kiểm tra cột
                 string[] requiredColumns;
                 string missingColumns;
 
                 switch (_importType)
                 {
                     case ImportType.HocSinhTheoLop:
-                        requiredColumns = new string[] { "MaHS", "HoTen", "NgaySinh" }; // Các cột tối thiểu
+                        requiredColumns = new string[] { "MaHS", "HoTen", "NgaySinh" }; // Cột tối thiểu
                         if (!ValidateColumns(dt, requiredColumns, out missingColumns))
                         {
                             e.Result = new { Success = false, Message = "Sai định dạng Import!", Log = $"File Excel thiếu các cột bắt buộc: {missingColumns}.\nHãy tải và xem định dạng trong file mẫu." };
                             return;
                         }
-                        var resultLop = DatabaseHelper.ImportHocSinhToLop(dt, _contextId);
+                        var resultLop = DatabaseHelper.ImportStudentsToClass(dt, _contextId);
                         e.Result = new { Success = true, Message = $"Import hoàn tất!", Log = $"Thành công: {resultLop.Success}\nBỏ qua (đã tồn tại): {resultLop.Skipped}\nThất bại (sai dữ liệu): {resultLop.Failed}" };
                         break;
 
                     case ImportType.HocSinhTheoKhoi:
-                        requiredColumns = new string[] { "MaHS", "MaLop", "HoTen", "NgaySinh" }; // Các cột tối thiểu
+                        requiredColumns = new string[] { "MaHS", "MaLop", "HoTen", "NgaySinh" }; // Cột tối thiểu
                         if (!ValidateColumns(dt, requiredColumns, out missingColumns))
                         {
                             e.Result = new { Success = false, Message = "Sai định dạng Import!", Log = $"File Excel thiếu các cột bắt buộc: {missingColumns}.\nHãy tải và xem định dạng trong file mẫu." };
                             return;
                         }
-                        var resultKhoi = DatabaseHelper.ImportHocSinhFromDataTable(dt);
+                        var resultKhoi = DatabaseHelper.ImportStudentsFromDataTable(dt);
                         e.Result = new { Success = true, Message = $"Import hoàn tất!", Log = $"Thành công: {resultKhoi.Success}\nBỏ qua (đã tồn tại): {resultKhoi.Skipped}\nThất bại (sai dữ liệu): {resultKhoi.Failed}" };
                         break;
 
@@ -310,9 +356,8 @@ namespace N6
                             return;
                         }
 
-                        // Logic xử lý Phân công đã có sẵn
-                        DataTable allMonHoc = DatabaseHelper.GetAllMonHoc();
-                        DataTable allGiaoVien = DatabaseHelper.GetAllGiaoVien();
+                        DataTable allMonHoc = DatabaseHelper.GetAllSubjects();
+                        DataTable allGiaoVien = DatabaseHelper.GetAllTeachers();
                         var errorList = new StringBuilder();
                         int successCount = 0;
 
@@ -330,8 +375,7 @@ namespace N6
                             if (gvRow == null) { errorList.AppendLine($"- GV '{tenGV}': không tồn tại."); continue; }
                             string maGV = gvRow["MaGV"].ToString();
 
-                            // *** SỬA LOGIC: Lấy danh sách môn GV dạy từ SP (vì 1 GV có thể dạy nhiều môn)
-                            DataTable gvMonHocTable = DatabaseHelper.GetMonHocByGiaoVien(maGV);
+                            DataTable gvMonHocTable = DatabaseHelper.GetSubjectsByTeacher(maGV);
                             bool gvDayMonNay = gvMonHocTable.AsEnumerable().Any(r => r.Field<string>("MaMon").Equals(maMon, StringComparison.OrdinalIgnoreCase));
 
                             if (!gvDayMonNay)
@@ -340,7 +384,7 @@ namespace N6
                                 continue;
                             }
 
-                            DatabaseHelper.UpdatePhanCong(_contextId, maMon, maGV);
+                            DatabaseHelper.UpdateTeachingAssignment(_contextId, maMon, maGV);
                             successCount++;
                         }
                         string logPhanCong = $"Thành công: {successCount} môn.\n" + (errorList.Length > 0 ? "Lỗi:\n" + errorList.ToString() : "");
@@ -355,10 +399,10 @@ namespace N6
                             return;
                         }
 
+                        // Lấy ngày đầu tiên trong file Excel để trả về cho UC TKB
                         var firstDate = dt.AsEnumerable()
                             .Select(row => {
                                 DateTime date;
-                                // CẬP NHẬT: Thử cả 2 định dạng
                                 if (DateTime.TryParse(row["Ngay"]?.ToString(), out date)) return (DateTime?)date;
                                 if (DateTime.TryParseExact(row["Ngay"]?.ToString(), "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out date)) return (DateTime?)date;
                                 return null;
@@ -369,15 +413,14 @@ namespace N6
 
                         this.FirstImportedDate = firstDate;
 
-                        var resultTKB = DatabaseHelper.ImportThoiKhoaBieuForGV(_contextId, dt);
+                        var resultTKB = DatabaseHelper.ImportTimetableForTeacher(_contextId, dt);
                         e.Result = new { Success = resultTKB.Success > 0, Message = "Import TKB hoàn tất!", Log = $"Thành công: {resultTKB.Success}\nThất bại/Sai dữ liệu: {resultTKB.Failed}" };
                         break;
                 }
             }
             catch (Exception ex)
             {
-                // CẬP NHẬT: Bắt lỗi chung (ví dụ: sai kiểu dữ liệu "Tiet" = "abc")
-                // và hiển thị thông báo bạn yêu cầu.
+                // Bắt lỗi chung (ví dụ: sai kiểu dữ liệu "Tiet" = "abc")
                 e.Result = new
                 {
                     Success = false,
@@ -387,15 +430,19 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Hoàn tất luồng chạy ngầm, hiển thị kết quả lên giao diện.
+        /// </summary>
         private void backgroundWorker_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
         {
             if (e.Error != null)
             {
-                // CẬP NHẬT: Hiển thị lỗi nghiêm trọng (lỗi lập trình)
+                // Lỗi nghiêm trọng (lỗi lập trình)
                 ShowState_Results(false, "Đã xảy ra lỗi nghiêm trọng!", e.Error.Message + "\nHãy tải và xem định dạng trong file mẫu.");
             }
             else
             {
+                // Lỗi nghiệp vụ (do người dùng) hoặc thành công
                 dynamic result = e.Result;
                 ShowState_Results(result.Success, result.Message, result.Log);
             }
@@ -425,5 +472,38 @@ namespace N6
         }
 
         #endregion
+
+        /// <summary>
+        /// Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
+        /// </summary>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Gỡ bỏ sự kiện của các control trong Designer
+                if (this.backgroundWorker != null)
+                {
+                    this.backgroundWorker.DoWork -= backgroundWorker_DoWork;
+                    this.backgroundWorker.RunWorkerCompleted -= backgroundWorker_RunWorkerCompleted;
+                }
+                this.Paint -= frmImportExcel_Paint;
+                if (this.pnlTopBar != null) this.pnlTopBar.MouseDown -= pnlTopBar_MouseDown;
+                if (this.lblClose != null) this.lblClose.Click -= lblClose_Click;
+                if (this.btnDownloadTemplate != null) this.btnDownloadTemplate.Click -= btnDownloadTemplate_Click;
+                if (this.btnImport != null) this.btnImport.Click -= btnImport_Click;
+                if (this.pnlDropZone != null)
+                {
+                    this.pnlDropZone.Click -= pnlDropZone_Click;
+                    this.pnlDropZone.DragEnter -= pnlDropZone_DragEnter;
+                    this.pnlDropZone.DragDrop -= pnlDropZone_DragDrop;
+                }
+
+                if (components != null)
+                {
+                    components.Dispose();
+                }
+            }
+            base.Dispose(disposing);
+        }
     }
 }
