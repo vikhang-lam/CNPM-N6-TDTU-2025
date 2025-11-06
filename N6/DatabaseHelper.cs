@@ -1108,6 +1108,14 @@ public static class DatabaseHelper
 
         ExecuteNonQueryStoredProcedure("sp_AddGhiChuChoHocSinh", pMaHS, pMaMon, pGhiChu);
     }
+
+    public static DataTable GetStudentDataForPrediction(string maLop, string maMon)
+    {
+        var pMaLop = new SqlParameter("@maLop", maLop);
+        var pMaMon = new SqlParameter("@maMon", maMon);
+        return ExecuteStoredProcedure("sp_GetStudentDataForPrediction", pMaLop, pMaMon);
+    }
+
     public static DataTable GetAllAcademicResults()
     {
         return ExecuteStoredProcedure("sp_GetAllKetQuaHocTap");

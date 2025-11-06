@@ -2,6 +2,9 @@
 using System.Data;
 using System.Linq;
 using System.Collections.Generic;
+using Microsoft.ML.OnnxRuntime; // Cần cho dự đoán
+using Microsoft.ML.OnnxRuntime.Tensors; // Cần cho dự đoán
+using System.Diagnostics; // Cần cho Debug.WriteLine
 
 #region Các lớp chứa kết quả phân tích
 
@@ -35,6 +38,17 @@ public class SoSanhLopResult
     public double DiemTB { get; set; }
     public int SoHocSinhGioi { get; set; }
     public int SiSo { get; set; }
+}
+
+/// <summary>
+/// Đại diện cho kết quả dự đoán nguy cơ của học sinh.
+/// </summary>
+public class HocSinhDuDoanResult
+{
+    public string HoTen { get; set; }
+    public string TenLop { get; set; }
+    public float DiemDuDoan { get; set; }
+    public string MonHocCanHoTro { get; set; }
 }
 #endregion
 
@@ -186,5 +200,99 @@ public static class AIAnalyzer
             .OrderByDescending(r => r.DiemTB)
             .ToList();
     }
+    #endregion
+
+    #region Phân tích Dự đoán (AI/ML)
+
+    // Tạo session cache để không phải tải lại model mỗi lần
+    private static InferenceSession _onnxSession;
+    private static readonly object _sessionLock = new object();
+    private const string MODEL_FILE_NAME = "student_g3_predictor.onnx";
+
+    /// <summary>
+    /// Chạy mô hình ONNX để dự đoán học sinh có nguy cơ điểm cuối kỳ thấp.
+    /// </summary>
+    /// <param name="predictionData">DataTable từ sp_GetStudentDataForPrediction.</param>
+    /// <param name="tenMon">Tên môn học để đưa vào khuyến nghị.</param>
+    /// <param name="nguongNguyCo">Ngưỡng điểm dự đoán (ví dụ: 5.0).</param>
+    /// <returns>Danh sách học sinh cần hỗ trợ.</returns>
+    public static List<HocSinhDuDoanResult> DuDoanHocSinhNguyCo(DataTable predictionData, string tenMon, double nguongNguyCo = 5.0)
+    {
+        var results = new List<HocSinhDuDoanResult>();
+        if (predictionData == null || predictionData.Rows.Count == 0)
+            return results;
+
+        try
+        {
+            // 1. Khởi tạo session (an toàn đa luồng)
+            lock (_sessionLock)
+            {
+                if (_onnxSession == null)
+                {
+                    string modelPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MODEL_FILE_NAME);
+                    if (!System.IO.File.Exists(modelPath))
+                    {
+                        Debug.WriteLine($"[AIAnalyzer Error] Không tìm thấy tệp model: {modelPath}");
+                        return results; // Không tìm thấy model
+                    }
+                    _onnxSession = new InferenceSession(modelPath);
+                }
+            }
+
+            // 2. Lấy tên input đầu tiên của model
+            // (Thường là 'float_input' nếu xuất từ scikit-learn)
+            var inputName = _onnxSession.InputMetadata.Keys.First();
+
+            // 3. Lặp qua từng học sinh để dự đoán
+            foreach (DataRow row in predictionData.Rows)
+            {
+                // 4. Lấy features và ép kiểu về float
+                // Features: ["G1", "G2", "num_low_scores", "absences"]
+                var features = new float[4];
+                features[0] = Convert.ToSingle(row["G1"]);
+                features[1] = Convert.ToSingle(row["G2"]);
+                features[2] = Convert.ToSingle(row["NumLowScores"]);
+                features[3] = Convert.ToSingle(row["Absences"]);
+
+                // 5. Tạo Tensor (Batch size = 1, Số lượng features = 4)
+                var dimensions = new int[] { 1, 4 };
+                var inputTensor = new DenseTensor<float>(features, dimensions);
+
+                // 6. Chuẩn bị input cho model
+                var inputs = new List<NamedOnnxValue>
+                {
+                    NamedOnnxValue.CreateFromTensor(inputName, inputTensor)
+                };
+
+                // 7. Chạy dự đoán
+                using (var outputs = _onnxSession.Run(inputs))
+                {
+                    // 8. Lấy kết quả (thường là 1x1 tensor)
+                    var predictedScoreTensor = outputs.First().AsTensor<float>();
+                    float predictedScore = predictedScoreTensor.GetValue(0);
+
+                    // 9. Thêm vào danh sách nếu điểm thấp
+                    if (predictedScore < nguongNguyCo)
+                    {
+                        results.Add(new HocSinhDuDoanResult
+                        {
+                            HoTen = row.Field<string>("HoTen"),
+                            TenLop = row.Field<string>("TenLop"),
+                            DiemDuDoan = predictedScore,
+                            MonHocCanHoTro = tenMon
+                        });
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ONNX Error] {ex.Message}");
+            // Trả về ds rỗng thay vì làm crash ứng dụng
+        }
+
+        return results.OrderBy(r => r.DiemDuDoan).ToList();
+    }
+
     #endregion
 }

@@ -391,7 +391,6 @@ namespace N6
             }
             catch (Exception ex)
             {
-                // CHUẨN HÓA: Không "nuốt" lỗi. Phải thông báo cho người dùng.
                 MessageBox.Show("Đã xảy ra lỗi không mong muốn: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Debug.WriteLine($"Lỗi HandleUserPanelClick: {ex}");
             }

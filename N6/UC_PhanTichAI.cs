@@ -3,8 +3,9 @@ using System.Data;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
-using ScottPlot;
 using System.Diagnostics; // Thêm
+using ScottPlot;
+
 
 namespace N6
 {
@@ -26,6 +27,7 @@ namespace N6
         private void UC_PhanTichAI_Load(object sender, EventArgs e)
         {
             if (this.DesignMode) return;
+            this.flowLayoutPanelCards.SizeChanged += FlowLayoutPanelCards_SizeChanged;
             LoadFilters();
             isFiltersLoading = false;
             RunAnalysis(); // Chạy phân tích lần đầu
@@ -153,12 +155,54 @@ namespace N6
                     Name = "lblNoData" // Đặt tên để Dispose
                 };
                 flowLayoutPanelCards.Controls.Add(noDataLabel);
+                UpdateCardWidths();
                 return;
             }
 
             // 5. Hiển thị kết quả
             DisplayInsightCards(scores);
             DrawScoreDistributionChart(scores);
+
+            // --- TÍCH HỢP AI DỰ ĐOÁN ---
+            // Chỉ chạy dự đoán nếu:
+            // 1. Phạm vi là "Các lớp tôi dạy" (vì SP dự đoán chạy theo maLop)
+            // 2. Đã chọn một môn học cụ thể (không phải "Tất cả các môn")
+            // 3. Học kỳ là 1 (vì model dùng G1, G2 là của Học kỳ 1)
+            if (phamVi == "LopGV" && maMon != "ALL" && hocKy == 1)
+            {
+                string maLop = chiTiet; // Trong phạm vi này, chiTiet là maLop
+                string tenMon = cbMonHoc.Text; // Lấy tên môn học để khuyến nghị
+
+                // Lấy dữ liệu cho model
+                DataTable predictionData = DatabaseHelper.GetStudentDataForPrediction(maLop, maMon);
+
+                if (predictionData != null && predictionData.Rows.Count > 0)
+                {
+                    // Chạy dự đoán
+                    var dsNguyCo = AIAnalyzer.DuDoanHocSinhNguyCo(predictionData, tenMon);
+
+                    // Hiển thị kết quả nếu có
+                    if (dsNguyCo.Count > 0)
+                    {
+                        // Chuyển đổi HocSinhDuDoanResult -> HocSinhAnalysisResult để InsightCard hiểu
+                        var convertedList = dsNguyCo.Select(r => new HocSinhAnalysisResult
+                        {
+                            HoTen = r.HoTen,
+                            TenLop = r.TenLop,
+                            LyDo = $"Cần hỗ trợ {r.MonHocCanHoTro} (Dự đoán: {r.DiemDuDoan:F1})"
+                        }).ToList();
+
+                        var cardPrediction = new InsightCard();
+                        cardPrediction.SetData("🧠", "AI Dự Đoán Nguy Cơ (HK2)", System.Drawing.Color.FromArgb(255, 235, 245), convertedList);
+
+                        // Thêm vào đầu danh sách card
+                        flowLayoutPanelCards.Controls.Add(cardPrediction);
+                        flowLayoutPanelCards.Controls.SetChildIndex(cardPrediction, 0);
+                    }
+                }
+            }
+            // --- KẾT THÚC TÍCH HỢP AI ---
+            UpdateCardWidths();
         }
 
         /// <summary>
@@ -188,6 +232,15 @@ namespace N6
             {
                 Debug.WriteLine($"Lỗi DisplayInsightCards: {ex.Message}");
             }
+        }
+
+
+        /// <summary>
+        /// Được gọi khi kích thước của panel thay đổi (ví dụ: resize cửa sổ).
+        /// </summary>
+        private void FlowLayoutPanelCards_SizeChanged(object sender, EventArgs e)
+        {
+            UpdateCardWidths();
         }
 
         /// <summary>
@@ -270,6 +323,26 @@ namespace N6
             formsPlot1.Refresh();
         }
 
+        /// <summary>
+        /// Điều chỉnh chiều rộng của tất cả các control con (cards, labels)
+        /// để lấp đầy chiều rộng của flowLayoutPanelCards.
+        /// </summary>
+        private void UpdateCardWidths()
+        {
+            // Lấy chiều rộng bên trong, trừ đi lề và thanh cuộn (nếu có)
+            int innerWidth = flowLayoutPanelCards.ClientRectangle.Width;
+            if (innerWidth <= 0) return;
+
+            foreach (Control ctrl in flowLayoutPanelCards.Controls)
+            {
+                // Đặt lề cho control (ví dụ 5px mỗi bên)
+                ctrl.Margin = new Padding(5, ctrl.Margin.Top, 5, ctrl.Margin.Bottom);
+
+                // Đặt chiều rộng của control = chiều rộng của panel (trừ lề)
+                ctrl.Width = innerWidth - (ctrl.Margin.Left + ctrl.Margin.Right);
+            }
+        }
+
         #endregion
 
         #region Dispose & Helpers
@@ -296,6 +369,7 @@ namespace N6
             {
                 // Gỡ bỏ sự kiện (quan trọng)
                 this.Load -= UC_PhanTichAI_Load;
+                if (flowLayoutPanelCards != null) flowLayoutPanelCards.SizeChanged -= FlowLayoutPanelCards_SizeChanged;
                 if (cbScope != null) cbScope.SelectedIndexChanged -= btnPhanTich_Click;
                 if (cbDetail != null) cbDetail.SelectedIndexChanged -= btnPhanTich_Click;
                 if (cbMonHoc != null) cbMonHoc.SelectedIndexChanged -= btnPhanTich_Click;

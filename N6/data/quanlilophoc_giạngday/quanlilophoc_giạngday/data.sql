@@ -2629,7 +2629,69 @@ BEGIN
     END CATCH
 END;
 GO
+PRINT N'Tạo SP [sp_GetStudentDataForPrediction] để hỗ trợ AIAnalyzer';
+go
+create PROCEDURE sp_GetStudentDataForPrediction
+    @maLop VARCHAR(10),
+    @maMon VARCHAR(10) -- Thêm tham số này
+AS
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @g1Type VARCHAR(20) = 'GiuaKi1';
+    DECLARE @g2Type VARCHAR(20) = 'CuoiKi1';
+
+    -- 1. Lấy điểm G1 (Lọc theo Môn)
+    ;WITH ScoresG1 AS (
+        SELECT MaHS, Diem 
+        FROM KetQuaHocTap 
+        WHERE Loai = @g1Type AND MaMon = @maMon -- Lọc theo môn
+    ),
+    -- 2. Lấy điểm G2 (Lọc theo Môn)
+    ScoresG2 AS (
+        SELECT MaHS, Diem 
+        FROM KetQuaHocTap 
+        WHERE Loai = @g2Type AND MaMon = @maMon -- Lọc theo môn
+    ),
+    -- 3. Tính 'num_low_scores' (chỉ cho môn này)
+    LowScores AS (
+        SELECT 
+            MaHS,
+            SUM(CASE WHEN Loai = @g1Type AND ISNULL(Diem, 0) < 5 THEN 1 ELSE 0 END) +
+            SUM(CASE WHEN Loai = @g2Type AND ISNULL(Diem, 0) < 5 THEN 1 ELSE 0 END)
+            AS NumLowScores
+        FROM KetQuaHocTap
+        WHERE Loai IN (@g1Type, @g2Type) AND MaMon = @maMon -- Lọc theo môn
+        GROUP BY MaHS
+    ),
+    -- 4. Lấy 'absences' (Vắng chung toàn trường, không theo môn)
+    Absences AS (
+        SELECT 
+            MaHS, 
+            COUNT(*) as TotalAbsences
+        FROM DiemDanh
+        WHERE TrangThai = N'Vắng'
+        GROUP BY MaHS
+    )
+    -- 5. Trả về kết quả
+    SELECT 
+        hs.MaHS,
+        hs.HoTen,
+        lh.TenLop,
+        ISNULL(g1.Diem, 0) AS G1,
+        ISNULL(g2.Diem, 0) AS G2,
+        ISNULL(ls.NumLowScores, 0) AS NumLowScores,
+        ISNULL(ab.TotalAbsences, 0) AS Absences
+    FROM HocSinh hs
+    INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+    LEFT JOIN ScoresG1 g1 ON hs.MaHS = g1.MaHS
+    LEFT JOIN ScoresG2 g2 ON hs.MaHS = g2.MaHS
+    LEFT JOIN LowScores ls ON hs.MaHS = ls.MaHS
+    LEFT JOIN Absences ab ON hs.MaHS = ab.MaHS
+    WHERE hs.MaLop = @maLop;
+END;
+GO
+GO
 -- SP MỚI (QUẢN LÝ TRƯỜNG HỌC)
 CREATE PROCEDURE sp_InsertMonHoc
     @TenMon NVARCHAR(100)
