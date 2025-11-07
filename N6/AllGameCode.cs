@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IdentityModel;
 using System.IO;
 using System.Linq;
 using System.Media;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace N6
 {
@@ -48,13 +51,26 @@ namespace N6
     public static class MusicPlayer
     {
         private static SoundPlayer _player;
+        private static readonly Random Rng = new Random();
 
-        public static void Play(UnmanagedMemoryStream musicResource)
+        public static void Play(string filePath)
         {
-            if (musicResource == null) return;
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                MessageBox.Show($"Lỗi Play: File không tồn tại hoặc đường dẫn trống: {filePath}", "Lỗi Nhạc");
+                return;
+            }
+
             Stop();
-            _player = new SoundPlayer(musicResource);
-            _player.PlayLooping();
+            try
+            {
+                _player = new SoundPlayer(filePath);
+                _player.PlayLooping();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi phát nhạc SoundPlayer: {ex.Message}\nĐường dẫn: {filePath}", "Lỗi Phát Nhạc");
+            }
         }
 
         public static void Stop()
@@ -65,6 +81,59 @@ namespace N6
                 _player.Dispose();
                 _player = null;
             }
+        }
+
+        public static void PlayRandom()
+        {
+            Stop();
+            string resourcesPath = GetResourcesDirectory();
+
+            if (!Directory.Exists(resourcesPath)) return;
+
+            // 1. Lấy tất cả các file .wav
+            string[] allWavFiles = Directory.GetFiles(resourcesPath, "*.wav");
+
+            // 2. Lọc các file theo mẫu: musicGame[số].wav
+            string pattern = @"^musicGame\d+\.wav$";
+
+            string[] musicFiles = allWavFiles
+                .Where(file => Regex.IsMatch(Path.GetFileName(file), pattern, RegexOptions.IgnoreCase))
+                .ToArray();
+
+            if (musicFiles.Length == 0) return;
+
+            // Chọn ngẫu nhiên một file
+            string randomFile = musicFiles[Rng.Next(musicFiles.Length)];
+
+            Play(randomFile);
+        }
+
+        public static string GetResourcesDirectory()
+        {
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+            string standardPath = Path.Combine(baseDirectory, "Resources");
+
+            if (Directory.Exists(standardPath))
+            {
+                return standardPath;
+            }
+
+            string devPath = Path.GetFullPath(Path.Combine(baseDirectory, @"..\..\..\Resources"));
+
+            if (Directory.Exists(devPath))
+            {
+                return devPath;
+            }
+
+            string oldDevPath = Path.GetFullPath(Path.Combine(baseDirectory, @"..\..\Resources"));
+
+            if (Directory.Exists(oldDevPath))
+            {
+                return oldDevPath;
+            }
+
+            return standardPath;
         }
     }
 
@@ -228,10 +297,23 @@ namespace N6
 
         protected void CloseWithWarning(string message = "Không có dữ liệu để bắt đầu game.")
         {
-            this.Load += (s, e) => {
+            try
+            {
                 MessageBox.Show(message, "Lỗi dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                this.BeginInvoke(new MethodInvoker(this.Close));
-            };
+            }
+            catch { }
+            try
+            {
+                if (!this.IsDisposed)
+                {
+                    if (this.IsHandleCreated)
+                    {
+                        this.Visible = false;
+                    }
+                    this.Dispose();
+                }
+            }
+            catch { }
         }
     }
 
@@ -239,13 +321,251 @@ namespace N6
     {
         public GameFormWithMusic()
         {
-            try { this.Load += (s, e) => MusicPlayer.Play(Properties.Resources.GameMusic); }
+            try {
+                this.Load += (s, e) =>
+                {
+                    MusicPlayer.PlayRandom();
+                };
+            }
             catch { }
         }
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
             MusicPlayer.Stop();
+        }
+
+        private string GetResourceFilePath(string fileName)
+        {
+            string resourcesPath = MusicPlayer.GetResourcesDirectory();
+            return Path.Combine(resourcesPath, fileName);
+        }
+
+        private void SetFormRoundedRegion(Form form, int radius)
+        {
+            // Tạo một đối tượng GraphicsPath để định nghĩa hình dạng
+            GraphicsPath path = new GraphicsPath();
+            int w = form.Width;
+            int h = form.Height;
+
+            // Đảm bảo Form không bị bo tròn quá mức (radius không lớn hơn nửa chiều rộng/cao)
+            if (radius > w / 2 || radius > h / 2)
+            {
+                radius = Math.Min(w / 2, h / 2);
+            }
+
+            // Định nghĩa hình dạng bo tròn (sử dụng đường cong cung tròn - AddArc)
+            path.AddArc(0, 0, radius * 2, radius * 2, 180, 90);           // Góc trên bên trái
+            path.AddArc(w - radius * 2, 0, radius * 2, radius * 2, 270, 90); // Góc trên bên phải
+            path.AddArc(w - radius * 2, h - radius * 2, radius * 2, radius * 2, 0, 90); // Góc dưới bên phải
+            path.AddArc(0, h - radius * 2, radius * 2, radius * 2, 90, 90); // Góc dưới bên trái
+            path.CloseAllFigures();
+
+            // Áp dụng hình dạng đã tạo cho Region của Form
+            form.Region = new Region(path);
+        }
+
+        public enum AnswerPopupResult { Next, Retry, None }
+
+        protected AnswerPopupResult ShowAnswerPopup(bool isCorrect, string message, string primaryText = "Tiếp theo", bool showRetry = true)
+        {
+            using (Form dlg = new Form())
+            {
+                dlg.FormBorderStyle = FormBorderStyle.None;
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.Size = new Size(460, 180);
+                dlg.ShowInTaskbar = false;
+                dlg.TopMost = true;
+                //dlg.BackColor = isCorrect ? Color.FromArgb(230, 255, 240) : Color.FromArgb(255, 230, 230);
+                dlg.Font = new Font("Lexend", 11F);
+                dlg.ControlBox = false;
+
+                try
+                {
+                    string imagePath = GetResourceFilePath("popup_bg.png"); // Đổi tên file phù hợp
+                    if (File.Exists(imagePath))
+                    {
+                        dlg.BackgroundImage = Image.FromFile(imagePath);
+
+                        // SỬA: Đặt chế độ hiển thị Stretch để ảnh vừa Form
+                        dlg.BackgroundImageLayout = ImageLayout.Stretch;
+                    }
+                    else
+                    {
+                        // Fallback nếu không tìm thấy ảnh
+                        dlg.BackColor = isCorrect ? Color.FromArgb(230, 255, 240) : Color.FromArgb(255, 230, 230);
+                    }
+                }
+                catch (Exception)
+                {
+                    dlg.BackColor = isCorrect ? Color.FromArgb(230, 255, 240) : Color.FromArgb(255, 230, 230);
+                }
+
+                Label lblMessage = new Label
+                {
+                    Text = message,
+                    Dock = DockStyle.Top,
+                    Height = 80,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font("Lexend", 18F, FontStyle.Bold),
+                    ForeColor = isCorrect ? Color.FromArgb(40, 167, 69) : Color.FromArgb(220, 53, 69),
+                    BackColor = Color.Transparent,
+                    Padding = new Padding(0, 10, 0, 0)
+                };
+
+                Panel pnlButtons = new Panel
+                {
+                    Dock = DockStyle.Bottom,
+                    Height = 70,
+                    Padding = new Padding(20),
+                    BackColor = Color.Transparent
+                };
+
+
+                Size btnSize = new Size(160, 40);
+
+                RoundedButton btnRetry = new RoundedButton
+                {
+                    Text = "Thử lại",
+                    Size = btnSize,
+                    BackColor = Color.FromArgb(255, 193, 7),
+                    ForeColor = Color.Black,
+                    CornerRadius = 10,
+                    Font = new Font("Lexend", 12F, FontStyle.Bold),
+                };
+                btnRetry.Click += (s, e) => { dlg.Tag = "RETRY"; dlg.Close(); };
+
+                RoundedButton btnNext = new RoundedButton
+                {
+                    Text = primaryText,
+                    Size = btnSize,
+                    BackColor = Color.FromArgb(87, 187, 247),
+                    ForeColor = Color.White,
+                    CornerRadius = 10,
+                    Font = new Font("Lexend", 12F, FontStyle.Bold),
+                };
+                btnNext.Click += (s, e) => { dlg.Tag = "NEXT"; dlg.Close(); };
+
+                if (showRetry)
+                {
+                    btnRetry.Location = new Point(40, (pnlButtons.Height - btnSize.Height) / 2);
+                    btnNext.Location = new Point(dlg.ClientSize.Width - 40 - btnSize.Width, (pnlButtons.Height - btnSize.Height) / 2);
+                    pnlButtons.Controls.Add(btnRetry);
+                    pnlButtons.Controls.Add(btnNext);
+                }
+                else
+                {
+                    btnNext.Location = new Point((dlg.ClientSize.Width - btnSize.Width) / 2, (pnlButtons.Height - btnSize.Height) / 2);
+                    pnlButtons.Controls.Add(btnNext);
+                }
+
+
+                SetFormRoundedRegion(dlg, 20);
+
+                dlg.Controls.AddRange(new Control[] { lblMessage, pnlButtons });
+
+                dlg.ShowDialog(this);
+
+                if (dlg.Tag as string == "RETRY") return AnswerPopupResult.Retry;
+                if (dlg.Tag as string == "NEXT") return AnswerPopupResult.Next;
+                return AnswerPopupResult.None;
+            }
+        }
+        public enum FinalResultAction { Close, Restart, None }
+        protected void ShowFinalResultDialog(int score, int totalQuestions)
+        {
+            using (Form dlg = new Form())
+            {
+                dlg.FormBorderStyle = FormBorderStyle.None;
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.Size = new Size(520, 320);
+                dlg.BackColor = Color.White;
+                dlg.Font = new Font("Lexend", 11F);
+                dlg.ControlBox = false;
+
+                Panel pnlHeader = new Panel
+                {
+                    Dock = DockStyle.Top,
+                    Height = 60,
+                    BackColor = Color.FromArgb(29, 209, 161),
+                    Padding = new Padding(10)
+                };
+                Label lblTitle = new Label
+                {
+                    Text = "HOÀN THÀNH!",
+                    Dock = DockStyle.Fill,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font("Lexend", 22F, FontStyle.Bold),
+                    ForeColor = Color.White,
+                    BackColor = Color.Transparent
+                };
+                pnlHeader.Controls.Add(lblTitle);
+
+
+                Label lblIcon = new Label
+                {
+                    Text = "🎊",
+                    Size = new Size(dlg.ClientSize.Width, 70),
+                    Location = new Point(0, pnlHeader.Bottom + 5),
+                    Font = new Font("Segoe UI Emoji", 44F),
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    BackColor = Color.Transparent
+                };
+
+                // --- Kết quả Điểm (lblScoreResult) ---
+                Label lblScoreResult = new Label
+                {
+                    Text = $"Bạn đã trả lời đúng {score}/{totalQuestions} câu",
+                    Location = new Point(0, lblIcon.Bottom + 10),
+                    Size = new Size(dlg.ClientSize.Width, 40),
+                    Font = new Font("Lexend", 13F, FontStyle.Bold),
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    ForeColor = Color.FromArgb(64, 64, 64),
+                    BackColor = Color.Transparent
+                };
+
+                // --- Nhận xét (lblComment) ---
+                double percentage = (totalQuestions > 0) ? (score * 100.0) / totalQuestions : 0;
+                string comment = percentage >= 80 ? "Xuất sắc! 🌟" :
+                                 percentage >= 60 ? "Tốt lắm! 👍" :
+                                 percentage >= 40 ? "Cần cố gắng thêm! 💪" :
+                                 "Hãy cố gắng hơn nhé! 📚";
+
+                Label lblComment = new Label
+                {
+                    Text = comment,
+                    Location = new Point(0, lblScoreResult.Bottom + 5),
+                    Size = new Size(dlg.ClientSize.Width, 40),
+                    Font = new Font("Lexend", 12F, FontStyle.Italic),
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    ForeColor = Color.FromArgb(255, 152, 0),
+                    BackColor = Color.Transparent
+                };
+
+                // --- Nút Đóng (btnClose) ---
+                RoundedButton btnClose = new RoundedButton
+                {
+                    Text = "Đóng",
+                    Size = new Size(180, 44),
+                    BackColor = Color.FromArgb(87, 187, 247),
+                    ForeColor = Color.White,
+                    CornerRadius = 10,
+                    Font = new Font("Lexend", 12F, FontStyle.Bold),
+                    Location = new Point((dlg.ClientSize.Width - 180) / 2, dlg.ClientSize.Height - 60)
+                };
+                btnClose.FlatAppearance.BorderSize = 0;
+                btnClose.Click += (s, e) => dlg.Close();
+
+                dlg.Controls.Add(pnlHeader);
+                dlg.Controls.Add(lblIcon);
+                dlg.Controls.Add(lblScoreResult);
+                dlg.Controls.Add(lblComment);
+                dlg.Controls.Add(btnClose);
+
+                dlg.ShowDialog(this);
+
+                try { if (!this.IsDisposed) this.Close(); } catch { }
+            }
         }
     }
 
@@ -259,7 +579,7 @@ namespace N6
             if (cornerRadius > 0 && this.Width > 0 && this.Height > 0)
             {
                 Rectangle rect = new Rectangle(0, 0, this.Width, this.Height);
-                int rad = cornerRadius; // Sửa lại để trực quan hơn, không cần nhân 2
+                int rad = cornerRadius;
                 if (rad * 2 > rect.Width) rad = rect.Width / 2;
                 if (rad * 2 > rect.Height) rad = rect.Height / 2;
 
@@ -1067,7 +1387,7 @@ namespace N6
             // ===== HEADER SECTION =====
             Panel pnlHeaderSection = new Panel
             {
-                Width = 720,
+                Width = 680,
                 Height = 100,
                 Margin = new Padding(5, 10, 5, 20),
                 BackColor = Color.FromArgb(245, 248, 250)
@@ -1118,7 +1438,7 @@ namespace N6
             var btnAdd = new RoundedButton
             {
                 Text = "+ Thêm câu hỏi",
-                Width = 700,
+                Width = 680,
                 Height = 50,
                 Margin = new Padding(5, 15, 5, 40),
                 BackColor = kahootRed,
@@ -1314,18 +1634,9 @@ namespace N6
             // ===== 2. LOAD EXISTING CARDS OR CREATE SAMPLES =====
             var items = GameDataManager.GetFlashcardItems(_maMNG);
 
-            if (items.Count == 0)
+            foreach (var item in items)
             {
-                // Tạo 2 thẻ mẫu
-                AddFlashcardCard(new FlashcardItem { Term = "con mèo", Definition = "cat" });
-                AddFlashcardCard(new FlashcardItem { Term = "con chó", Definition = "dog" });
-            }
-            else
-            {
-                foreach (var item in items)
-                {
-                    AddFlashcardCard(item);
-                }
+                AddFlashcardCard(item);
             }
 
             // ===== 3. ADD NEW CARD BUTTON =====
@@ -1972,7 +2283,7 @@ namespace N6
 
     #region Các Form Game
     // ===================================================================
-    // GAME 1: QUIZ NHANH (MNG01)
+    // GAME 1: QUIZ (MNG01)
     // ===================================================================
 
     public class QuizGameForm : GameFormWithMusic
@@ -1986,7 +2297,7 @@ namespace N6
 
         public QuizGameForm(List<QuizQuestion> questions)
         {
-            if (questions == null || questions.Count == 0) { /* CloseWithWarning(); */ return; }
+            if (questions == null || questions.Count == 0) { CloseWithWarning(); return; }
             _questions = questions;
             InitializeComponent();
             LoadQuestion();
@@ -2093,11 +2404,11 @@ namespace N6
             optionButtons = new List<RoundedButton>();
             string[] prefixes = { "A", "B", "C", "D" };
             Color[] colors = {
-        Color.FromArgb(87, 187, 247),
-        Color.FromArgb(255, 189, 89),
-        Color.FromArgb(29, 209, 161),
-        Color.FromArgb(255, 118, 117)
-    };
+                Color.FromArgb(87, 187, 247),
+                Color.FromArgb(255, 189, 89),
+                Color.FromArgb(29, 209, 161),
+                Color.FromArgb(255, 118, 117)
+            };
 
             for (int i = 0; i < 4; i++)
             {
@@ -2260,7 +2571,7 @@ namespace N6
                 {
                     if (isLast)
                     {
-                        ShowFinalResultDialog();
+                        ShowFinalResultDialog(score, _questions.Count);
                         return;
                     }
                     currentQuestionIndex++;
@@ -2289,7 +2600,7 @@ namespace N6
                 {
                     if (isLast)
                     {
-                        ShowFinalResultDialog();
+                        ShowFinalResultDialog(score, _questions.Count);
                         return;
                     }
                     currentQuestionIndex++;
@@ -2302,194 +2613,9 @@ namespace N6
             }
         }
 
-        private enum AnswerPopupResult { Next, Retry, None }
-
-        private AnswerPopupResult ShowAnswerPopup(bool isCorrect, string message, string primaryText = "Tiếp theo", bool showRetry = true)
-        {
-            using (Form dlg = new Form())
-            {
-                dlg.FormBorderStyle = FormBorderStyle.None;
-                dlg.StartPosition = FormStartPosition.CenterParent;
-                dlg.Size = new Size(460, 180);
-                dlg.ShowInTaskbar = false;
-                dlg.TopMost = true;
-                dlg.BackColor = Color.White;
-                dlg.Font = new Font("Lexend", 11F);
-                dlg.ControlBox = false;
-
-                Label lblTitle = new Label
-                {
-                    Dock = DockStyle.Top,
-                    Height = 28,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    Font = new Font("Lexend", 12F, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(64, 64, 64),
-                    BackColor = Color.Transparent
-                };
-
-                Label lblMessage = new Label
-                {
-                    Text = message,
-                    Dock = DockStyle.Top,
-                    Height = 70,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    Font = new Font("Lexend", 16F, FontStyle.Bold),
-                    ForeColor = isCorrect ? Color.FromArgb(29, 209, 161) : Color.FromArgb(220, 53, 69),
-                    BackColor = Color.Transparent
-                };
-
-                // Buttons container - maintain spacing even if one button hidden
-                Panel pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 70, Padding = new Padding(20) };
-
-                // left button: Retry (when shown)
-                RoundedButton btnRetry = new RoundedButton
-                {
-                    Text = "Thử lại",
-                    Size = new Size(160, 40),
-                    BackColor = Color.FromArgb(255, 193, 7),
-                    ForeColor = Color.Black,
-                    CornerRadius = 10,
-                    Font = new Font("Lexend", 12F, FontStyle.Bold),
-                    Location = new Point(40, 15)
-                };
-                btnRetry.FlatAppearance.BorderSize = 0;
-                btnRetry.Click += (s, e) => { dlg.Tag = "RETRY"; dlg.Close(); };
-
-                // right button: Next / Results
-                RoundedButton btnNext = new RoundedButton
-                {
-                    Text = primaryText,
-                    Size = new Size(160, 40),
-                    BackColor = Color.FromArgb(87, 187, 247),
-                    ForeColor = Color.White,
-                    CornerRadius = 10,
-                    Font = new Font("Lexend", 12F, FontStyle.Bold),
-                    Location = new Point(dlg.ClientSize.Width - 200, 15) // right aligned
-                };
-                btnNext.FlatAppearance.BorderSize = 0;
-                btnNext.Click += (s, e) => { dlg.Tag = "NEXT"; dlg.Close(); };
-
-                // add controls (keep symmetry: even if retry hidden, leave space)
-                if (showRetry)
-                    pnlButtons.Controls.Add(btnRetry);
-                else
-                {
-                    // invisible placeholder panel to keep symmetry
-                    Panel ph = new Panel { Size = new Size(160, 40), Location = new Point(40, 15), BackColor = Color.Transparent };
-                    pnlButtons.Controls.Add(ph);
-                }
-
-                pnlButtons.Controls.Add(btnNext);
-
-                // prevent closing via ALT+F4 / ESC by overriding KeyPreview on dlg and not wiring keys
-                dlg.Controls.AddRange(new Control[] { lblTitle, lblMessage, pnlButtons });
-
-                dlg.ShowDialog(this);
-
-                if (dlg.Tag as string == "RETRY") return AnswerPopupResult.Retry;
-                if (dlg.Tag as string == "NEXT") return AnswerPopupResult.Next;
-                return AnswerPopupResult.None;
-            }
-        }
-
-        // Final result dialog: shows score + evaluation; closing the dialog will also close the game form
-        private void ShowFinalResultDialog()
-        {
-            using (Form dlg = new Form())
-            {
-                dlg.FormBorderStyle = FormBorderStyle.None; // no X
-                dlg.StartPosition = FormStartPosition.CenterParent;
-                dlg.Size = new Size(520, 320);
-                dlg.ShowInTaskbar = false;
-                dlg.TopMost = true;
-                dlg.BackColor = Color.FromArgb(245, 247, 250);
-                dlg.Font = new Font("Lexend", 11F);
-                dlg.ControlBox = false;
-
-                Label lblTitle = new Label
-                {
-                    Text = "KẾT QUẢ",
-                    Dock = DockStyle.Top,
-                    Height = 36,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    Font = new Font("Lexend", 16F, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(64, 64, 64)
-                };
-
-                Label lblIcon = new Label
-                {
-                    Text = "🎊",
-                    Dock = DockStyle.Top,
-                    Height = 70,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    Font = new Font("Segoe UI Emoji", 44F),
-                    BackColor = Color.Transparent
-                };
-
-                Label lblScoreResult = new Label
-                {
-                    Text = $"Bạn đã trả lời đúng {score}/{_questions.Count} câu",
-                    Dock = DockStyle.Top,
-                    Height = 40,
-                    Font = new Font("Lexend", 13F, FontStyle.Bold),
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    ForeColor = Color.FromArgb(64, 64, 64),
-                    BackColor = Color.Transparent
-                };
-
-                double percentage = (_questions.Count > 0) ? (score * 100.0) / _questions.Count : 0;
-                string comment = percentage >= 80 ? "Xuất sắc! 🌟" :
-                                 percentage >= 60 ? "Tốt lắm! 👍" :
-                                 percentage >= 40 ? "Cần cố gắng thêm! 💪" :
-                                 "Hãy cố gắng hơn nhé! 📚";
-                //Label lblScoreText = new Label
-                //{
-                //    Text = $"Bạn đạt: {Math.Round(percentage, 0)}%  —  {comment}",
-                //    Dock = DockStyle.Top,
-                //    Height = 40,
-                //    TextAlign = ContentAlignment.MiddleCenter,
-                //    Font = new Font("Lexend", 12F, FontStyle.Regular),
-                //    ForeColor = Color.FromArgb(64, 64, 64),
-                //    BackColor = Color.Transparent
-                //};
-
-                Label lblComment = new Label
-                {
-                    Text = comment,
-                    Dock = DockStyle.Top,
-                    Height = 40,
-                    Font = new Font("Lexend", 12F, FontStyle.Italic),
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    ForeColor = Color.FromArgb(87, 187, 247),
-                    BackColor = Color.Transparent
-                };
-
-                RoundedButton btnClose = new RoundedButton
-                {
-                    Text = "Đóng",
-                    Size = new Size(180, 44),
-                    BackColor = Color.FromArgb(87, 187, 247),
-                    ForeColor = Color.White,
-                    CornerRadius = 10,
-                    Font = new Font("Lexend", 12F, FontStyle.Bold),
-                    Location = new Point((dlg.ClientSize.Width - 180) / 2, 240)
-                };
-                btnClose.FlatAppearance.BorderSize = 0;
-                btnClose.Click += (s, e) => dlg.Close();
-
-                dlg.Controls.AddRange(new Control[] { btnClose, lblComment, /*lblScoreText,*/ lblScoreResult, lblIcon, lblTitle });
-
-                dlg.ShowDialog(this);
-
-                // Close the game form when result dialog closes
-                try { if (!this.IsDisposed) this.Close(); } catch { }
-            }
-        }
-
-        // EndGame must call the final dialog (keeps game UI until dialog closed)
         private void EndGame()
         {
-            ShowFinalResultDialog();
+            ShowFinalResultDialog(score, _questions.Count);
         }
     }
     // ===================================================================
@@ -2654,7 +2780,11 @@ namespace N6
                 Cursor = Cursors.Hand,
                 Size = new Size(580, 330),
                 Location = new Point(210, 150)
+
             };
+            int cornerRadius = 20;
+            cardPanel.Region = new Region(GetRoundedRectPath(new Rectangle(0, 0, cardPanel.Width, cardPanel.Height), cornerRadius));
+
             cardPanel.Click += (s, e) => FlipCard();
 
             cardPanel.Paint += (s, e) =>
@@ -2718,7 +2848,6 @@ namespace N6
                 Font = new Font("Lexend", 12F, FontStyle.Bold),
                 CornerRadius = navButtonRadius,
                 BackColor = Color.White,
-                ForeColor = Color.FromArgb(87, 187, 247),
                 FlatStyle = FlatStyle.Flat,
                 Location = new Point(center_x - navButtonWidth - 100, controlY),
                 Cursor = Cursors.Hand
@@ -2770,7 +2899,6 @@ namespace N6
                 Font = new Font("Lexend", 12F, FontStyle.Bold),
                 CornerRadius = navButtonRadius,
                 BackColor = Color.White,
-                ForeColor = Color.FromArgb(87, 187, 247),
                 FlatStyle = FlatStyle.Flat,
                 Location = new Point(center_x + 100, controlY),
                 Cursor = Cursors.Hand
@@ -2844,14 +2972,14 @@ namespace N6
         {
             cardLabel.Text = isFlipped ? _cards[currentIndex].Definition : _cards[currentIndex].Term;
 
-            // Thay đổi màu card
-            cardPanel.BackColor = isFlipped ? Color.FromArgb(245, 255, 250) : Color.White;
+            Color frontColor = Color.FromArgb(250, 250, 245);
+            Color backColor = Color.FromArgb(235, 255, 245);
+            cardPanel.BackColor = isFlipped ? backColor : frontColor;
 
             // Hiển thị indicator
             lblFrontIndicator.Visible = !isFlipped;
             lblBackIndicator.Visible = isFlipped;
 
-            // Refresh để vẽ lại border
             cardPanel.Invalidate();
 
             // Animation đơn giản
@@ -2881,8 +3009,9 @@ namespace N6
         private PictureBox picHint;
         private Label lblStatus, lblProgress;
         private FlowLayoutPanel pnlAnswer, pnlChoices;
-        private RoundedButton btnNext, btnReset;
+        private RoundedButton btnHint, btnCheck;
         private Panel pnlButtons;
+        private int _nextWordHintIndex = 0;
 
         // ### THAY ĐỔI MỚI ###
         private Label lblGameTitleTop;
@@ -3020,20 +3149,22 @@ namespace N6
                 Padding = new Padding(20, 15, 20, 15)
             };
 
-            btnReset = new RoundedButton
+            btnCheck = new RoundedButton
             {
-                Text = "🔄 Làm lại",
-                Size = new Size(140, 50),
+                Text = "✔️ Kiểm tra",
+                Size = new Size(160, 50),
                 Location = new Point(100, 15),
                 Font = new Font("Lexend", 12F, FontStyle.Bold),
-                BackColor = Color.FromArgb(244, 179, 80),
+                BackColor = Color.FromArgb(87, 187, 247),
                 ForeColor = Color.White,
                 CornerRadius = 12
             };
-            btnReset.FlatAppearance.BorderSize = 0;
-            btnReset.Click += BtnReset_Click;
-            btnReset.MouseEnter += (s, e) => btnReset.BackColor = Color.FromArgb(229, 159, 60);
-            btnReset.MouseLeave += (s, e) => btnReset.BackColor = Color.FromArgb(244, 179, 80);
+            btnCheck.FlatAppearance.BorderSize = 0;
+            btnCheck.Click += BtnCheck_Click;
+            btnCheck.MouseEnter += (s, e) => btnCheck.BackColor = Color.FromArgb(67, 167, 227);
+            btnCheck.MouseLeave += (s, e) => btnCheck.BackColor = Color.FromArgb(87, 187, 247);
+
+            pnlButtons.Controls.AddRange(new Control[] { btnCheck, lblStatus, btnHint });
 
             lblStatus = new Label
             {
@@ -3045,29 +3176,33 @@ namespace N6
                 BackColor = Color.Transparent
             };
 
-            btnNext = new RoundedButton
+            btnHint = new RoundedButton
             {
-                Text = "➡️ Tiếp theo",
+                Text = "💡 Gợi ý", // Thay chữ
                 Size = new Size(160, 50),
-                Location = new Point(764, 15),
+                Location = new Point(280, 15),
                 Font = new Font("Lexend", 12F, FontStyle.Bold),
-                BackColor = Color.FromArgb(139, 195, 74),
+                BackColor = Color.FromArgb(244, 179, 80), // Màu cam
                 ForeColor = Color.White,
                 CornerRadius = 12,
-                Visible = false
+                Visible = true
             };
-            btnNext.FlatAppearance.BorderSize = 0;
-            btnNext.Click += BtnNext_Click;
-            btnNext.MouseEnter += (s, e) => btnNext.BackColor = Color.FromArgb(119, 175, 54);
-            btnNext.MouseLeave += (s, e) => btnNext.BackColor = Color.FromArgb(139, 195, 74);
+            btnHint.FlatAppearance.BorderSize = 0;
+            // Thay đổi sự kiện:
+            btnHint.Click += BtnHint_Click;
+            btnHint.MouseEnter += (s, e) => btnHint.BackColor = Color.FromArgb(229, 159, 60);
+            btnHint.MouseLeave += (s, e) => btnHint.BackColor = Color.FromArgb(244, 179, 80);
 
-            pnlButtons.Controls.AddRange(new Control[] { btnReset, lblStatus, btnNext });
+            // Đảm bảo pnlButtons dùng btnHint:
+            pnlButtons.Controls.AddRange(new Control[] { btnCheck, lblStatus, btnHint });
+
+            pnlButtons.Controls.AddRange(new Control[] { btnCheck, lblStatus, btnHint });
 
             this.Controls.AddRange(new Control[]
             {
-            lblGameTitleTop, // ### THAY ĐỔI MỚI ###
+            lblGameTitleTop,
             pnlImage,
-            pnlQuestionBg, // pnlQuestionBg bây giờ chứa pnlAnswer
+            pnlQuestionBg,
             lblChoicesTitle,
             pnlChoices
             });
@@ -3109,9 +3244,9 @@ namespace N6
             pnlAnswer.Controls.Clear();
             pnlChoices.Controls.Clear();
             lblStatus.Visible = false;
-            btnNext.Visible = false;
             pnlChoices.Enabled = true;
             pnlAnswer.Enabled = true;
+            _nextWordHintIndex = 0;
 
             if (_currentItemIndex >= _items.Count)
             {
@@ -3119,6 +3254,8 @@ namespace N6
                 return;
             }
 
+            btnCheck.Visible = true;
+            btnHint.Visible = true;
             lblProgress.Text = $" Câu {_currentItemIndex + 1}/{_items.Count} | Đúng: {_correctAnswers}";
 
             WordScrambleItem current = _items[_currentItemIndex];
@@ -3188,9 +3325,6 @@ namespace N6
                 catch { picHint.Image = null; }
             }
 
-            // ### THAY ĐỔI ###: lblQuestion đã bị xóa, không còn gán text vào đây nữa
-            // lblQuestion.Text = current.Question; 
-
             string[] words = current.Answer.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
             int totalWidth = 0;
@@ -3241,7 +3375,7 @@ namespace N6
                         BorderStyle = BorderStyle.None,
                         TextAlign = ContentAlignment.MiddleCenter,
                         BackColor = Color.White,
-                        ForeColor = Color.FromArgb(64, 64, 64), // Mặc định màu chữ tối
+                        ForeColor = Color.FromArgb(64, 64, 64),
                         Cursor = Cursors.Hand
                     };
                     slot.Click += Answer_Click;
@@ -3312,7 +3446,6 @@ namespace N6
                     break;
                 }
             }
-            CheckAnswer();
         }
 
         private void Answer_Click(object sender, EventArgs e)
@@ -3332,92 +3465,7 @@ namespace N6
             }
         }
 
-        private async void CheckAnswer()
-        {
-            var answerSlots = pnlAnswer.Controls.OfType<Label>()
-                                                .Where(l => l.Tag == null || l.Tag.ToString() != "SPACER")
-                                                .ToList();
-
-            string userAnswer = string.Concat(answerSlots.Select(l => l.Text));
-            string correctAnswer = _items[_currentItemIndex].Answer.Replace(" ", "");
-
-            if (userAnswer.Length == correctAnswer.Length)
-            {
-                pnlChoices.Enabled = false;
-                pnlAnswer.Enabled = false;
-
-                if (userAnswer == correctAnswer)
-                {
-                    _correctAnswers++;
-                    lblProgress.Text = $" Câu {_currentItemIndex + 1}/{_items.Count} | Đúng: {_correctAnswers}";
-
-                    lblStatus.Text = "🎉 Chính xác! 🎉";
-                    lblStatus.ForeColor = Color.White;
-                    lblStatus.BackColor = Color.FromArgb(139, 195, 74);
-                    lblStatus.Visible = true;
-
-                    foreach (Label slot in answerSlots)
-                    {
-                        slot.BackColor = Color.FromArgb(139, 195, 74);
-                        slot.ForeColor = Color.White;
-                    }
-
-                    await Task.Delay(1500);
-
-                    if (_currentItemIndex < _items.Count - 1)
-                    {
-                        btnNext.Visible = true;
-                        lblStatus.Text = "Nhấn 'Tiếp theo' để chơi câu kế tiếp";
-                        lblStatus.BackColor = Color.Transparent;
-                        lblStatus.ForeColor = Color.FromArgb(64, 64, 64);
-                    }
-                    else
-                    {
-                        await Task.Delay(1000);
-                        EndGame();
-                    }
-                }
-                else
-                {
-                    lblStatus.Text = "❌ Chưa đúng, thử lại nào!";
-                    lblStatus.ForeColor = Color.White;
-                    lblStatus.BackColor = Color.FromArgb(255, 118, 117);
-                    lblStatus.Visible = true;
-
-                    foreach (Label slot in answerSlots)
-                    {
-                        slot.BackColor = Color.FromArgb(255, 118, 117);
-                        slot.ForeColor = Color.White;
-                    }
-
-                    await Task.Delay(2000);
-
-                    foreach (Label slot in answerSlots)
-                    {
-                        if (slot.Tag is Button btn)
-                        {
-                            btn.Visible = true;
-                        }
-                        slot.Text = "";
-                        slot.Tag = null;
-                        slot.BackColor = Color.White;
-                        slot.ForeColor = Color.FromArgb(64, 64, 64);
-                    }
-
-                    pnlChoices.Enabled = true;
-                    pnlAnswer.Enabled = true;
-                    lblStatus.Visible = false;
-                }
-            }
-        }
-
-        private void BtnNext_Click(object sender, EventArgs e)
-        {
-            _currentItemIndex++;
-            LoadCurrentItem();
-        }
-
-        private void BtnReset_Click(object sender, EventArgs e)
+        private void ResetCurrentState()
         {
             var answerSlots = pnlAnswer.Controls.OfType<Label>()
                                                 .Where(l => l.Tag == null || l.Tag.ToString() != "SPACER")
@@ -3438,88 +3486,215 @@ namespace N6
             pnlChoices.Enabled = true;
             pnlAnswer.Enabled = true;
             lblStatus.Visible = false;
-            btnNext.Visible = false;
+        }
+
+        private async void CheckAnswer()
+        {
+            var answerSlots = pnlAnswer.Controls.OfType<Label>()
+                                                .Where(l => l.Tag == null || l.Tag.ToString() != "SPACER")
+                                                .ToList();
+
+            string userAnswer = string.Concat(answerSlots.Select(l => l.Text));
+            string correctAnswer = _items[_currentItemIndex].Answer.Replace(" ", "");
+
+            if (userAnswer.Length == correctAnswer.Length)
+            {
+                pnlChoices.Enabled = false;
+                pnlAnswer.Enabled = false;
+
+                bool isCorrect = (userAnswer == correctAnswer);
+
+                if (isCorrect)
+                {
+                    _correctAnswers++;
+                    lblProgress.Text = $" Câu {_currentItemIndex + 1}/{_items.Count} | Đúng: {_correctAnswers}";
+
+                    foreach (Label slot in answerSlots)
+                    {
+                        slot.BackColor = Color.FromArgb(139, 195, 74); // Xanh lá
+                        slot.ForeColor = Color.White;
+                    }
+
+                    AnswerPopupResult res;
+                    if (_currentItemIndex < _items.Count - 1)
+                    {
+                        // Có câu hỏi tiếp theo -> Hiện nút Next
+                        res = ShowAnswerPopup(true, "Tuyệt vời! Bạn giỏi quá!", "Tiếp theo", showRetry: false);
+                    }
+                    else
+                    {
+                        // Câu hỏi cuối cùng -> Hiện nút Results
+                        res = ShowAnswerPopup(true, "Tuyệt vời! Bạn giỏi quá!", "Xem Kết quả", showRetry: false);
+                    }
+
+                    if (res == AnswerPopupResult.Next)
+                    {
+                        if (_currentItemIndex < _items.Count - 1)
+                        {
+                            _currentItemIndex++;
+                            LoadCurrentItem();
+                        }
+                        else
+                        {
+                            EndGame();
+                        }
+                    }
+                }
+                else // Khi SAI
+                {
+
+                    foreach (Label slot in answerSlots)
+                    {
+                        slot.BackColor = Color.FromArgb(255, 118, 117); // Đỏ
+                        slot.ForeColor = Color.White;
+                    }
+
+                    AnswerPopupResult res;
+                    if (_currentItemIndex < _items.Count - 1)
+                    {
+                        res = ShowAnswerPopup(false, "Tiếc quá, chưa đúng!", "Tiếp theo", showRetry: true);
+                    }
+                    else
+                    {
+                        res = ShowAnswerPopup(false, "Tiếc quá, chưa đúng!", "Xem Kết quả", showRetry: true);
+                    }
+
+                    if (res == AnswerPopupResult.Retry)
+                    {
+                        ResetCurrentState();
+                        return;
+                    }
+                    else if (res == AnswerPopupResult.Next)
+                    {
+                        if (_currentItemIndex < _items.Count - 1)
+                        {
+                            _currentItemIndex++;
+                            LoadCurrentItem();
+                        }
+                        else
+                        {
+                            EndGame();
+                        }
+                    }
+                }
+            }
+        }
+
+        private void BtnCheck_Click(object sender, EventArgs e)
+        {
+            var answerSlots = pnlAnswer.Controls.OfType<Label>()
+                                                .Where(l => l.Tag == null || l.Tag.ToString() != "SPACER")
+                                                .ToList();
+
+            if (answerSlots.Any(l => string.IsNullOrEmpty(l.Text)))
+            {
+                lblStatus.Text = "Hãy điền đủ chữ cái trước khi kiểm tra!";
+                lblStatus.ForeColor = Color.FromArgb(244, 179, 80);
+                lblStatus.Visible = true;
+                return;
+            }
+
+            lblStatus.Visible = false;
+            CheckAnswer();
+        }
+
+        private void BtnHint_Click(object sender, EventArgs e)
+        {
+            WordScrambleItem currentItem = _items[_currentItemIndex];
+            string[] words = currentItem.Answer.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            string correctAnswerNoSpaces = currentItem.Answer.Replace(" ", "");
+
+            // Lấy tất cả các slot (không phải spacer)
+            var allSlots = pnlAnswer.Controls.OfType<Label>()
+                                             .Where(l => l.Tag == null || l.Tag.ToString() != "SPACER")
+                                             .ToList();
+
+            // Tạo danh sách các nhóm từ (Word Groups)
+            List<List<Label>> wordGroups = new List<List<Label>>();
+            int currentStartIndex = 0;
+
+            foreach (string word in words)
+            {
+                var slots = allSlots.Skip(currentStartIndex).Take(word.Length).ToList();
+                wordGroups.Add(slots);
+                currentStartIndex += word.Length;
+            }
+
+            if (!wordGroups.Any()) return;
+
+            // Tìm Từ Mục Tiêu (Target Word) dựa trên _nextWordHintIndex
+            // Sử dụng vòng lặp để đảm bảo tìm được từ còn trống (nếu từ hiện tại đã đầy thì chuyển sang từ tiếp theo)
+            List<Label> targetWordSlots = null;
+            int wordsCount = wordGroups.Count;
+            int startingIndex = _nextWordHintIndex;
+            int wordsChecked = 0;
+
+            while (wordsChecked < wordsCount)
+            {
+                int indexToHint = startingIndex % wordsCount;
+                var currentGroup = wordGroups[indexToHint];
+
+                if (currentGroup.Any(l => string.IsNullOrEmpty(l.Text)))
+                {
+                    // Tìm thấy từ còn trống
+                    targetWordSlots = currentGroup;
+                    _nextWordHintIndex = (indexToHint + 1) % wordsCount; // Cập nhật chỉ mục cho lần tiếp theo
+                    break;
+                }
+
+                // Nếu từ này đã đầy, kiểm tra từ tiếp theo trong vòng lặp
+                startingIndex++;
+                wordsChecked++;
+            }
+
+            if (targetWordSlots == null)
+            {
+                // Tất cả các từ đã được điền hết
+                lblStatus.Text = "Đáp án đã được điền hết!";
+                lblStatus.ForeColor = Color.Red;
+                lblStatus.Visible = true;
+                return;
+            }
+
+            // Tìm tất cả các ô trống trong từ mục tiêu
+            List<Label> emptySlotsInTargetWord = targetWordSlots
+                                                            .Where(l => string.IsNullOrEmpty(l.Text))
+                                                            .ToList();
+
+            if (emptySlotsInTargetWord.Count == 0) return; // Không nên xảy ra do logic bước 3
+
+            // CHỌN NGẪU NHIÊN một ô trống từ danh sách
+            var random = new Random();
+            Label targetSlot = emptySlotsInTargetWord[random.Next(emptySlotsInTargetWord.Count)];
+
+            // Tính toán chỉ mục tổng thể (Global Index) để lấy ký tự đúng
+            int globalIndex = allSlots.IndexOf(targetSlot);
+            char correctChar = correctAnswerNoSpaces[globalIndex];
+
+            // Tìm và ẩn Button tương ứng
+            RoundedButton choiceButton = pnlChoices.Controls.OfType<RoundedButton>()
+                .FirstOrDefault(b => b.Text.Equals(correctChar.ToString(), StringComparison.OrdinalIgnoreCase) && b.Visible);
+
+            if (choiceButton != null)
+            {
+                // Thực hiện gợi ý
+                choiceButton.Visible = false;
+                targetSlot.Text = correctChar.ToString();
+                targetSlot.Tag = choiceButton;
+
+                lblStatus.Visible = false;
+            }
+            else
+            {
+                lblStatus.Text = "Không tìm thấy chữ cái để gợi ý.";
+                lblStatus.ForeColor = Color.Red;
+                lblStatus.Visible = true;
+            }
         }
 
         private void EndGame()
         {
-            this.Controls.Clear();
-
-            Panel pnlResult = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.Transparent,
-                Padding = new Padding(50)
-            };
-
-            Label lblIcon = new Label
-            {
-                Text = "🎊",
-                Dock = DockStyle.Top,
-                Height = 80,
-                Font = new Font("Segoe UI Emoji", 60F),
-                ForeColor = Color.FromArgb(29, 209, 161),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            Label lblTitle = new Label
-            {
-                Text = "Hoàn thành!",
-                Dock = DockStyle.Top,
-                Height = 80,
-                Font = new Font("Lexend", 32F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(29, 209, 161),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            Label lblScore = new Label
-            {
-                Text = $"Bạn đã trả lời đúng {_correctAnswers}/{_items.Count} câu",
-                Dock = DockStyle.Top,
-                Height = 60,
-                Font = new Font("Segoe UI", 20F),
-                ForeColor = Color.FromArgb(64, 64, 64),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            double percentage = (_correctAnswers * 100.0) / _items.Count;
-            string comment = percentage >= 90 ? "Xuất sắc! 🌟" :
-                             percentage >= 70 ? "Tốt lắm! 👍" :
-                             percentage >= 50 ? "Khá tốt! 💪" :
-                             "Cần cố gắng thêm nhé! 📚";
-
-            Label lblComment = new Label
-            {
-                Text = comment,
-                Dock = DockStyle.Top,
-                Height = 50,
-                Font = new Font("Segoe UI", 18F, FontStyle.Italic),
-                ForeColor = Color.FromArgb(255, 189, 89),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            RoundedButton btnClose = new RoundedButton
-            {
-                Text = "Đóng",
-                Size = new Size(200, 60),
-                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
-                BackColor = Color.FromArgb(139, 195, 74),
-                ForeColor = Color.White,
-                CornerRadius = 15,
-                Location = new Point((this.ClientSize.Width - 200) / 2, 400)
-            };
-            btnClose.Click += (s, e) => this.Close();
-            btnClose.MouseEnter += (s, e) => btnClose.BackColor = Color.FromArgb(119, 175, 54);
-            btnClose.MouseLeave += (s, e) => btnClose.BackColor = Color.FromArgb(139, 195, 74);
-
-
-            pnlResult.Controls.AddRange(new Control[] { lblComment, lblScore, lblTitle, lblIcon });
-            this.Controls.Add(pnlResult);
-            this.Controls.Add(btnClose);
+            ShowFinalResultDialog(_correctAnswers, _items.Count);
         }
     }
 
@@ -3640,8 +3815,8 @@ namespace N6
         private int _currentSentenceIndex = 0;
         private int _correctCount = 0;
         private FlowLayoutPanel pnlChoices, pnlAnswer;
-        private Label lblResult, lblInstruction, lblOriginalSentence, lblProgress;
-        private RoundedButton btnCheck, btnReset, btnShowHint, btnNext;
+        private Label lblInstruction, lblOriginalSentence, lblProgress;
+        private RoundedButton btnCheck, btnReset, btnShowHint;
         private bool _showingHint = false;
         private bool isCompleted = false;
 
@@ -3649,14 +3824,14 @@ namespace N6
         {
             if (sentences == null || sentences.Count == 0)
             {
-                CloseWithWarning("Không có câu nào để chơi!");
+                CloseWithWarning("Không có dữ liệu để bắt đầu game.");
                 return;
             }
 
             _sentences = sentences.Where(s => !string.IsNullOrWhiteSpace(s.CorrectSentence)).ToList();
             if (_sentences.Count == 0)
             {
-                CloseWithWarning("Không có câu hợp lệ để chơi!");
+                CloseWithWarning("Không có câu hợp lệ để bắt đầu game!");
                 return;
             }
 
@@ -3684,14 +3859,14 @@ namespace N6
                 MessageBox.Show("Không thể tải ảnh nền flashcard: " + ex.Message);
                 this.BackColor = Color.FromArgb(245, 247, 250);
             }
-            this.BackgroundImageLayout = ImageLayout.Stretch; // ### THAY ĐỔI ###
+            this.BackgroundImageLayout = ImageLayout.Stretch;
 
             // ===== PANEL HEADER =====
             Panel pnlHeader = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 90,
-                BackColor = Color.Transparent // ### THAY ĐỔI: Trong suốt để thấy ảnh nền ###
+                BackColor = Color.Transparent
             };
 
             Label lblTitle = new Label
@@ -3718,7 +3893,7 @@ namespace N6
             Panel pnlTop = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 80,
+                Height = 110,
                 BackColor = Color.Transparent,
                 Padding = new Padding(20)
             };
@@ -3726,27 +3901,33 @@ namespace N6
             lblInstruction = new Label
             {
                 Text = "🎯 Hãy click vào các từ theo thứ tự đúng để tạo thành câu hoàn chỉnh:",
-                Dock = DockStyle.Top,
-                Height = 90,
+                Location = new Point(20, 45),
+                Height = 30,
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(52, 58, 64),
                 TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize = false,
+                Width = this.Width - 40,
                 BackColor = Color.Transparent
             };
 
+            // 2. Dòng Gợi ý
             lblOriginalSentence = new Label
             {
                 Text = "",
-                Dock = DockStyle.Bottom,
-                Height = 25,
+                Location = new Point(20, 70),
+                Height = 30,
                 Font = new Font("Segoe UI", 11F, FontStyle.Italic),
                 ForeColor = Color.FromArgb(40, 167, 69),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Visible = false,
+                AutoSize = false,
+                Width = this.Width - 40,
                 BackColor = Color.Transparent
             };
 
-            pnlTop.Controls.AddRange(new Control[] { lblOriginalSentence, lblInstruction });
+            pnlTop.Controls.Clear();
+            pnlTop.Controls.AddRange(new Control[] { lblInstruction, lblOriginalSentence });
 
             pnlAnswer = new FlowLayoutPanel
             {
@@ -3823,30 +4004,18 @@ namespace N6
             };
             btnShowHint.Click += BtnShowHint_Click;
 
-            btnNext = new RoundedButton
+            var pnlControl = new FlowLayoutPanel
             {
-                Text = "➡️ Tiếp theo",
-                Size = new Size(120, 45),
-                BackColor = Color.FromArgb(76, 175, 80),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
-                CornerRadius = 8,
-                Margin = new Padding(0, 0, 10, 0),
-                Visible = false
-            };
-            btnNext.Click += BtnNext_Click;
-
-            lblResult = new Label
-            {
-                Dock = DockStyle.Right,
-                Width = 200,
-                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleCenter,
-                Visible = false
+                Dock = DockStyle.Left,
+                AutoSize = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = Color.Transparent,
+                Padding = new Padding(20, 25, 20, 20)
             };
 
-            pnlButtons.Controls.AddRange(new Control[] { btnCheck, btnReset, btnShowHint, btnNext, lblResult });
-            pnlBottom.Controls.Add(pnlButtons);
+            pnlControl.Controls.AddRange(new Control[] { btnCheck, btnReset, btnShowHint });
+            pnlBottom.Controls.Add(pnlControl);
 
             this.Controls.AddRange(new Control[] { pnlChoices, pnlAnswer, pnlBottom, pnlTop, pnlHeader });
         }
@@ -3863,17 +4032,19 @@ namespace N6
             lblProgress.Text = $" Câu {_currentSentenceIndex + 1}/{_sentences.Count} | Đúng: {_correctCount}";
 
             isCompleted = false;
-            lblResult.Visible = false;
-            lblOriginalSentence.Visible = false;
-            btnNext.Visible = false;
+            btnCheck.Enabled = true;
             btnCheck.Visible = true;
+
+            // ************* THAY ĐỔI: Không cần đặt lại btnNext/lblResult *************
+
             btnShowHint.Text = "💡 Gợi ý";
-            btnShowHint.BackColor = Color.FromArgb(255, 152, 0); // ### THAY ĐỔI: Màu cam
+            btnShowHint.BackColor = Color.FromArgb(255, 152, 0);
             _showingHint = false;
+            lblOriginalSentence.Visible = false; // Ẩn gợi ý
 
             var words = currentSentence.CorrectSentence.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                                                       .OrderBy(x => Guid.NewGuid())
-                                                       .ToList();
+                                                     .OrderBy(x => Guid.NewGuid())
+                                                     .ToList();
 
             pnlChoices.Controls.Clear();
             pnlAnswer.Controls.Clear();
@@ -3883,13 +4054,11 @@ namespace N6
                 CreateWordButton(word, pnlChoices);
             }
 
-            // DO NOT show the full correct sentence here. Show a masked hint instead.
             lblOriginalSentence.Text = GenerateHint(currentSentence.CorrectSentence);
         }
 
         private void BtnShowHint_Click(object sender, EventArgs e)
         {
-            // Toggle visibility of the hint only (never show full answer)
             if (!_showingHint)
             {
                 lblOriginalSentence.Visible = true;
@@ -3901,7 +4070,7 @@ namespace N6
             {
                 lblOriginalSentence.Visible = false;
                 btnShowHint.Text = "💡 Gợi ý";
-                btnShowHint.BackColor = Color.FromArgb(255, 152, 0); // ### THAY ĐỔI: Màu cam
+                btnShowHint.BackColor = Color.FromArgb(255, 152, 0);
                 _showingHint = false;
             }
         }
@@ -3915,25 +4084,24 @@ namespace N6
             int n = words.Length;
 
             if (n == 1)
-                return $"💡 Gợi ý (1 từ): \"{words[0]}\"";
+                return $"💡 Gợi ý: \"{words[0]}\"";
 
             if (n == 2)
-                return $"💡 Gợi ý (2 từ): \"{words[0]} _\"";
+                return $"💡 Gợi ý: \"{words[0]} _\"";
 
-            // Show first and last word; mask middle words with underscores (length capped)
             var hintParts = new List<string>(n);
             hintParts.Add(words[0]);
 
             for (int i = 1; i < n - 1; i++)
             {
-                int maskLen = Math.Min(8, words[i].Length); // cap mask length for UI clarity
+                int maskLen = Math.Min(8, words[i].Length);
                 hintParts.Add(new string('_', maskLen));
             }
 
             hintParts.Add(words[n - 1]);
 
             string hint = string.Join(" ", hintParts);
-            return $"💡 Gợi ý ({n} từ): \"{hint}\"";
+            return $"💡 Gợi ý: \"{hint}\"";
         }
 
         private RoundedButton CreateWordButton(string word, FlowLayoutPanel parent)
@@ -3946,7 +4114,7 @@ namespace N6
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Padding = new Padding(15, 8, 15, 8),
                 Margin = new Padding(8),
-                BackColor = Color.FromArgb(40, 167, 69), // ### THAY ĐỔI: Màu xanh lá cây
+                BackColor = Color.FromArgb(40, 167, 69),
                 ForeColor = Color.White,
                 CornerRadius = 20,
                 Cursor = Cursors.Hand
@@ -3963,26 +4131,20 @@ namespace N6
 
             var btn = sender as RoundedButton;
 
-            // ### THAY ĐỔI: Flash màu khác khi click ###
-            btn.BackColor = Color.FromArgb(76, 175, 80); // Xanh lá cây nhạt hơn
+            btn.BackColor = Color.FromArgb(76, 175, 80);
             await Task.Delay(150);
 
             if (btn.Parent == pnlChoices)
             {
                 pnlChoices.Controls.Remove(btn);
                 pnlAnswer.Controls.Add(btn);
-                btn.BackColor = Color.FromArgb(23, 162, 184); // ### THAY ĐỔI: Màu xanh mòng két (teal) khi ở ô trả lời
+                btn.BackColor = Color.FromArgb(23, 162, 184);
             }
             else
             {
                 pnlAnswer.Controls.Remove(btn);
                 pnlChoices.Controls.Add(btn);
-                btn.BackColor = Color.FromArgb(40, 167, 69); // ### THAY ĐỔI: Màu xanh lá cây (như ban đầu)
-            }
-
-            if (lblResult.Visible)
-            {
-                lblResult.Visible = false;
+                btn.BackColor = Color.FromArgb(40, 167, 69);
             }
         }
 
@@ -3990,67 +4152,89 @@ namespace N6
         {
             if (pnlAnswer.Controls.Count == 0)
             {
-                ShowResult("⚠️ Hãy chọn ít nhất một từ!", Color.FromArgb(255, 118, 117));
+                // Sử dụng MessageBox hoặc lblStatus tạm thời (nếu có) thay vì ShowResult
+                // ShowResult("⚠️ Hãy chọn ít nhất một từ!", Color.FromArgb(255, 118, 117));
+                MessageBox.Show("Hãy chọn ít nhất một từ!", "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             var currentSentence = _sentences[_currentSentenceIndex];
             string userAnswer = string.Join(" ", pnlAnswer.Controls.OfType<RoundedButton>().Select(b => b.Text));
+            string correctSentence = currentSentence.CorrectSentence;
 
             btnCheck.Enabled = false;
             btnCheck.Text = "Đang kiểm tra...";
 
             await Task.Delay(500);
 
-            if (userAnswer.Equals(currentSentence.CorrectSentence, StringComparison.OrdinalIgnoreCase))
+            bool isCorrect = userAnswer.Equals(correctSentence, StringComparison.OrdinalIgnoreCase);
+
+            // Vô hiệu hóa controls để đợi Popup
+            pnlAnswer.Enabled = false;
+            pnlChoices.Enabled = false;
+            btnReset.Enabled = false;
+            btnShowHint.Enabled = false;
+
+            // Tô màu kết quả
+            foreach (RoundedButton btn in pnlAnswer.Controls.OfType<RoundedButton>())
+            {
+                btn.BackColor = isCorrect ? Color.FromArgb(76, 175, 80) : Color.FromArgb(255, 118, 117);
+            }
+
+            AnswerPopupResult res;
+
+            if (isCorrect)
             {
                 _correctCount++;
                 lblProgress.Text = $" Câu {_currentSentenceIndex + 1}/{_sentences.Count} | Đúng: {_correctCount}";
-                isCompleted = true;
-                ShowResult("🎉 Chính xác! 🎉", Color.FromArgb(29, 209, 161));
+                isCompleted = true; // Đánh dấu câu đã hoàn thành
 
-                foreach (RoundedButton btn in pnlAnswer.Controls)
-                {
-                    btn.BackColor = Color.FromArgb(76, 175, 80); // ### THAY ĐỔI: Màu xanh lá cây "Go"
-                }
+                string nextActionText = (_currentSentenceIndex < _sentences.Count - 1) ? "Tiếp theo" : "Xem Kết quả";
+                res = ShowAnswerPopup(true, "Tuyệt vời! Chính xác!", nextActionText, showRetry: false);
+            }
+            else // Khi SAI
+            {
+                string nextActionText = (_currentSentenceIndex < _sentences.Count - 1) ? "Tiếp theo" : "Xem Kết quả";
+                res = ShowAnswerPopup(false, "Tiếc quá, chưa đúng!", nextActionText, showRetry: true);
+            }
 
-                btnCheck.Visible = false;
+            // Xử lý kết quả Popup
+            if (res == AnswerPopupResult.Retry)
+            {
+                // Khôi phục trạng thái cho người dùng thử lại
+                BtnReset_Click(null, null); // Dùng hàm reset để đưa từ về lại
+            }
+            else if (res == AnswerPopupResult.Next)
+            {
                 if (_currentSentenceIndex < _sentences.Count - 1)
                 {
-                    btnNext.Visible = true;
+                    _currentSentenceIndex++;
+                    LoadCurrentSentence();
                 }
                 else
                 {
-                    await Task.Delay(3000);
                     EndAllSentences();
                 }
             }
-            else
+
+            // Đảm bảo nút Kiểm tra được phục hồi
+            btnCheck.Enabled = true;
+            btnCheck.Text = "✅ Kiểm tra";
+
+            // Phục hồi Controls sau khi Popup đóng (hoặc sau khi Retry)
+            pnlAnswer.Enabled = true;
+            pnlChoices.Enabled = true;
+            btnReset.Enabled = true;
+            btnShowHint.Enabled = true;
+
+            if (!isCorrect && res != AnswerPopupResult.Retry)
             {
-                ShowResult("❌ Chưa đúng! Thử lại nhé!", Color.FromArgb(255, 118, 117));
-
-                foreach (RoundedButton btn in pnlAnswer.Controls)
+                // Nếu sai VÀ không Retry, phục hồi màu về màu trả lời (Teal)
+                foreach (RoundedButton btn in pnlAnswer.Controls.OfType<RoundedButton>())
                 {
-                    btn.BackColor = Color.FromArgb(255, 235, 235);
-                }
-
-                await Task.Delay(1000);
-
-                foreach (RoundedButton btn in pnlAnswer.Controls)
-                {
-                    // ### THAY ĐỔI: Trở về màu xanh mòng két (teal)
                     btn.BackColor = Color.FromArgb(23, 162, 184);
                 }
             }
-
-            btnCheck.Enabled = true;
-            btnCheck.Text = "✅ Kiểm tra";
-        }
-
-        private void BtnNext_Click(object sender, EventArgs e)
-        {
-            _currentSentenceIndex++;
-            LoadCurrentSentence();
         }
 
         private void BtnReset_Click(object sender, EventArgs e)
@@ -4060,123 +4244,35 @@ namespace N6
             {
                 pnlAnswer.Controls.Remove(btn);
                 pnlChoices.Controls.Add(btn);
-                btn.BackColor = Color.FromArgb(40, 167, 69); // ### THAY ĐỔI: Màu xanh lá cây
+                btn.BackColor = Color.FromArgb(40, 167, 69);
             }
 
-            lblResult.Visible = false;
-            lblOriginalSentence.Visible = false;
+            // ************* THAY ĐỔI: Loại bỏ logic ẩn hiện nút Next/Result tùy chỉnh *************
             isCompleted = false;
-            btnNext.Visible = false;
-            btnCheck.Visible = true;
+
             _showingHint = false;
             btnShowHint.Text = "💡 Gợi ý";
-            btnShowHint.BackColor = Color.FromArgb(255, 152, 0); // ### THAY ĐỔI: Màu cam
+            btnShowHint.BackColor = Color.FromArgb(255, 152, 0);
+            lblOriginalSentence.Visible = false;
+
+            // Phục hồi trạng thái Enabled
+            btnCheck.Enabled = true;
+            btnReset.Enabled = true;
+            btnShowHint.Enabled = true;
+            pnlAnswer.Enabled = true;
+            pnlChoices.Enabled = true;
+
+            btnCheck.Text = "✅ Kiểm tra";
         }
 
-        private void ShowResult(string message, Color color)
-        {
-            lblResult.Text = message;
-            lblResult.ForeColor = Color.White;
-            lblResult.BackColor = color;
-            lblResult.Visible = true;
-        }
-
+        // ************* THAY ĐỔI: Dùng ShowFinalResultDialog chung *************
         private void EndAllSentences()
         {
-            this.Controls.Clear();
-            try
-            {
-                this.BackgroundImage = Image.FromFile(@"..\..\Resources\flashcard_bg.png");
-                this.BackgroundImageLayout = ImageLayout.Stretch;
-                this.BackColor = Color.FromArgb(215, 235, 225);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Không thể tải ảnh nền flashcard: " + ex.Message);
-                this.BackColor = Color.FromArgb(245, 247, 250);
-            }
-            this.BackgroundImageLayout = ImageLayout.Stretch;
-
-            Panel pnlResult = new Panel
-            {
-                Dock = DockStyle.Fill,
-                // ### THAY ĐỔI: Nền trắng bán trong suốt để làm nổi bật kết quả ###
-                BackColor = Color.FromArgb(220, 255, 255, 255),
-                Padding = new Padding(50, 50, 50, 20) // ### THAY ĐỔI: Điều chỉnh padding
-            };
-
-            Label lblIcon = new Label
-            {
-                Text = "🎊",
-                Dock = DockStyle.Top,
-                Height = 80,
-                Font = new Font("Segoe UI Emoji", 60F),
-                ForeColor = Color.FromArgb(29, 209, 161),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            Label lblTitle = new Label
-            {
-                Text = "Hoàn thành!",
-                Dock = DockStyle.Top,
-                Height = 80,
-                Font = new Font("Lexend", 32F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(29, 209, 161),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            Label lblScore = new Label
-            {
-                Text = $"Bạn đã trả lời đúng {_correctCount}/{_sentences.Count} câu",
-                Dock = DockStyle.Top,
-                Height = 60,
-                Font = new Font("Segoe UI", 20F),
-                ForeColor = Color.FromArgb(64, 64, 64),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            double percent = (_correctCount * 100.0) / _sentences.Count;
-            string comment = percent >= 80 ? "Xuất sắc! 🌟" :
-                             percent >= 60 ? "Tốt lắm! 👍" :
-                             "Cần cố gắng thêm! 💪";
-
-            Label lblComment = new Label
-            {
-                Text = comment,
-                Dock = DockStyle.Top,
-                Height = 50,
-                Font = new Font("Segoe UI", 18F, FontStyle.Italic),
-                ForeColor = Color.FromArgb(255, 189, 89),
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent,
-                Padding = new Padding(0, 0, 0, 20) // ### THAY ĐỔI: Thêm chút khoảng cách
-            };
-
-            RoundedButton btnClose = new RoundedButton
-            {
-                Text = "Đóng",
-                Size = new Size(200, 60),
-                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
-                BackColor = Color.FromArgb(33, 150, 243), // ### THAY ĐỔI: Màu xanh dương
-                ForeColor = Color.White,
-                CornerRadius = 15,
-                Dock = DockStyle.Bottom, // ### THAY ĐỔI: Dock xuống dưới
-                Margin = new Padding(0, 20, 0, 0)
-            };
-            btnClose.Click += (s, e) => this.Close();
-
-            pnlResult.Controls.AddRange(new Control[] { lblComment, lblScore, lblTitle, lblIcon });
-            pnlResult.Controls.Add(btnClose); // ### THAY ĐỔI: Thêm vào pnlResult
-            this.Controls.Add(pnlResult);
+            // Gọi hàm hiển thị kết quả cuối cùng từ GameFormWithMusic
+            ShowFinalResultDialog(_correctCount, _sentences.Count);
         }
     }
 
-    // ===================================================================
-    // GAME 7: ĐIỀN TỪ (MNG07)
-    // ===================================================================
     // ===================================================================
     // GAME 7: ĐIỀN TỪ (MNG07)
     // ===================================================================
@@ -4196,7 +4292,7 @@ namespace N6
         {
             if (questions == null || questions.Count == 0 || string.IsNullOrWhiteSpace(questions[0].QuestionText))
             {
-                CloseWithWarning("Không có câu hỏi hợp lệ để chơi!");
+                CloseWithWarning("Không có dữ liệu để bắt đầu game.");
                 return;
             }
             _questions = questions;
@@ -4225,11 +4321,12 @@ namespace N6
             }
             this.BackgroundImageLayout = ImageLayout.Stretch;
 
-            // ===== PANEL HEADER (BANNER) - Chứa Title, Progress VÀ Hướng dẫn =====
+            // --- Cấu trúc Header MỚI (Giống Quiz) ---
+            // ===== PANEL HEADER (BANNER) - Chỉ chứa Title và Progress =====
             Panel pnlHeader = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 140, // <<< TĂNG CHIỀU CAO HEADER LÊN 140 ĐỂ CHỨA HƯỚNG DẪN
+                Height = 90, // GIẢM CHIỀU CAO VỀ 90px (để banner trên cùng)
                 BackColor = Color.Transparent
             };
 
@@ -4237,15 +4334,16 @@ namespace N6
             Label lblGameTitle = new Label
             {
                 Text = "Điền từ vào chỗ trống",
-                Font = new Font("Lexend", 22F, FontStyle.Bold),
+                Font = new Font("Lexend", 20F, FontStyle.Bold), // Điều chỉnh Font
                 ForeColor = Color.FromArgb(52, 58, 64),
-                Location = new Point(0, 40), // Vị trí chính giữa banner
+                Location = new Point(0, 50), // Vị trí chính giữa banner
                 AutoSize = false,
                 Width = this.ClientSize.Width,
                 Height = 40,
                 TextAlign = ContentAlignment.MiddleCenter,
                 BackColor = Color.Transparent
             };
+            lblGameTitle.Text = "Điền từ vào chỗ trống";
 
             // Tiến độ (GÓC TRÁI trên banner)
             lblProgress = new Label
@@ -4253,55 +4351,50 @@ namespace N6
                 Location = new Point(30, 10),
                 AutoSize = true,
                 Font = new Font("Lexend", 14F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(80, 80, 80),
+                ForeColor = Color.FromArgb(19, 104, 206), // Dùng màu xanh
                 BackColor = Color.Transparent
             };
 
-            // Icon game (DƯỚI Tiêu đề)
-            Label lblInstructionIcon = new Label
-            {
-                Text = "🦉", // Biểu tượng cú
-                Font = new Font("Segoe UI Emoji", 16F),
-                ForeColor = Color.FromArgb(52, 58, 64),
-                Location = new Point(this.ClientSize.Width / 2 - 160, 95), // Căn gần giữa banner
-                AutoSize = true,
-                BackColor = Color.Transparent
-            };
+            pnlHeader.Controls.AddRange(new Control[] { lblGameTitle, lblProgress });
 
-            // Hướng dẫn (DƯỚI Biểu tượng cú)
             Label lblInstruction = new Label
             {
-                Text = "Hãy điền từ thích hợp vào chỗ trống (___):",
+                Text = "✍️ Hãy điền từ thích hợp vào chỗ trống (___)",
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(52, 58, 64),
-                Location = new Point(this.ClientSize.Width / 2 - 120, 100), // Căn bên phải icon cú
                 AutoSize = true,
+                Location = new Point((this.ClientSize.Width - 350) / 2, 150),
                 BackColor = Color.Transparent
             };
 
-            // Thêm Resize event để giữ title và hướng dẫn luôn ở giữa
             this.Resize += (s, e) =>
             {
                 if (lblGameTitle != null) lblGameTitle.Width = this.ClientSize.Width;
-                if (lblInstructionIcon != null) lblInstructionIcon.Location = new Point(this.ClientSize.Width / 2 - 150, 75);
-                if (lblInstruction != null) lblInstruction.Location = new Point(this.ClientSize.Width / 2 - 120, 80);
+
+                if (lblInstruction != null)
+                {
+                    using (Graphics g = this.CreateGraphics())
+                    {
+                        SizeF size = g.MeasureString(lblInstruction.Text, lblInstruction.Font);
+                        lblInstruction.Location = new Point((this.ClientSize.Width - (int)size.Width) / 2, 95);
+                    }
+                }
+                if (pnlMainCard != null)
+                {
+                    pnlMainCard.Location = new Point((this.ClientSize.Width - 820) / 2, 130);
+                }
             };
 
-            pnlHeader.Controls.AddRange(new Control[] { lblGameTitle, lblProgress, lblInstructionIcon, lblInstruction });
-
-            // ===== PANEL CHÍNH - WHITE BOX (pnlMainCard) =====
             pnlMainCard = new Panel
             {
-                // <<< GIẢM CHIỀU CAO: 320 -> 240
-                Size = new Size(820, 240),
-                Location = new Point((this.ClientSize.Width - 820) / 2, 140),
+                Size = new Size(820, 200),
+                Location = new Point((this.ClientSize.Width - 820) / 2, 180),
                 Padding = new Padding(30)
             };
 
-            // Vẽ shadow và bo góc (Giữ nguyên)
             pnlMainCard.Paint += (s, e) =>
             {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
                 // Shadow
                 using (var shadowBrush = new SolidBrush(Color.FromArgb(20, 0, 0, 0)))
@@ -4323,27 +4416,24 @@ namespace N6
                 }
             };
 
-            // Label câu hỏi
             lblQuestion = new Label
             {
-                Location = new Point(30, 30),
-                Size = new Size(760, 40), // <<< GIẢM CHIỀU CAO CÂU HỎI
+                Location = new Point(30, 20),
+                Size = new Size(760, 40),
                 Font = new Font("Segoe UI", 18F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(64, 64, 64),
                 TextAlign = ContentAlignment.MiddleLeft,
                 AutoSize = false
             };
 
-            // TextBox trả lời
             txtAnswer = new TextBox
             {
                 Font = new Font("Segoe UI", 16F),
-                Location = new Point(30, 80), // <<< VỊ TRÍ MỚI (Dưới câu hỏi)
+                Location = new Point(30, 70),
                 Width = 760,
                 Height = 40,
                 BorderStyle = BorderStyle.FixedSingle
             };
-            // (Giữ nguyên event KeyPress)
             txtAnswer.KeyPress += (s, e) =>
             {
                 if (e.KeyChar == (char)Keys.Enter)
@@ -4353,10 +4443,9 @@ namespace N6
                 }
             };
 
-            // Label kết quả
             lblResult = new Label
             {
-                Location = new Point(30, 140), // <<< VỊ TRÍ MỚI
+                Location = new Point(30, 130),
                 Size = new Size(760, 40),
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -4365,7 +4454,6 @@ namespace N6
 
             pnlMainCard.Controls.AddRange(new Control[] { lblQuestion, txtAnswer, lblResult });
 
-            // ===== PANEL ĐIỀU KHIỂN DƯỚI (Footer) - Giữ nguyên =====
             Panel pnlBottom = new Panel
             {
                 Dock = DockStyle.Bottom,
@@ -4373,13 +4461,10 @@ namespace N6
                 BackColor = Color.Transparent,
                 Padding = new Padding(20, 15, 20, 15)
             };
-
-            // FlowLayoutPanel để căn giữa các nút
             var pnlButtons = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
-                // (150 Check + 15 margin + 150 Skip + 15 margin) = 330
                 Location = new Point((pnlBottom.ClientSize.Width - 330) / 2, 0),
                 AutoSize = true,
                 Padding = new Padding(0, 10, 0, 10),
@@ -4387,18 +4472,16 @@ namespace N6
                 BackColor = Color.Transparent
             };
 
-            // CUSTOM LẠI MÀU NÚT (Giữ nguyên)
             btnCheck = new RoundedButton
             {
                 Text = "✅ Kiểm tra",
                 Size = new Size(150, 50),
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                BackColor = Color.FromArgb(76, 175, 80), // Xanh lá cây 
+                BackColor = Color.FromArgb(76, 175, 80),
                 ForeColor = Color.White,
                 CornerRadius = 10,
                 Margin = new Padding(0, 0, 15, 0)
             };
-            btnCheck.FlatAppearance.BorderSize = 0;
             btnCheck.Click += BtnCheck_Click;
 
             btnSkip = new RoundedButton
@@ -4406,12 +4489,11 @@ namespace N6
                 Text = "⏭️ Bỏ qua",
                 Size = new Size(150, 50),
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                BackColor = Color.FromArgb(108, 117, 125), // Xám
+                BackColor = Color.FromArgb(108, 117, 125),
                 ForeColor = Color.White,
                 CornerRadius = 10,
                 Margin = new Padding(0, 0, 15, 0)
             };
-            btnSkip.FlatAppearance.BorderSize = 0;
             btnSkip.Click += BtnSkip_Click;
 
             btnNext = new RoundedButton
@@ -4425,14 +4507,12 @@ namespace N6
                 Margin = new Padding(0, 0, 15, 0),
                 Visible = false
             };
-            btnNext.FlatAppearance.BorderSize = 0;
             btnNext.Click += BtnNext_Click;
 
             pnlButtons.Controls.AddRange(new Control[] { btnCheck, btnSkip, btnNext });
             pnlBottom.Controls.Add(pnlButtons);
 
-            // Xóa pnlTop cũ (hướng dẫn)
-            this.Controls.AddRange(new Control[] { pnlMainCard, pnlBottom, pnlHeader });
+            this.Controls.AddRange(new Control[] { pnlMainCard, pnlBottom, lblInstruction, pnlHeader });
         }
 
         // Helper method để vẽ bo góc (GIỮ NGUYÊN)
@@ -4482,94 +4562,85 @@ namespace N6
             string userAnswer = txtAnswer.Text.Trim();
             string correctAnswer = _questions[_currentIndex].Answer;
 
-            // Disable controls
             txtAnswer.Enabled = false;
             btnCheck.Enabled = false;
             btnSkip.Enabled = false;
 
-            if (string.Equals(userAnswer, correctAnswer, StringComparison.OrdinalIgnoreCase))
+            await Task.Delay(500);
+
+            bool isCorrect = string.Equals(userAnswer, correctAnswer, StringComparison.OrdinalIgnoreCase);
+
+            txtAnswer.BackColor = isCorrect ? CorrectColor : IncorrectColor;
+            lblResult.Visible = false;
+
+            string nextActionText = (_currentIndex < _questions.Count - 1) ? "Tiếp theo" : "Xem Kết quả";
+            AnswerPopupResult res;
+
+            if (isCorrect)
             {
-                // Đúng
                 _correctCount++;
-                txtAnswer.BackColor = CorrectColor;
-                lblResult.Text = "🎉 Chính xác! 🎉";
-                lblResult.ForeColor = Color.White;
-                lblResult.BackColor = CorrectColor;
-                lblResult.Visible = true;
-
-                await Task.Delay(1500);
-
-                if (_currentIndex < _questions.Count - 1)
-                {
-                    // Chưa phải câu cuối -> Hiện nút tiếp tục
-                    btnCheck.Visible = false;
-                    btnSkip.Visible = false;
-                    btnNext.Visible = true;
-                }
-                else
-                {
-                    // ĐÂY LÀ CÂU CUỐI -> Tự động chuyển sang màn hình hoàn thành
-                    await Task.Delay(1000);
-                    ShowFinalResult();
-                }
+                res = ShowAnswerPopup(true, "Tuyệt vời! Chính xác!", nextActionText, showRetry: false);
             }
             else
             {
-                // Sai
-                txtAnswer.BackColor = IncorrectColor;
-                lblResult.Text = $"❌ Chưa đúng! Đáp án là: {correctAnswer}";
-                lblResult.ForeColor = Color.White;
-                lblResult.BackColor = IncorrectColor;
-                lblResult.Visible = true;
+                res = ShowAnswerPopup(false, "Tiếc quá, chưa đúng!", nextActionText, showRetry: true);
+            }
 
+            if (res == AnswerPopupResult.Retry)
+            {
+                txtAnswer.Enabled = true;
+                btnCheck.Enabled = true;
+                btnSkip.Enabled = true;
+
+                txtAnswer.BackColor = Color.White;
+                txtAnswer.Focus();
+            }
+            else if (res == AnswerPopupResult.Next)
+            {
                 if (_currentIndex < _questions.Count - 1)
                 {
-                    // Chưa phải câu cuối -> Hiện nút tiếp tục
-                    btnCheck.Visible = false;
-                    btnSkip.Visible = false;
-                    btnNext.Visible = true;
+                    _currentIndex++;
+                    LoadQuestion();
                 }
                 else
                 {
-                    // ĐÂY LÀ CÂU CUỐI -> Tự động chuyển sang màn hình hoàn thành
-                    await Task.Delay(2000);
-                    ShowFinalResult();
+                    ShowFinalResultDialog(_correctCount, _questions.Count);
                 }
             }
 
             btnCheck.Enabled = true;
             btnSkip.Enabled = true;
+
+            if (res != AnswerPopupResult.Retry)
+            {
+                txtAnswer.BackColor = Color.White;
+            }
         }
 
         private void BtnSkip_Click(object sender, EventArgs e)
         {
             string correctAnswer = _questions[_currentIndex].Answer;
 
-            txtAnswer.BackColor = Color.FromArgb(248, 249, 250);
-            lblResult.Text = $"⏭️ Đã bỏ qua. Đáp án là: {correctAnswer}";
-            lblResult.ForeColor = Color.FromArgb(108, 117, 125);
-            lblResult.BackColor = Color.FromArgb(248, 249, 250);
-            lblResult.Visible = true;
+            string nextActionText = (_currentIndex < _questions.Count - 1) ? "Tiếp theo" : "Xem Kết quả";
 
-            txtAnswer.Enabled = false;
+            AnswerPopupResult res = ShowAnswerPopup(
+                false,
+                $"Đã bỏ qua. Đáp án là: {correctAnswer}",
+                nextActionText,
+                showRetry: false
+            );
 
-            if (_currentIndex < _questions.Count - 1)
+            if (res == AnswerPopupResult.Next)
             {
-                // Chưa phải câu cuối -> Hiện nút tiếp tục
-                btnCheck.Visible = false;
-                btnSkip.Visible = false;
-                btnNext.Visible = true;
-            }
-            else
-            {
-                // ĐÂY LÀ CÂU CUỐI -> Tự động chuyển sang màn hình hoàn thành
-                Task.Delay(1500).ContinueWith(t =>
+                if (_currentIndex < _questions.Count - 1)
                 {
-                    if (!this.IsDisposed)
-                    {
-                        this.Invoke(new Action(() => ShowFinalResult()));
-                    }
-                });
+                    _currentIndex++;
+                    LoadQuestion();
+                }
+                else
+                {
+                    ShowFinalResultDialog(_correctCount, _questions.Count);
+                }
             }
         }
 
@@ -4581,72 +4652,7 @@ namespace N6
 
         private void ShowFinalResult()
         {
-            this.Controls.Clear();
-            this.BackgroundImageLayout = ImageLayout.Stretch;
-
-            Panel pnlResult = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(180, 255, 255, 255), // Nền trắng trong suốt
-                Padding = new Padding(50)
-            };
-
-            Label lblTitle = new Label
-            {
-                Text = "🎊 Hoàn thành! 🎊",
-                Dock = DockStyle.Top,
-                Height = 80,
-                Font = new Font("Segoe UI", 32F, FontStyle.Bold),
-                ForeColor = CorrectColor,
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            Label lblScore = new Label
-            {
-                Text = $"Bạn đã trả lời đúng {_correctCount}/{_questions.Count} câu",
-                Dock = DockStyle.Top,
-                Height = 60,
-                Font = new Font("Segoe UI", 20F),
-                ForeColor = TextColor,
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            // Đánh giá
-            string comment = "";
-            double percent = (_correctCount * 100.0) / _questions.Count;
-            if (percent >= 80) comment = "Xuất sắc! 🌟";
-            else if (percent >= 60) comment = "Tốt lắm! 👍";
-            else if (percent >= 40) comment = "Cần cố gắng thêm! 💪";
-            else comment = "Hãy học thêm nhé! 📚";
-
-            Label lblComment = new Label
-            {
-                Text = comment,
-                Dock = DockStyle.Top,
-                Height = 50,
-                Font = new Font("Segoe UI", 18F, FontStyle.Italic),
-                ForeColor = SecondaryColor,
-                TextAlign = ContentAlignment.MiddleCenter,
-                BackColor = Color.Transparent
-            };
-
-            RoundedButton btnClose = new RoundedButton
-            {
-                Text = "Đóng",
-                Size = new Size(200, 60),
-                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
-                BackColor = PrimaryColor,
-                ForeColor = Color.White,
-                CornerRadius = 15,
-                Location = new Point((this.ClientSize.Width - 200) / 2, 350)
-            };
-            btnClose.Click += (s, e) => this.Close();
-
-            pnlResult.Controls.AddRange(new Control[] { lblComment, lblScore, lblTitle });
-            this.Controls.Add(pnlResult);
-            this.Controls.Add(btnClose);
+            ShowFinalResultDialog(_correctCount, _questions.Count);
         }
     }
 

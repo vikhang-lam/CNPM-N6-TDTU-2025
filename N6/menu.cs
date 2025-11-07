@@ -141,6 +141,12 @@ namespace N6
                 oldControl.Dispose(); // Quan trọng: Giải phóng tài nguyên
             }
 
+            Button targetBtn = FindMenuButtonByTag(moduleCode);
+            if (targetBtn != null)
+            {
+                SetActiveMenuButton(targetBtn);
+            }
+
             // 2. Lấy thông tin người dùng
             string user = Properties.Settings.Default["CurrentUser"]?.ToString();
             string maGV = DatabaseHelper.GetTeacherIdByUsername(user);
