@@ -341,6 +341,61 @@
     <Compile Include="MenuAdmin.Designer.cs">
       <DependentUpon>MenuAdmin.cs</DependentUpon>
     </Compile>
+    <Compile Include="MiniGames\Base\BaseGameForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Base\GameFormWithMusic.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Base\RoundedButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Data\GameDataManager.cs" />
+    <Compile Include="MiniGames\Data\GameDataModels.cs" />
+    <Compile Include="MiniGames\Games\DienTuForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Games\FlashcardForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Games\GheChuForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Games\LatTheForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Games\LuckyWheelForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Games\NgheChonHinhForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Games\PassBallForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Games\QuizGameForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Games\RandomSoForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Games\SapXepCauForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Input\FillBlankControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Input\GameDataInputForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Input\QuizQuestionControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Input\WordScrambleControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="MiniGames\Utils\MusicPlayer.cs" />
+    <Compile Include="MiniGames\Utils\PlaceholderProvider.cs" />
     <Compile Include="PopupWhiteboard.cs">
       <SubType>Form</SubType>
     </Compile>
