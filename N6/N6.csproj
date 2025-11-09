@@ -264,7 +264,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AIAnalyzer.cs" />
-    <Compile Include="AllGameCode.cs" />
     <Compile Include="DatabaseHelper.cs" />
     <Compile Include="EmailHelper.cs" />
     <Compile Include="ExcelHelper.cs" />
