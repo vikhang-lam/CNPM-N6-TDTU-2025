@@ -24,6 +24,7 @@ namespace N6
             // Gán sự kiện (sẽ được gỡ trong Dispose)
             this.tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
             this.tabControl1.DrawItem += new DrawItemEventHandler(this.tabControl1_DrawItem);
+
             //this.tabControl1.SelectedIndexChanged += new System.EventHandler(this.tabControl1_SelectedIndexChanged);
             //this.dgvGV.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgvGV_CellClick);
             //this.btnLamMoi.Click += new System.EventHandler(this.btnLamMoi_Click);
