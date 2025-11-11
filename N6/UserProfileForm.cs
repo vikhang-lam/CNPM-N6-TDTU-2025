@@ -31,14 +31,6 @@ namespace N6
             this.BackColor = Color.LightGray;
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.None;
-
-            // Gán sự kiện (để gỡ trong Dispose)
-            this.Load += UserProfileForm_Load;
-            this.btnTogglePasswordPanel.Click += btnTogglePasswordPanel_Click;
-            this.btnSavePassword.Click += btnSavePassword_Click;
-            this.btnChangeAvatar.Click += btnChangeAvatar_Click;
-            this.btnChangeEmail.Click += btnChangeEmail_Click;
-            this.btnClose.Click += btnClose_Click;
         }
 
         private void UserProfileForm_Load(object sender, EventArgs e)
@@ -82,6 +74,10 @@ namespace N6
                 lblSubject.Text = "Môn: " + (string.IsNullOrEmpty(profile.TenMon) ? "Chưa có" : profile.TenMon);
                 lblEmail.Text = "Email: " + (string.IsNullOrEmpty(profile.Email) ? "Chưa có" : profile.Email);
                 lblPhone.Text = "SĐT: " + (string.IsNullOrEmpty(profile.SDT) ? "Chưa có" : profile.SDT);
+
+                int margin = 5; // Khoảng cách giữa các label
+                lblEmail.Top = lblSubject.Bottom + margin;
+                lblPhone.Top = lblEmail.Bottom + margin;
 
                 // Load avatar
                 string avatarPath = Path.Combine(Application.StartupPath, profile.AnhDaiDien ?? "");

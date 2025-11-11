@@ -33,7 +33,7 @@ namespace N6
             //this.btnSua.Click += new System.EventHandler(this.btnSua_Click);
             //this.btnXoa.Click += new System.EventHandler(this.btnXoa_Click);
 
-            LoadAllMonHoc(); // Tải cache môn học
+            LoadAllMonHoc(); // Tải cache môn họcs
             LoadDataForCurrentTab();
             UpdatePanelVisibility();
         }

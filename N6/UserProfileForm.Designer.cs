@@ -228,7 +228,7 @@
             this.lblPhone.AutoSize = true;
             this.lblPhone.Font = new System.Drawing.Font("Segoe UI", 11F);
             this.lblPhone.ForeColor = System.Drawing.Color.DimGray;
-            this.lblPhone.Location = new System.Drawing.Point(263, 230);
+            this.lblPhone.Location = new System.Drawing.Point(262, 214);
             this.lblPhone.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblPhone.Name = "lblPhone";
             this.lblPhone.Size = new System.Drawing.Size(54, 25);
@@ -241,7 +241,7 @@
             this.lblEmail.AutoSize = true;
             this.lblEmail.Font = new System.Drawing.Font("Segoe UI", 11F);
             this.lblEmail.ForeColor = System.Drawing.Color.DimGray;
-            this.lblEmail.Location = new System.Drawing.Point(263, 195);
+            this.lblEmail.Location = new System.Drawing.Point(262, 189);
             this.lblEmail.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblEmail.Name = "lblEmail";
             this.lblEmail.Size = new System.Drawing.Size(67, 25);
@@ -254,8 +254,9 @@
             this.lblSubject.AutoSize = true;
             this.lblSubject.Font = new System.Drawing.Font("Segoe UI", 11F);
             this.lblSubject.ForeColor = System.Drawing.Color.Gray;
-            this.lblSubject.Location = new System.Drawing.Point(263, 160);
+            this.lblSubject.Location = new System.Drawing.Point(262, 164);
             this.lblSubject.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblSubject.MaximumSize = new System.Drawing.Size(400, 0);
             this.lblSubject.Name = "lblSubject";
             this.lblSubject.Size = new System.Drawing.Size(60, 25);
             this.lblSubject.TabIndex = 1;

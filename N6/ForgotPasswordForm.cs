@@ -50,6 +50,7 @@ namespace N6
         {
             // Ẩn các control không cần thiết lúc đầu
             pnlOtpBorder.Visible = false;
+            btnCheckOtp.Visible = false;
             pnlPasswordBorder.Visible = false;
             pnlConfirmPasswordBorder.Visible = false;
             btnResetPassword.Visible = false;
@@ -91,7 +92,7 @@ namespace N6
                         MessageBox.Show($"Đã gửi mã OTP đến email: {result.Email}.\nVui lòng kiểm tra (có thể trong Spam).", "Thành Công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                         // 3. Hiển thị các control bị ẩn
-                        ShowResetControls();
+                        ShowOtpStep();
                     }
                     // else: Lỗi đã được ném (throw) và bắt (catch) bởi EmailHelper
                 }
@@ -114,24 +115,63 @@ namespace N6
         }
 
         /// <summary>
-        /// Hiển thị các control cho bước 2 (nhập OTP và mật khẩu mới).
+        /// Hiển thị các control cho bước 2 (Nhập OTP).
         /// </summary>
-        private void ShowResetControls()
+        private void ShowOtpStep()
         {
-            // Hiển thị các control
+            // Hiển thị panel OTP và nút Check OTP
             pnlOtpBorder.Visible = true;
-            pnlPasswordBorder.Visible = true;
-            pnlConfirmPasswordBorder.Visible = true;
-            btnResetPassword.Visible = true;
+            btnCheckOtp.Visible = true;
 
-            // Di chuyển và đổi kích thước form
-            this.Height = 440;
-            btnCancel.Location = new Point(315, 370);
+            // Ẩn các control của bước 3 (nếu có)
+            pnlPasswordBorder.Visible = false;
+            pnlConfirmPasswordBorder.Visible = false;
+            btnResetPassword.Visible = false;
+
+            // Điều chỉnh kích thước form và vị trí nút
+            this.Height = 280;
+            btnCheckOtp.Location = new Point(120, 230);
+            btnCancel.Location = new Point(315, 230);
 
             // Vô hiệu hóa phần gửi OTP
             txtUsernameOrEmail.Enabled = false;
             btnSendOtp.Enabled = false;
             pnlUsernameBorder.BackColor = Color.LightGray;
+        }
+
+        /// <summary>
+        /// Xử lý sự kiện click nút "Xác Nhận OTP".
+        /// </summary>
+        private void btnCheckOtp_Click(object sender, EventArgs e)
+        {
+            if (IsPlaceholder(txtOtp) || string.IsNullOrWhiteSpace(txtOtp.Text))
+            {
+                MessageBox.Show("Vui lòng nhập mã OTP.", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Chỉ cần hiện các control của bước 3
+            // Việc xác thực OTP THỰC SỰ sẽ diễn ra khi bấm "Đặt Lại Mật Khẩu"
+            ShowPasswordStep();
+        }
+
+        /// <summary>
+        /// Hiển thị các control cho bước 3 (Nhập Mật khẩu mới).
+        /// </summary>
+        private void ShowPasswordStep()
+        {
+            // Ẩn nút Check OTP
+            btnCheckOtp.Visible = false;
+
+            // Hiển thị các control nhập mật khẩu
+            pnlPasswordBorder.Visible = true;
+            pnlConfirmPasswordBorder.Visible = true;
+            btnResetPassword.Visible = true;
+
+            // Di chuyển và đổi kích thước form về trạng thái đầy đủ
+            this.Height = 440;
+            btnResetPassword.Location = new Point(120, 370);
+            btnCancel.Location = new Point(315, 370);
         }
 
         /// <summary>
@@ -328,6 +368,9 @@ namespace N6
                 this.MouseDown -= Form_MouseDown;
                 this.MouseMove -= Form_MouseMove;
                 this.MouseUp -= Form_MouseUp;
+
+                if (this.btnCheckOtp != null)
+                    this.btnCheckOtp.Click -= btnCheckOtp_Click;
 
                 // Gỡ bỏ sự kiện cho các panel viền
                 foreach (var pnl in _borderColors.Keys)

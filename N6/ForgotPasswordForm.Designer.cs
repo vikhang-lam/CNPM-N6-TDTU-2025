@@ -4,7 +4,7 @@
     {
         private System.ComponentModel.IContainer components = null;
 
-       
+
 
         #region Windows Form Designer generated code
 
@@ -25,6 +25,7 @@
             this.lblClose = new System.Windows.Forms.Label();
             this.lblSubTitle = new System.Windows.Forms.Label();
             this.btnCancel = new System.Windows.Forms.Button();
+            this.btnCheckOtp = new System.Windows.Forms.Button();
             this.pnlUsernameBorder.SuspendLayout();
             this.pnlOtpBorder.SuspendLayout();
             this.pnlPasswordBorder.SuspendLayout();
@@ -64,7 +65,7 @@
             this.pnlOtpBorder.Controls.Add(this.txtOtp);
             this.pnlOtpBorder.Location = new System.Drawing.Point(50, 175);
             this.pnlOtpBorder.Name = "pnlOtpBorder";
-            this.pnlOtpBorder.Size = new System.Drawing.Size(500, 45);
+            this.pnlOtpBorder.Size = new System.Drawing.Size(360, 45);
             this.pnlOtpBorder.TabIndex = 2;
             // 
             // txtOtp
@@ -73,7 +74,7 @@
             this.txtOtp.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.txtOtp.Location = new System.Drawing.Point(15, 12);
             this.txtOtp.Name = "txtOtp";
-            this.txtOtp.Size = new System.Drawing.Size(470, 23);
+            this.txtOtp.Size = new System.Drawing.Size(330, 23);
             this.txtOtp.TabIndex = 0;
             // 
             // pnlPasswordBorder
@@ -82,7 +83,7 @@
             this.pnlPasswordBorder.Location = new System.Drawing.Point(50, 235);
             this.pnlPasswordBorder.Name = "pnlPasswordBorder";
             this.pnlPasswordBorder.Size = new System.Drawing.Size(500, 45);
-            this.pnlPasswordBorder.TabIndex = 3;
+            this.pnlPasswordBorder.TabIndex = 4;
             // 
             // txtNewPassword
             // 
@@ -99,7 +100,7 @@
             this.pnlConfirmPasswordBorder.Location = new System.Drawing.Point(50, 295);
             this.pnlConfirmPasswordBorder.Name = "pnlConfirmPasswordBorder";
             this.pnlConfirmPasswordBorder.Size = new System.Drawing.Size(500, 45);
-            this.pnlConfirmPasswordBorder.TabIndex = 4;
+            this.pnlConfirmPasswordBorder.TabIndex = 5;
             // 
             // txtConfirmPassword
             // 
@@ -135,7 +136,7 @@
             this.btnResetPassword.Location = new System.Drawing.Point(120, 370);
             this.btnResetPassword.Name = "btnResetPassword";
             this.btnResetPassword.Size = new System.Drawing.Size(180, 42);
-            this.btnResetPassword.TabIndex = 5;
+            this.btnResetPassword.TabIndex = 6;
             this.btnResetPassword.Text = "Đặt Lại Mật Khẩu";
             this.btnResetPassword.UseVisualStyleBackColor = false;
             this.btnResetPassword.Click += new System.EventHandler(this.btnResetPassword_Click);
@@ -175,9 +176,25 @@
             this.btnCancel.Location = new System.Drawing.Point(315, 370);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(140, 42);
-            this.btnCancel.TabIndex = 6;
+            this.btnCancel.TabIndex = 7;
             this.btnCancel.Text = "Hủy";
             this.btnCancel.UseVisualStyleBackColor = false;
+            // 
+            // btnCheckOtp
+            // 
+            this.btnCheckOtp.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(192)))));
+            this.btnCheckOtp.FlatAppearance.BorderSize = 0;
+            this.btnCheckOtp.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCheckOtp.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.btnCheckOtp.ForeColor = System.Drawing.Color.White;
+            this.btnCheckOtp.Location = new System.Drawing.Point(420, 175);
+            this.btnCheckOtp.Name = "btnCheckOtp";
+            this.btnCheckOtp.Size = new System.Drawing.Size(130, 45);
+            this.btnCheckOtp.TabIndex = 3;
+            this.btnCheckOtp.Text = "Xác nhận";
+            this.btnCheckOtp.UseVisualStyleBackColor = false;
+            this.btnCheckOtp.Visible = false;
+            this.btnCheckOtp.Click += new System.EventHandler(this.btnCheckOtp_Click);
             // 
             // ForgotPasswordForm
             // 
@@ -187,6 +204,7 @@
             this.BackColor = System.Drawing.Color.White;
             this.CancelButton = this.btnCancel;
             this.ClientSize = new System.Drawing.Size(584, 441);
+            this.Controls.Add(this.btnCheckOtp);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.lblSubTitle);
             this.Controls.Add(this.lblClose);
@@ -230,5 +248,6 @@
         private System.Windows.Forms.Label lblClose;
         private System.Windows.Forms.Label lblSubTitle;
         private System.Windows.Forms.Button btnCancel;
+        private System.Windows.Forms.Button btnCheckOtp;
     }
 }
