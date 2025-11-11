@@ -57,7 +57,7 @@ namespace N6
         /// </summary>
         private void InitializeComponent()
         {
-            this.Text = "📇 Flashcard";
+            this.Text = "Flashcard";
             this.Size = new Size(1000, 700);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;

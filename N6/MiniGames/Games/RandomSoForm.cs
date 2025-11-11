@@ -49,7 +49,7 @@ namespace N6
         /// </summary>
         private void InitializeComponent()
         {
-            this.Text = "🎲 Quay Số Ngẫu Nhiên";
+            this.Text = "Quay Số Ngẫu Nhiên";
             this.Size = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterParent;
             this.BackColor = Color.FromArgb(26, 176, 134);

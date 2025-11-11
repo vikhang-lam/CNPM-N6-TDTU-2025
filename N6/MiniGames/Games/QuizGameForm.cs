@@ -47,8 +47,8 @@ namespace N6
         /// </summary>
         private void InitializeComponent()
         {
-            this.Text = "📝 Quiz nhanh";
-            this.Size = new Size(900, 700);
+            this.Text = "Quiz nhanh";
+            this.Size = new Size(960, 700);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -84,7 +84,7 @@ namespace N6
 
             lblQuestionCount = new Label
             {
-                Location = new Point(this.Width - 900, 5),
+                Location = new Point(this.Width/2 - 450, 5),
                 Size = new Size(210, 30),
                 TextAlign = ContentAlignment.MiddleLeft,
                 ForeColor = Color.FromArgb(220, 53, 69),
@@ -100,8 +100,8 @@ namespace N6
 
             pnlQuestionCard = new Panel
             {
-                Location = new Point(280, 100),
-                Size = new Size(340, 80),
+                Location = new Point(250, 100),
+                Size = new Size(450, 180),
                 BackColor = Color.Transparent
             };
 
@@ -111,11 +111,13 @@ namespace N6
                 Rectangle rect = pnlQuestionCard.ClientRectangle;
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
-                using (GraphicsPath path = GetRoundedRectangle(rect, 15))
+                Rectangle bubbleRect = new Rectangle(rect.X, rect.Y, rect.Width, rect.Height - 15);
+
+                using (GraphicsPath path = GetRoundedRectangle(bubbleRect, 15))
                 {
                     // Tọa độ mũi nhọn
                     int tipX = rect.Width / 2;
-                    int tipY = rect.Height;
+                    int tipY = rect.Height - 15;
                     int tipSize = 15;
 
                     // tạo mũi tên xuống
@@ -139,7 +141,10 @@ namespace N6
             lblQuestion = new Label
             {
                 Location = new Point(10, 5),
-                Size = new Size(320, 70),
+                // đặt rộng hơn để chữ không bị wrap sớm; bật AutoEllipsis để hiển thị "..." nếu quá dài
+                Size = new Size(pnlQuestionCard.Width - 20, pnlQuestionCard.Height - 30),
+                AutoSize = false,
+                AutoEllipsis = true,
                 Font = new Font("Lexend", 16F, FontStyle.Regular),
                 ForeColor = Color.FromArgb(64, 64, 64),
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -150,8 +155,8 @@ namespace N6
 
             TableLayoutPanel tlp = new TableLayoutPanel
             {
-                Location = new Point(160, 420),
-                Size = new Size(580, 240),
+                Location = new Point(140, 420),
+                Size = new Size(680, 240),
                 ColumnCount = 2,
                 RowCount = 2,
                 BackColor = Color.Transparent
@@ -180,14 +185,14 @@ namespace N6
             {
                 var btn = new RoundedButton
                 {
-                    Font = new Font("Lexend", 20F, FontStyle.Bold),
+                    Font = new Font("Arial", 20F, FontStyle.Bold),
                     Tag = prefixes[i],
                     CornerRadius = 24,
                     BackColor = colors[i],
                     ForeColor = Color.White,
                     FlatStyle = FlatStyle.Flat,
                     Dock = DockStyle.Fill,
-                    Margin = new Padding(18),
+                    Margin = new Padding(12),
                     Cursor = Cursors.Hand
                 };
 
@@ -297,7 +302,7 @@ namespace N6
                     optionButtons[i].ForeColor = Color.White;
                     optionButtons[i].Enabled = true;
 
-                    optionButtons[i].Font = new Font("Lexend", 16F, FontStyle.Bold);
+                    optionButtons[i].Font = new Font("Arial", 16F, FontStyle.Bold);
                 }
             }
             else

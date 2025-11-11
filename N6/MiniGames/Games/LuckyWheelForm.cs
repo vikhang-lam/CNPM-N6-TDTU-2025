@@ -45,7 +45,7 @@ namespace N6
         /// </summary>
         private void InitializeComponent()
         {
-            this.Text = "🎡 Vòng Quay May Mắn";
+            this.Text = "Vòng Quay May Mắn";
             this.Size = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterParent;
             this.BackColor = Color.FromArgb(41, 52, 98);

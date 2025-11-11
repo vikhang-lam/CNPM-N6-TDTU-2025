@@ -55,7 +55,7 @@ namespace N6
         /// </summary>
         private void InitializeComponent()
         {
-            this.Text = "✍️ Điền từ vào chỗ trống";
+            this.Text = "Điền từ";
             this.Size = new Size(900, 650);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.MinimumSize = new Size(900, 650);
