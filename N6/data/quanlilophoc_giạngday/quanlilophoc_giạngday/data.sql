@@ -2090,6 +2090,95 @@ END;
 GO
 
 -- 🏫 QUẢN LÝ LỚP & HỌC SINH
+
+-- Kiểm tra lớp học tồn tại
+CREATE PROCEDURE sp_CheckClassExists
+    @MaLop NVARCHAR(10)
+AS
+BEGIN
+    SELECT COUNT(1) FROM LopHoc WHERE MaLop = @MaLop
+END
+GO
+
+-- Kiểm tra lớp có học sinh không
+CREATE PROCEDURE sp_CheckClassHasStudents
+    @MaLop NVARCHAR(10)
+AS
+BEGIN
+    SELECT COUNT(1) FROM HocSinh WHERE MaLop = @MaLop
+END
+GO
+
+-- Lấy danh sách khối có sẵn
+CREATE PROCEDURE sp_GetAvailableGrades
+AS
+BEGIN
+    SELECT DISTINCT Khoi FROM LopHoc ORDER BY Khoi
+END
+GO
+-- Stored Procedure thêm lớp học mới
+create PROCEDURE sp_InsertLopHoc
+    @MaLop NVARCHAR(10),
+    @TenLop NVARCHAR(50),
+    @Khoi NVARCHAR(20),
+    @NamHoc NVARCHAR(10)
+AS
+BEGIN
+    BEGIN TRY
+        -- Kiểm tra mã lớp đã tồn tại chưa
+        IF EXISTS (SELECT 1 FROM LopHoc WHERE MaLop = @MaLop)
+        BEGIN
+            RAISERROR('Mã lớp đã tồn tại!', 16, 1)
+            RETURN
+        END
+
+        INSERT INTO LopHoc (MaLop, TenLop, Khoi, NamHoc)
+        VALUES (@MaLop, @TenLop, @Khoi, @NamHoc)
+        
+    END TRY
+    BEGIN CATCH
+        THROW
+    END CATCH
+END
+GO
+
+-- Stored Procedure xóa lớp học
+create PROCEDURE sp_DeleteLopHoc
+    @MaLop NVARCHAR(10)
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION
+
+        -- Kiểm tra lớp có tồn tại không
+        IF NOT EXISTS (SELECT 1 FROM LopHoc WHERE MaLop = @MaLop)
+        BEGIN
+            RAISERROR('Lớp không tồn tại!', 16, 1)
+            RETURN
+        END
+
+        -- Kiểm tra lớp có học sinh không
+        IF EXISTS (SELECT 1 FROM HocSinh WHERE MaLop = @MaLop)
+        BEGIN
+            RAISERROR('Không thể xóa lớp vì lớp đang có học sinh!', 16, 1)
+            RETURN
+        END
+
+        -- Xóa phân công giảng dạy liên quan
+        DELETE FROM PhanCongGiangDay WHERE MaLop = @MaLop
+        
+        -- Xóa lớp học
+        DELETE FROM LopHoc WHERE MaLop = @MaLop
+
+        COMMIT TRANSACTION
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION
+        THROW
+    END CATCH
+END
+GO
+
 CREATE PROCEDURE sp_GetAllHocSinh
 AS
 BEGIN

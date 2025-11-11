@@ -1306,6 +1306,154 @@ public static class DatabaseHelper
     }
     #endregion
 
+    #region Class Management (Quản lý Lớp học)
+
+    /// <summary>
+    /// Thêm lớp học mới (Tuân thủ Separation of Concerns)
+    /// </summary>
+    public static bool InsertClass(string maLop, string tenLop, string khoi, string namHoc)
+    {
+        try
+        {
+            var pMaLop = new SqlParameter("@MaLop", maLop);
+            var pTenLop = new SqlParameter("@TenLop", tenLop);
+            var pKhoi = new SqlParameter("@Khoi", khoi);
+            var pNamHoc = new SqlParameter("@NamHoc", namHoc);
+
+            ExecuteNonQueryStoredProcedure("sp_InsertLopHoc", pMaLop, pTenLop, pKhoi, pNamHoc);
+            return true;
+        }
+        catch (SqlException ex)
+        {
+            // Bắt lỗi từ stored procedure
+            if (ex.Number == 50000)
+            {
+                throw new Exception(ex.Message);
+            }
+            throw new Exception("Lỗi database khi thêm lớp học: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Lỗi khi thêm lớp học: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Xóa lớp học (Tuân thủ Separation of Concerns)
+    /// </summary>
+    public static bool DeleteClass(string maLop)
+    {
+        try
+        {
+            var pMaLop = new SqlParameter("@MaLop", maLop);
+            ExecuteNonQueryStoredProcedure("sp_DeleteLopHoc", pMaLop);
+            return true;
+        }
+        catch (SqlException ex)
+        {
+            if (ex.Number == 50000)
+            {
+                throw new Exception(ex.Message);
+            }
+            throw new Exception("Lỗi database khi xóa lớp học: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Lỗi khi xóa lớp học: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Kiểm tra lớp học có tồn tại không (Business Logic)
+    /// </summary>
+    public static bool ClassExists(string maLop)
+    {
+        try
+        {
+            var pMaLop = new SqlParameter("@MaLop", maLop);
+            object result = ExecuteScalarStoredProcedure("sp_CheckClassExists", pMaLop);
+            return (result != null && (int)result > 0);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Lỗi khi kiểm tra lớp học: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Kiểm tra lớp học có học sinh không (Business Logic)
+    /// </summary>
+    public static bool ClassHasStudents(string maLop)
+    {
+        try
+        {
+            var pMaLop = new SqlParameter("@MaLop", maLop);
+            object result = ExecuteScalarStoredProcedure("sp_CheckClassHasStudents", pMaLop);
+            return (result != null && (int)result > 0);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Lỗi khi kiểm tra học sinh trong lớp: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Lấy danh sách khối học có sẵn (Data Access)
+    /// </summary>
+    public static List<string> GetAvailableGrades()
+    {
+        try
+        {
+            DataTable dt = ExecuteStoredProcedure("sp_GetAvailableGrades");
+            return dt.AsEnumerable()
+                    .Select(row => row.Field<string>("Khoi"))
+                    .Distinct()
+                    .OrderBy(k => k)
+                    .ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Lỗi khi lấy danh sách khối: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Validate thông tin lớp học (Business Logic - Validation)
+    /// </summary>
+    public static Tuple<bool, string> ValidateClassInfo(string maLop, string tenLop, string khoi, string namHoc)
+    {
+        var errors = new List<string>();
+
+        // Validate Mã lớp
+        if (string.IsNullOrWhiteSpace(maLop))
+            errors.Add("Mã lớp không được để trống");
+        else if (maLop.Length > 10)
+            errors.Add("Mã lớp không được quá 10 ký tự");
+
+        // Validate Tên lớp
+        if (string.IsNullOrWhiteSpace(tenLop))
+            errors.Add("Tên lớp không được để trống");
+        else if (tenLop.Length > 50)
+            errors.Add("Tên lớp không được quá 50 ký tự");
+
+        // Validate Khối
+        if (string.IsNullOrWhiteSpace(khoi))
+            errors.Add("Khối không được để trống");
+
+        // Validate Năm học
+        if (string.IsNullOrWhiteSpace(namHoc))
+            errors.Add("Năm học không được để trống");
+        else if (!int.TryParse(namHoc, out int year) || year < 2000 || year > 2100)
+            errors.Add("Năm học phải là số từ 2000 đến 2100");
+
+        bool isValid = errors.Count == 0;
+        string errorMessage = isValid ? "" : string.Join("\n", errors);
+
+        return Tuple.Create(isValid, errorMessage);
+    }
+
+    #endregion
+
     #region School Management (Quản lý Trường học)
 
     public static DataTable GetScoreDeadlines()

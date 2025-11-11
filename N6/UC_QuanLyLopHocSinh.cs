@@ -6,39 +6,32 @@ using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using System.Diagnostics; // Thêm
+using System.Diagnostics;
 
 namespace N6
 {
-    /// <summary>
-    /// Lớp helper nhỏ để lưu trữ MaHS và HoTen trong CheckedListBox.
-    /// </summary>
     public class StudentItem
     {
         public string HoTen { get; set; }
         public string MaHS { get; set; }
+
         public override string ToString()
         {
             return HoTen;
         }
     }
 
-    /// <summary>
-    /// UserControl quản lý nghiệp vụ Lớp học (chi tiết học sinh, phân công giảng dạy, chuyển lớp).
-    /// </summary>
     public partial class UC_QuanLyLopHocSinh : UserControl
     {
         private DataTable allLopHoc;
         private DataTable allGiaoVien;
-        private bool isProgrammaticChange = false; // Cờ để chặn các sự kiện thay đổi lồng nhau
+        private bool isProgrammaticChange = false;
 
-        // Controls cho panel chuyển lớp (được tạo động)
         private CheckedListBox clbHocSinhChuyen;
         private ComboBox cboLopMoi_Inline;
         private Button btnXacNhanChuyen;
         private Button btnHuyChuyen;
 
-        // Biến lưu trữ sự kiện động để gỡ bỏ (Dispose)
         private EventHandler btnXacNhanChuyenClickHandler;
         private EventHandler btnHuyChuyenClickHandler;
         private PaintEventHandler pnlFilterPaintHandler;
@@ -47,7 +40,6 @@ namespace N6
         private DataGridViewEditingControlShowingEventHandler dgvEditingControlShowingHandler;
         private DataGridViewCellEventHandler dgvCellValueChangedHandler;
         private DataGridViewDataErrorEventHandler dgvDataErrorHandler;
-
 
         public UC_QuanLyLopHocSinh()
         {
@@ -58,57 +50,103 @@ namespace N6
             StyleControls();
         }
 
-        /// <summary>
-        /// Gán các sự kiện cho các control đã có trong Designer.
-        /// </summary>
         private void AttachEventHandlers()
         {
             this.cboKhoi.SelectedIndexChanged += new System.EventHandler(this.cboKhoi_SelectedIndexChanged);
             this.dgvLopHoc.SelectionChanged += new System.EventHandler(this.dgvLopHoc_SelectionChanged);
             this.btnLuuHS.Click += new System.EventHandler(this.btnLuuHS_Click);
+            this.btnThemHS.Click += new System.EventHandler(this.btnThemHS_Click);
             this.btnXoaHS.Click += new System.EventHandler(this.btnXoaHS_Click);
             this.btnImportHS.Click += new System.EventHandler(this.btnImportHS_Click);
             this.btnAssignGvcn.Click += new System.EventHandler(this.btnAssignGvcn_Click);
             this.btnImportPhanCong.Click += new System.EventHandler(this.btnImportPhanCong_Click);
-
-            if (this.btnChuyenLop != null)
-            {
-                this.btnChuyenLop.Click += new System.EventHandler(this.btnChuyenLop_Click);
-            }
+            this.btnChuyenLop.Click += new System.EventHandler(this.btnChuyenLop_Click);
+            this.btnThemLop.Click += new System.EventHandler(this.btnThemLop_Click);
+            this.btnXoaLop.Click += new System.EventHandler(this.btnXoaLop_Click);
         }
 
-        /// <summary>
-        /// Khởi tạo các control động bên trong pnlChuyenLop.
-        /// </summary>
         private void InitializeChuyenLopPanel()
         {
-            // Kiểm tra nếu pnlChuyenLop không tồn tại (an toàn)
             if (this.pnlChuyenLop == null)
             {
                 Debug.WriteLine("Lỗi: pnlChuyenLop chưa được khởi tạo trong Designer.");
                 return;
             }
 
-            var lblTitle = new Label { Text = "Chuyển Lớp Hàng Loạt", Dock = DockStyle.Top, Font = new Font("Segoe UI", 12F, FontStyle.Bold), Height = 30, ForeColor = Color.FromArgb(0, 123, 255) };
-            var lblChonHS = new Label { Text = "1. Chọn học sinh cần chuyển:", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9F), Height = 20 };
-            clbHocSinhChuyen = new CheckedListBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 10F), BorderStyle = BorderStyle.FixedSingle };
-            var lblChonLop = new Label { Text = "2. Chọn lớp chuyển đến:", Dock = DockStyle.Bottom, Font = new Font("Segoe UI", 9F), Height = 20 };
-            cboLopMoi_Inline = new ComboBox { Dock = DockStyle.Bottom, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Height = 28 };
-            var pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 40, Padding = new Padding(0, 5, 0, 0) };
-            btnXacNhanChuyen = new Button { Text = "Xác nhận", Dock = DockStyle.Right, Width = 100, BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnHuyChuyen = new Button { Text = "Hủy", Dock = DockStyle.Right, Width = 80, FlatStyle = FlatStyle.Flat };
+            var lblTitle = new Label
+            {
+                Text = "Chuyển Lớp Hàng Loạt",
+                Dock = DockStyle.Top,
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                Height = 30,
+                ForeColor = Color.FromArgb(0, 123, 255)
+            };
+
+            var lblChonHS = new Label
+            {
+                Text = "1. Chọn học sinh cần chuyển:",
+                Dock = DockStyle.Top,
+                Font = new Font("Segoe UI", 9F),
+                Height = 20
+            };
+
+            clbHocSinhChuyen = new CheckedListBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10F),
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            var lblChonLop = new Label
+            {
+                Text = "2. Chọn lớp chuyển đến:",
+                Dock = DockStyle.Bottom,
+                Font = new Font("Segoe UI", 9F),
+                Height = 20
+            };
+
+            cboLopMoi_Inline = new ComboBox
+            {
+                Dock = DockStyle.Bottom,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 10F),
+                Height = 28
+            };
+
+            var pnlButtons = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 40,
+                Padding = new Padding(0, 5, 0, 0)
+            };
+
+            btnXacNhanChuyen = new Button
+            {
+                Text = "Xác nhận",
+                Dock = DockStyle.Right,
+                Width = 100,
+                BackColor = Color.FromArgb(40, 167, 69),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+
+            btnHuyChuyen = new Button
+            {
+                Text = "Hủy",
+                Dock = DockStyle.Right,
+                Width = 80,
+                FlatStyle = FlatStyle.Flat
+            };
 
             pnlButtons.Controls.Add(btnXacNhanChuyen);
-            pnlButtons.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 10 }); // Spacer
+            pnlButtons.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 10 });
             pnlButtons.Controls.Add(btnHuyChuyen);
 
-            // Gán sự kiện (và lưu handler để Dispose)
             btnXacNhanChuyenClickHandler = new EventHandler(this.btnXacNhanChuyen_Click);
             btnHuyChuyenClickHandler = new EventHandler(this.btnHuyChuyen_Click);
             btnXacNhanChuyen.Click += btnXacNhanChuyenClickHandler;
             btnHuyChuyen.Click += btnHuyChuyenClickHandler;
 
-            // Thêm controls vào panel (thứ tự quan trọng)
             this.pnlChuyenLop.Controls.Add(clbHocSinhChuyen);
             this.pnlChuyenLop.Controls.Add(lblChonHS);
             this.pnlChuyenLop.Controls.Add(lblTitle);
@@ -119,14 +157,11 @@ namespace N6
 
         #region SETUP GIAO DIỆN & DỮ LIỆU
 
-        /// <summary>
-        /// Tải dữ liệu ban đầu (cache Lớp, GV) và cài đặt giao diện.
-        /// </summary>
         private void LoadInitialData()
         {
             try
             {
-                allLopHoc = DatabaseHelper.GetAllClasses();
+                ReloadClassData();
                 allGiaoVien = DatabaseHelper.GetAllTeachers();
 
                 var khoiList = allLopHoc.AsEnumerable()
@@ -139,12 +174,10 @@ namespace N6
 
                 LoadUnassignedGvcn();
 
-                // Style các DataGridView động (phải gọi trước khi gán sự kiện)
                 StyleDataGridView(dgvHocSinh);
                 StyleDataGridView(dgvPhanCong);
-                StyleClassListGrid(); // Style cho dgvLopHoc (từ Designer)
+                StyleClassListGrid();
 
-                // Gán sự kiện DataError (để gỡ trong Dispose)
                 dgvDataErrorHandler = new DataGridViewDataErrorEventHandler(dgvPhanCong_DataError);
                 dgvPhanCong.DataError += dgvDataErrorHandler;
             }
@@ -154,9 +187,6 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Tải danh sách GV chưa làm chủ nhiệm vào ComboBox.
-        /// </summary>
         private void LoadUnassignedGvcn()
         {
             cboGvcn.DataSource = DatabaseHelper.GetUnassignedHomeroomTeachers();
@@ -166,12 +196,8 @@ namespace N6
             cboGvcn.Text = "Chọn giáo viên...";
         }
 
-        /// <summary>
-        /// Áp dụng style cho các panel và nút bấm.
-        /// </summary>
         private void StyleControls()
         {
-            // Gán sự kiện Paint (để gỡ trong Dispose)
             pnlFilterPaintHandler = (s, e) => DrawShadow(s, e, 12, Color.White);
             pnlClassInfoCardPaintHandler = (s, e) => DrawShadow(s, e, 12, Color.White);
             pnlAssignGvcnPaintHandler = (s, e) => DrawShadow(s, e, 8, Color.FromArgb(248, 249, 250), true);
@@ -180,8 +206,7 @@ namespace N6
             pnlClassInfoCard.Paint += pnlClassInfoCardPaintHandler;
             pnlAssignGvcn.Paint += pnlAssignGvcnPaintHandler;
 
-            // Style các nút
-            Button[] buttons = { btnThemHS, btnLuuHS, btnAssignGvcn, btnImportHS, btnImportPhanCong };
+            Button[] buttons = { btnThemHS, btnLuuHS, btnAssignGvcn, btnImportHS, btnImportPhanCong, btnThemLop };
             foreach (var btn in buttons)
             {
                 if (btn == null) continue;
@@ -198,30 +223,33 @@ namespace N6
             btnXoaHS.FlatStyle = FlatStyle.Flat;
             btnXoaHS.FlatAppearance.BorderSize = 0;
 
-            if (this.btnChuyenLop != null)
-            {
-                btnChuyenLop.BackColor = Color.FromArgb(253, 126, 20); // Màu cam
-                btnChuyenLop.ForeColor = Color.White;
-                btnChuyenLop.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-                btnChuyenLop.FlatStyle = FlatStyle.Flat;
-                btnChuyenLop.FlatAppearance.BorderSize = 0;
-                btnChuyenLop.Text = "Chuyển Lớp";
-            }
+            btnXoaLop.BackColor = Color.FromArgb(220, 53, 69);
+            btnXoaLop.ForeColor = Color.White;
+            btnXoaLop.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnXoaLop.FlatStyle = FlatStyle.Flat;
+            btnXoaLop.FlatAppearance.BorderSize = 0;
 
-            btnAssignGvcn.BackColor = Color.FromArgb(40, 167, 69); // Xanh lá
+            btnChuyenLop.BackColor = Color.FromArgb(253, 126, 20);
+            btnChuyenLop.ForeColor = Color.White;
+            btnChuyenLop.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            btnChuyenLop.FlatStyle = FlatStyle.Flat;
+            btnChuyenLop.FlatAppearance.BorderSize = 0;
+            btnChuyenLop.Text = "Chuyển Lớp";
+
+            btnAssignGvcn.BackColor = Color.FromArgb(40, 167, 69);
         }
 
-        /// <summary>
-        /// Áp dụng style cho lưới danh sách lớp (dgvLopHoc).
-        /// </summary>
         private void StyleClassListGrid()
         {
             isProgrammaticChange = true;
             dgvLopHoc.DataSource = allLopHoc.DefaultView;
-            if (dgvLopHoc.Columns["TenLop"] != null) dgvLopHoc.Columns["TenLop"].HeaderText = "DANH SÁCH LỚP HỌC";
-            if (dgvLopHoc.Columns["MaLop"] != null) dgvLopHoc.Columns["MaLop"].Visible = false;
-            if (dgvLopHoc.Columns["Khoi"] != null) dgvLopHoc.Columns["Khoi"].Visible = false;
-            StyleDataGridView(dgvLopHoc); // Áp dụng style chung
+            if (dgvLopHoc.Columns["TenLop"] != null)
+                dgvLopHoc.Columns["TenLop"].HeaderText = "DANH SÁCH LỚP HỌC";
+            if (dgvLopHoc.Columns["MaLop"] != null)
+                dgvLopHoc.Columns["MaLop"].Visible = false;
+            if (dgvLopHoc.Columns["Khoi"] != null)
+                dgvLopHoc.Columns["Khoi"].Visible = false;
+            StyleDataGridView(dgvLopHoc);
             isProgrammaticChange = false;
         }
 
@@ -229,9 +257,6 @@ namespace N6
 
         #region XỬ LÝ SỰ KIỆN CHUNG
 
-        /// <summary>
-        /// Lọc danh sách lớp theo khối.
-        /// </summary>
         private void cboKhoi_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (cboKhoi.SelectedItem == null) return;
@@ -241,14 +266,10 @@ namespace N6
             ClearAllDetails();
         }
 
-        /// <summary>
-        /// Tải chi tiết lớp khi chọn một lớp trong lưới.
-        /// </summary>
         private void dgvLopHoc_SelectionChanged(object sender, EventArgs e)
         {
             if (isProgrammaticChange || dgvLopHoc.CurrentRow == null) return;
 
-            // Khi đổi lớp, ẩn panel chuyển lớp
             if (pnlChuyenLop.Visible)
             {
                 pnlChuyenLop.Visible = false;
@@ -260,44 +281,862 @@ namespace N6
 
         #endregion
 
-        #region HỌC SINH: THÊM, SỬA, XÓA, IMPORT, CHUYỂN LỚP
+        #region QUẢN LÝ LỚP HỌC: THÊM, XÓA
 
-        /// <summary>
-        /// Xử lý nút Xóa Học Sinh.
-        /// </summary>
+        private void btnThemLop_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                using (var formThemLop = new Form
+                {
+                    Text = "Thêm Lớp Học Mới",
+                    Size = new Size(450, 380),
+                    StartPosition = FormStartPosition.CenterParent,
+                    FormBorderStyle = FormBorderStyle.FixedDialog,
+                    MaximizeBox = false,
+                    MinimizeBox = false,
+                    BackColor = Color.White,
+                    Padding = new Padding(20)
+                })
+                {
+                    // Header
+                    var lblHeader = new Label
+                    {
+                        Text = "📚 Thêm Lớp Học Mới",
+                        Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(0, 123, 255),
+                        Dock = DockStyle.Top,
+                        Height = 50,
+                        TextAlign = ContentAlignment.MiddleLeft
+                    };
+
+                    // Main container
+                    var pnlMain = new Panel
+                    {
+                        Dock = DockStyle.Fill,
+                        BackColor = Color.White,
+                        Padding = new Padding(0, 10, 0, 0)
+                    };
+
+                    // Form fields container
+                    var pnlFields = new TableLayoutPanel
+                    {
+                        Dock = DockStyle.Fill,
+                        ColumnCount = 2,
+                        RowCount = 4,
+                        AutoSize = true,
+                        Padding = new Padding(0, 10, 0, 20),
+                        BackColor = Color.Transparent
+                    };
+
+                    pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
+                    pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70F));
+                    for (int i = 0; i < 4; i++)
+                    {
+                        pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
+                    }
+
+                    // Mã Lớp
+                    var lblMaLop = new Label
+                    {
+                        Text = "Mã Lớp *",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var txtMaLop = new TextBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        BackColor = Color.FromArgb(248, 249, 250),
+                        BorderStyle = BorderStyle.FixedSingle
+                    };
+
+                    // Tên Lớp (Read-only, tự động tạo)
+                    var lblTenLop = new Label
+                    {
+                        Text = "Tên Lớp",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var txtTenLop = new TextBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        BackColor = Color.FromArgb(233, 236, 239),
+                        BorderStyle = BorderStyle.FixedSingle,
+                        ReadOnly = true,
+                        ForeColor = Color.FromArgb(108, 117, 125)
+                    };
+
+                    // Khối
+                    var lblKhoi = new Label
+                    {
+                        Text = "Khối *",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var cboKhoiThem = new ComboBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        DropDownStyle = ComboBoxStyle.DropDownList,
+                        BackColor = Color.FromArgb(248, 249, 250),
+                        FlatStyle = FlatStyle.Flat
+                    };
+
+                    // Năm Học
+                    var lblNamHoc = new Label
+                    {
+                        Text = "Năm Học",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var txtNamHoc = new TextBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        Text = DateTime.Now.Year.ToString(),
+                        BackColor = Color.FromArgb(233, 236, 239),
+                        BorderStyle = BorderStyle.FixedSingle,
+                        ReadOnly = true,
+                        ForeColor = Color.FromArgb(108, 117, 125)
+                    };
+
+                    // Load danh sách khối
+                    try
+                    {
+                        var khoiList = DatabaseHelper.GetAvailableGrades();
+                        cboKhoiThem.Items.AddRange(khoiList.ToArray());
+                        if (cboKhoiThem.Items.Count > 0)
+                            cboKhoiThem.SelectedIndex = 0;
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Lỗi khi tải danh sách khối: {ex.Message}", "Lỗi",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    // Auto-generate class name when Mã Lớp changes
+                    txtMaLop.TextChanged += (s, e) =>
+                    {
+                        if (!string.IsNullOrWhiteSpace(txtMaLop.Text))
+                        {
+                            txtTenLop.Text = $"Lớp {txtMaLop.Text.Trim().ToUpper()}";
+                        }
+                        else
+                        {
+                            txtTenLop.Text = string.Empty;
+                        }
+                    };
+
+                    // Add controls to table
+                    pnlFields.Controls.Add(lblMaLop, 0, 0);
+                    pnlFields.Controls.Add(txtMaLop, 1, 0);
+                    pnlFields.Controls.Add(lblTenLop, 0, 1);
+                    pnlFields.Controls.Add(txtTenLop, 1, 1);
+                    pnlFields.Controls.Add(lblKhoi, 0, 2);
+                    pnlFields.Controls.Add(cboKhoiThem, 1, 2);
+                    pnlFields.Controls.Add(lblNamHoc, 0, 3);
+                    pnlFields.Controls.Add(txtNamHoc, 1, 3);
+
+                    // Button panel
+                    var pnlButtons = new Panel
+                    {
+                        Dock = DockStyle.Bottom,
+                        Height = 70,
+                        BackColor = Color.White,
+                        Padding = new Padding(0, 10, 0, 0)
+                    };
+
+                    var btnLuu = new Button
+                    {
+                        Text = "💾 LƯU LỚP HỌC",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        BackColor = Color.FromArgb(40, 167, 69),
+                        ForeColor = Color.White,
+                        FlatStyle = FlatStyle.Flat,
+                        Height = 45,
+                        Width = 150,
+                        Dock = DockStyle.Right,
+                        Margin = new Padding(0, 0, 10, 0)
+                    };
+
+                    var btnHuy = new Button
+                    {
+                        Text = "❌ HỦY BỎ",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        BackColor = Color.FromArgb(108, 117, 125),
+                        ForeColor = Color.White,
+                        FlatStyle = FlatStyle.Flat,
+                        Height = 45,
+                        Width = 120,
+                        Dock = DockStyle.Right,
+                        Margin = new Padding(0, 0, 10, 0)
+                    };
+
+                    // Button events
+                    btnLuu.Click += (s, ev) =>
+                    {
+                        if (string.IsNullOrWhiteSpace(txtMaLop.Text))
+                        {
+                            MessageBox.Show("Vui lòng nhập Mã Lớp!", "Lỗi nhập liệu",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            txtMaLop.Focus();
+                            return;
+                        }
+
+                        if (cboKhoiThem.SelectedItem == null)
+                        {
+                            MessageBox.Show("Vui lòng chọn Khối!", "Lỗi nhập liệu",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+
+                        try
+                        {
+                            DatabaseHelper.InsertClass(
+                                txtMaLop.Text.Trim().ToUpper(),
+                                txtTenLop.Text.Trim(),
+                                cboKhoiThem.SelectedItem.ToString(),
+                                txtNamHoc.Text.Trim()
+                            );
+
+                            MessageBox.Show("✅ Thêm lớp học thành công!", "Thành công",
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            formThemLop.DialogResult = DialogResult.OK;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"❌ Lỗi khi thêm lớp: {ex.Message}", "Lỗi",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    };
+
+                    btnHuy.Click += (s, ev) => formThemLop.Close();
+
+                    pnlButtons.Controls.Add(btnLuu);
+                    pnlButtons.Controls.Add(btnHuy);
+
+                    // Add panels to main container
+                    pnlMain.Controls.Add(pnlFields);
+                    pnlMain.Controls.Add(pnlButtons);
+
+                    // Add to form
+                    formThemLop.Controls.Add(pnlMain);
+                    formThemLop.Controls.Add(lblHeader);
+
+                    // Form events
+                    formThemLop.AcceptButton = btnLuu;
+                    formThemLop.CancelButton = btnHuy;
+
+                    // Add hover effects
+                    AddHoverEffect(btnLuu, Color.FromArgb(33, 136, 56), Color.FromArgb(40, 167, 69));
+                    AddHoverEffect(btnHuy, Color.FromArgb(90, 98, 104), Color.FromArgb(108, 117, 125));
+
+                    // Add focus effects for textboxes
+                    AddFocusEffect(txtMaLop);
+                    AddFocusEffect(cboKhoiThem);
+
+                    if (formThemLop.ShowDialog() == DialogResult.OK)
+                    {
+                        ReloadClassData();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"❌ Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Helper methods for modern effects
+        private void AddHoverEffect(Button btn, Color hoverColor, Color normalColor)
+        {
+            btn.MouseEnter += (s, e) => btn.BackColor = hoverColor;
+            btn.MouseLeave += (s, e) => btn.BackColor = normalColor;
+        }
+
+        private void AddFocusEffect(Control control)
+        {
+            control.Enter += (s, e) =>
+            {
+                control.BackColor = Color.FromArgb(230, 240, 255);
+                if (control is TextBox txt) txt.BorderStyle = BorderStyle.FixedSingle;
+            };
+
+            control.Leave += (s, e) =>
+            {
+                control.BackColor = Color.FromArgb(248, 249, 250);
+                if (control is TextBox txt) txt.BorderStyle = BorderStyle.FixedSingle;
+            };
+        }
+
+        private void btnXoaLop_Click(object sender, EventArgs e)
+        {
+            if (dgvLopHoc.CurrentRow == null)
+            {
+                MessageBox.Show("Vui lòng chọn một lớp để xóa.", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string maLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
+            string tenLop = dgvLopHoc.CurrentRow.Cells["TenLop"].Value.ToString();
+
+            try
+            {
+                if (DatabaseHelper.ClassHasStudents(maLop))
+                {
+                    MessageBox.Show($"Không thể xóa lớp '{tenLop}' vì lớp đang có học sinh!\n" +
+                        "Vui lòng chuyển hết học sinh sang lớp khác trước.",
+                        "Không thể xóa", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                DialogResult confirm = MessageBox.Show(
+                    $"Bạn có chắc chắn muốn xóa lớp '{tenLop}'?\n\nThao tác này không thể hoàn tác!",
+                    "Xác nhận xóa lớp",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning
+                );
+
+                if (confirm == DialogResult.Yes)
+                {
+                    DatabaseHelper.DeleteClass(maLop);
+
+                    MessageBox.Show("Xóa lớp học thành công!", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    ReloadClassData();
+                    ClearAllDetails();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xóa lớp: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ReloadClassData()
+        {
+            try
+            {
+                allLopHoc = DatabaseHelper.GetAllClasses();
+                string selectedKhoi = (cboKhoi.SelectedItem ?? "Tất cả các khối").ToString();
+
+                isProgrammaticChange = true;
+                dgvLopHoc.DataSource = allLopHoc.DefaultView;
+                StyleClassListGrid();
+                isProgrammaticChange = false;
+
+                allLopHoc.DefaultView.RowFilter = (selectedKhoi == "Tất cả các khối") ?
+                    string.Empty : $"Khoi = '{selectedKhoi}'";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi tải lại dữ liệu lớp: " + ex.Message, "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        #endregion
+
+        #region HỌC SINH: THÊM, SỬA, XÓA, IMPORT, CHUYỂN LỚP
+        private void btnThemHS_Click(object sender, EventArgs e)
+        {
+            if (dgvLopHoc.CurrentRow == null)
+            {
+                MessageBox.Show("Vui lòng chọn một lớp để thêm học sinh.", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using (var formThemHS = new Form
+                {
+                    Text = "Thêm Học Sinh Mới",
+                    Size = new Size(600, 650),
+                    StartPosition = FormStartPosition.CenterParent,
+                    FormBorderStyle = FormBorderStyle.FixedDialog,
+                    MaximizeBox = false,
+                    MinimizeBox = false,
+                    BackColor = Color.White,
+                    Padding = new Padding(20)
+                })
+                {
+                    // Header
+                    var lblHeader = new Label
+                    {
+                        Text = "👤 Thêm Học Sinh Mới",
+                        Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(0, 123, 255),
+                        Dock = DockStyle.Top,
+                        Height = 50,
+                        TextAlign = ContentAlignment.MiddleLeft
+                    };
+
+                    // Main container
+                    var pnlMain = new Panel
+                    {
+                        Dock = DockStyle.Fill,
+                        BackColor = Color.White,
+                        Padding = new Padding(0, 10, 0, 0)
+                    };
+
+                    // Form fields container
+                    var pnlFields = new TableLayoutPanel
+                    {
+                        Dock = DockStyle.Fill,
+                        ColumnCount = 2,
+                        RowCount = 7,
+                        AutoSize = true,
+                        Padding = new Padding(0, 10, 0, 20),
+                        BackColor = Color.Transparent
+                    };
+
+                    pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
+                    pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65F));
+                    for (int i = 0; i < 7; i++)
+                    {
+                        pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
+                    }
+
+                    // Mã Học Sinh (Auto-generated)
+                    var lblMaHS = new Label
+                    {
+                        Text = "Mã HS",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var txtMaHS = new TextBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        BackColor = Color.FromArgb(233, 236, 239),
+                        BorderStyle = BorderStyle.FixedSingle,
+                        ReadOnly = true,
+                        ForeColor = Color.FromArgb(108, 117, 125)
+                    };
+
+                    // Họ và Tên
+                    var lblHoTen = new Label
+                    {
+                        Text = "Họ và Tên *",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var txtHoTen = new TextBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        BackColor = Color.FromArgb(248, 249, 250),
+                        BorderStyle = BorderStyle.FixedSingle
+                    };
+
+                    // Giới Tính
+                    var lblGioiTinh = new Label
+                    {
+                        Text = "Giới Tính *",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var cboGioiTinh = new ComboBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        DropDownStyle = ComboBoxStyle.DropDownList,
+                        BackColor = Color.FromArgb(248, 249, 250),
+                        FlatStyle = FlatStyle.Flat
+                    };
+
+                    // Ngày Sinh
+                    var lblNgaySinh = new Label
+                    {
+                        Text = "Ngày Sinh *",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var dtpNgaySinh = new DateTimePicker
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        Format = DateTimePickerFormat.Short,
+                        Value = DateTime.Now.AddYears(-6)
+                    };
+
+                    // Địa Chỉ
+                    var lblDiaChi = new Label
+                    {
+                        Text = "Địa Chỉ",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var txtDiaChi = new TextBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        BackColor = Color.FromArgb(248, 249, 250),
+                        BorderStyle = BorderStyle.FixedSingle
+                    };
+
+                    // Dân Tộc
+                    var lblDanToc = new Label
+                    {
+                        Text = "Dân Tộc",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var txtDanToc = new TextBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        BackColor = Color.FromArgb(248, 249, 250),
+                        BorderStyle = BorderStyle.FixedSingle,
+                        Text = "Kinh"
+                    };
+
+                    // SĐT Phụ Huynh
+                    var lblSDT = new Label
+                    {
+                        Text = "SĐT Phụ Huynh",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        ForeColor = Color.FromArgb(73, 80, 87),
+                        Dock = DockStyle.Fill,
+                        TextAlign = ContentAlignment.MiddleLeft,
+                        Margin = new Padding(0, 15, 10, 15)
+                    };
+
+                    var txtSDT = new TextBox
+                    {
+                        Font = new Font("Segoe UI", 10F),
+                        Dock = DockStyle.Fill,
+                        Margin = new Padding(0, 10, 0, 10),
+                        Height = 40,
+                        BackColor = Color.FromArgb(248, 249, 250),
+                        BorderStyle = BorderStyle.FixedSingle
+                    };
+
+                    // Setup combobox
+                    cboGioiTinh.Items.AddRange(new string[] { "Nam", "Nữ" });
+                    cboGioiTinh.SelectedIndex = 0;
+
+                    // Auto-generate student code
+                    string GenerateStudentCode()
+                    {
+                        try
+                        {
+                            DataTable allStudents = DatabaseHelper.GetAllStudents();
+                            if (allStudents.Rows.Count == 0)
+                            {
+                                return "HS001";
+                            }
+
+                            var lastMaHS = allStudents.AsEnumerable()
+                                .Select(row => row.Field<string>("MaHS"))
+                                .Where(ma => ma != null && ma.StartsWith("HS"))
+                                .OrderByDescending(ma => ma)
+                                .FirstOrDefault();
+
+                            if (string.IsNullOrEmpty(lastMaHS))
+                            {
+                                return "HS001";
+                            }
+
+                            string numberPart = lastMaHS.Substring(2);
+                            if (int.TryParse(numberPart, out int lastNumber))
+                            {
+                                return $"HS{(lastNumber + 1).ToString("D3")}";
+                            }
+
+                            return "HS001";
+                        }
+                        catch (Exception)
+                        {
+                            return "HS001";
+                        }
+                    }
+
+                    // Validate Họ và Tên - không chứa ký tự đặc biệt
+                    bool ValidateHoTen(string hoTen)
+                    {
+                        if (string.IsNullOrWhiteSpace(hoTen))
+                            return false;
+
+                        // Cho phép: chữ cái, dấu cách, dấu tiếng Việt
+                        // Không cho phép: số, ký tự đặc biệt (@, #, $, %, &, *, v.v.)
+                        var regex = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$");
+                        return regex.IsMatch(hoTen);
+                    }
+
+                    // Validate SĐT - chỉ cho phép số
+                    bool ValidateSDT(string sdt)
+                    {
+                        if (string.IsNullOrWhiteSpace(sdt))
+                            return true; // SĐT không bắt buộc
+
+                        return System.Text.RegularExpressions.Regex.IsMatch(sdt, @"^\d+$");
+                    }
+
+                    // Generate student code when form loads
+                    formThemHS.Load += (s, e) =>
+                    {
+                        txtMaHS.Text = GenerateStudentCode();
+                    };
+
+                    // Add controls to table
+                    pnlFields.Controls.Add(lblMaHS, 0, 0);
+                    pnlFields.Controls.Add(txtMaHS, 1, 0);
+                    pnlFields.Controls.Add(lblHoTen, 0, 1);
+                    pnlFields.Controls.Add(txtHoTen, 1, 1);
+                    pnlFields.Controls.Add(lblGioiTinh, 0, 2);
+                    pnlFields.Controls.Add(cboGioiTinh, 1, 2);
+                    pnlFields.Controls.Add(lblNgaySinh, 0, 3);
+                    pnlFields.Controls.Add(dtpNgaySinh, 1, 3);
+                    pnlFields.Controls.Add(lblDiaChi, 0, 4);
+                    pnlFields.Controls.Add(txtDiaChi, 1, 4);
+                    pnlFields.Controls.Add(lblDanToc, 0, 5);
+                    pnlFields.Controls.Add(txtDanToc, 1, 5);
+                    pnlFields.Controls.Add(lblSDT, 0, 6);
+                    pnlFields.Controls.Add(txtSDT, 1, 6);
+
+                    // Button panel
+                    var pnlButtons = new Panel
+                    {
+                        Dock = DockStyle.Bottom,
+                        Height = 70,
+                        BackColor = Color.White,
+                        Padding = new Padding(0, 10, 0, 0)
+                    };
+
+                    var btnLuu = new Button
+                    {
+                        Text = "💾 LƯU HỌC SINH",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        BackColor = Color.FromArgb(40, 167, 69),
+                        ForeColor = Color.White,
+                        FlatStyle = FlatStyle.Flat,
+                        Height = 45,
+                        Width = 150,
+                        Dock = DockStyle.Right,
+                        Margin = new Padding(0, 0, 10, 0)
+                    };
+
+                    var btnHuy = new Button
+                    {
+                        Text = "❌ HỦY BỎ",
+                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                        BackColor = Color.FromArgb(108, 117, 125),
+                        ForeColor = Color.White,
+                        FlatStyle = FlatStyle.Flat,
+                        Height = 45,
+                        Width = 120,
+                        Dock = DockStyle.Right,
+                        Margin = new Padding(0, 0, 10, 0)
+                    };
+
+                    // Button events
+                    btnLuu.Click += (s, ev) =>
+                    {
+                        if (string.IsNullOrWhiteSpace(txtHoTen.Text))
+                        {
+                            MessageBox.Show("Vui lòng nhập Họ và Tên!", "Lỗi nhập liệu",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            txtHoTen.Focus();
+                            return;
+                        }
+
+                        if (!ValidateHoTen(txtHoTen.Text))
+                        {
+                            MessageBox.Show("Họ và Tên không được chứa số hoặc ký tự đặc biệt!\nChỉ cho phép chữ cái, dấu cách và dấu tiếng Việt.",
+                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            txtHoTen.Focus();
+                            txtHoTen.SelectAll();
+                            return;
+                        }
+
+                        if (!ValidateSDT(txtSDT.Text))
+                        {
+                            MessageBox.Show("Số điện thoại chỉ được chứa chữ số!",
+                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            txtSDT.Focus();
+                            txtSDT.SelectAll();
+                            return;
+                        }
+
+                        if (cboGioiTinh.SelectedItem == null)
+                        {
+                            MessageBox.Show("Vui lòng chọn Giới Tính!", "Lỗi nhập liệu",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+
+                        try
+                        {
+                            string maLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
+
+                            DatabaseHelper.InsertStudent(
+                                txtMaHS.Text.Trim(),
+                                maLop,
+                                txtHoTen.Text.Trim(),
+                                dtpNgaySinh.Value,
+                                cboGioiTinh.SelectedItem.ToString(),
+                                txtSDT.Text.Trim(),
+                                txtDiaChi.Text.Trim(),
+                                txtDanToc.Text.Trim()
+                            );
+
+                            MessageBox.Show("✅ Thêm học sinh thành công!", "Thành công",
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            formThemHS.DialogResult = DialogResult.OK;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"❌ Lỗi khi thêm học sinh: {ex.Message}", "Lỗi",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    };
+
+                    btnHuy.Click += (s, ev) => formThemHS.Close();
+
+                    pnlButtons.Controls.Add(btnLuu);
+                    pnlButtons.Controls.Add(btnHuy);
+
+                    // Add panels to main container
+                    pnlMain.Controls.Add(pnlFields);
+                    pnlMain.Controls.Add(pnlButtons);
+
+                    // Add to form
+                    formThemHS.Controls.Add(pnlMain);
+                    formThemHS.Controls.Add(lblHeader);
+
+                    // Form events
+                    formThemHS.AcceptButton = btnLuu;
+                    formThemHS.CancelButton = btnHuy;
+
+                    // Add hover effects
+                    AddHoverEffect(btnLuu, Color.FromArgb(33, 136, 56), Color.FromArgb(40, 167, 69));
+                    AddHoverEffect(btnHuy, Color.FromArgb(90, 98, 104), Color.FromArgb(108, 117, 125));
+
+                    // Add focus effects for textboxes
+                    AddFocusEffect(txtHoTen);
+                    AddFocusEffect(txtDiaChi);
+                    AddFocusEffect(txtDanToc);
+                    AddFocusEffect(txtSDT);
+                    AddFocusEffect(cboGioiTinh);
+
+                    if (formThemHS.ShowDialog() == DialogResult.OK)
+                    {
+                        string selectedMaLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
+                        LoadClassDetails(selectedMaLop);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"❌ Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
         private void btnXoaHS_Click(object sender, EventArgs e)
         {
             if (dgvHocSinh.CurrentRow == null)
             {
-                MessageBox.Show("Vui lòng chọn một học sinh để xóa.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng chọn một học sinh để xóa.", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             string maHS = dgvHocSinh.CurrentRow.Cells["MaHS"].Value.ToString();
             string tenHS = dgvHocSinh.CurrentRow.Cells["HoTen"].Value.ToString();
 
-            DialogResult confirm = MessageBox.Show($"Bạn có chắc chắn muốn xóa học sinh '{tenHS}' không?", "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            DialogResult confirm = MessageBox.Show(
+                $"Bạn có chắc chắn muốn xóa học sinh '{tenHS}' không?",
+                "Xác nhận xóa",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
 
             if (confirm == DialogResult.Yes)
             {
                 try
                 {
                     DatabaseHelper.DeleteStudent(maHS);
-                    MessageBox.Show("Xóa học sinh thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("Xóa học sinh thành công!", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     string selectedMaLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
-                    LoadClassDetails(selectedMaLop); // Tải lại chi tiết để cập nhật sĩ số
+                    LoadClassDetails(selectedMaLop);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Lỗi khi xóa học sinh: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Lỗi khi xóa học sinh: " + ex.Message, "Lỗi",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
 
-        /// <summary>
-        /// Xử lý nút Lưu thay đổi (inline) trên lưới Học Sinh.
-        /// </summary>
         private void btnLuuHS_Click(object sender, EventArgs e)
         {
             DataTable dt = (dgvHocSinh.DataSource as DataTable);
@@ -307,7 +1146,8 @@ namespace N6
 
             if (changes == null || changes.Rows.Count == 0)
             {
-                MessageBox.Show("Không có thay đổi nào để lưu.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Không có thay đổi nào để lưu.", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -329,33 +1169,64 @@ namespace N6
                 }
 
                 dt.AcceptChanges();
-                MessageBox.Show($"Đã lưu thành công {successCount} thay đổi!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"Đã lưu thành công {successCount} thay đổi!", "Thành công",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi lưu thay đổi: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi khi lưu thay đổi: " + ex.Message, "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 dt.RejectChanges();
             }
         }
 
-        /// <summary>
-        /// Xử lý nút Import Học Sinh (mở dialog chọn kiểu Import).
-        /// </summary>
         private void btnImportHS_Click(object sender, EventArgs e)
         {
             string selectedKhoi = (cboKhoi.SelectedItem ?? "Tất cả các khối").ToString();
             string maLop = dgvLopHoc.CurrentRow?.Cells["MaLop"].Value.ToString();
             string tenLop = dgvLopHoc.CurrentRow?.Cells["TenLop"].Value.ToString();
 
-            using (var optionForm = new Form { Text = "Chọn kiểu Import", Size = new Size(400, 180), StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false })
+            using (var optionForm = new Form
             {
-                var btnTheoLop = new Button { Text = $"Import cho lớp ({tenLop})", Dock = DockStyle.Top, Height = 40, DialogResult = DialogResult.OK, Font = new Font("Segoe UI", 10F) };
-                var btnTheoKhoi = new Button { Text = $"Import cho khối ({selectedKhoi})", Dock = DockStyle.Top, Height = 40, DialogResult = DialogResult.Yes, Font = new Font("Segoe UI", 10F) };
-                var btnCancel = new Button { Text = "Hủy", Dock = DockStyle.Bottom, Height = 40, DialogResult = DialogResult.Cancel, Font = new Font("Segoe UI", 10F) };
+                Text = "Chọn kiểu Import",
+                Size = new Size(400, 180),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false
+            })
+            {
+                var btnTheoLop = new Button
+                {
+                    Text = $"Import cho lớp ({tenLop})",
+                    Dock = DockStyle.Top,
+                    Height = 40,
+                    DialogResult = DialogResult.OK,
+                    Font = new Font("Segoe UI", 10F)
+                };
+
+                var btnTheoKhoi = new Button
+                {
+                    Text = $"Import cho khối ({selectedKhoi})",
+                    Dock = DockStyle.Top,
+                    Height = 40,
+                    DialogResult = DialogResult.Yes,
+                    Font = new Font("Segoe UI", 10F)
+                };
+
+                var btnCancel = new Button
+                {
+                    Text = "Hủy",
+                    Dock = DockStyle.Bottom,
+                    Height = 40,
+                    DialogResult = DialogResult.Cancel,
+                    Font = new Font("Segoe UI", 10F)
+                };
 
                 btnTheoLop.Enabled = (maLop != null);
                 btnTheoKhoi.Enabled = (selectedKhoi != "Tất cả các khối");
-                if (btnTheoKhoi.Enabled == false) btnTheoKhoi.Text = "Import cho khối (Hãy chọn 1 khối)";
+                if (btnTheoKhoi.Enabled == false)
+                    btnTheoKhoi.Text = "Import cho khối (Hãy chọn 1 khối)";
 
                 optionForm.Controls.AddRange(new Control[] { btnTheoKhoi, btnTheoLop, btnCancel });
                 optionForm.CancelButton = btnCancel;
@@ -363,7 +1234,9 @@ namespace N6
                 DialogResult choice = optionForm.ShowDialog();
                 if (choice == DialogResult.Cancel) return;
 
-                frmImportExcel.ImportType type = (choice == DialogResult.OK) ? frmImportExcel.ImportType.HocSinhTheoLop : frmImportExcel.ImportType.HocSinhTheoKhoi;
+                frmImportExcel.ImportType type = (choice == DialogResult.OK) ?
+                    frmImportExcel.ImportType.HocSinhTheoLop :
+                    frmImportExcel.ImportType.HocSinhTheoKhoi;
 
                 using (var importForm = new frmImportExcel(type, maLop, tenLop, selectedKhoi))
                 {
@@ -371,21 +1244,19 @@ namespace N6
                     {
                         if (maLop != null)
                         {
-                            LoadClassDetails(maLop); // Cập nhật lại sĩ số
+                            LoadClassDetails(maLop);
                         }
                     }
                 }
             }
         }
 
-        /// <summary>
-        /// Hiển thị panel "Chuyển Lớp Hàng Loạt".
-        /// </summary>
         private void btnChuyenLop_Click(object sender, EventArgs e)
         {
             if (dgvLopHoc.CurrentRow == null)
             {
-                MessageBox.Show("Vui lòng chọn một lớp trước khi thực hiện chuyển lớp.", "Chưa chọn lớp", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng chọn một lớp trước khi thực hiện chuyển lớp.",
+                    "Chưa chọn lớp", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -394,22 +1265,23 @@ namespace N6
 
             if (dtHocSinh == null || dtHocSinh.Rows.Count == 0)
             {
-                MessageBox.Show("Lớp hiện tại không có học sinh nào để chuyển.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Lớp hiện tại không có học sinh nào để chuyển.",
+                    "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            // Lọc danh sách lớp đến (loại bỏ lớp hiện tại)
             var filteredRows = allLopHoc.AsEnumerable()
                                 .Where(row => row.Field<string>("MaLop") != maLopHienTai);
 
             if (!filteredRows.Any())
             {
-                MessageBox.Show("Không có lớp nào khác để chuyển đến.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Không có lớp nào khác để chuyển đến.",
+                    "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
+
             DataTable dtLopDen = filteredRows.CopyToDataTable();
 
-            // Đổ dữ liệu Học sinh vào CheckedListBox
             clbHocSinhChuyen.Items.Clear();
             foreach (DataRow row in dtHocSinh.Rows)
             {
@@ -420,33 +1292,24 @@ namespace N6
                 });
             }
 
-            // Đổ dữ liệu Lớp đến vào ComboBox
             cboLopMoi_Inline.DataSource = dtLopDen;
             cboLopMoi_Inline.DisplayMember = "TenLop";
             cboLopMoi_Inline.ValueMember = "MaLop";
             cboLopMoi_Inline.SelectedIndex = 0;
 
-            // Hiển thị panel
             pnlChuyenLop.Visible = true;
             pnlChuyenLop.BringToFront();
         }
 
-        /// <summary>
-        /// Xử lý nút "Hủy" trên panel chuyển lớp.
-        /// </summary>
         private void btnHuyChuyen_Click(object sender, EventArgs e)
         {
             pnlChuyenLop.Visible = false;
-            // Xóa các lựa chọn
             for (int i = 0; i < clbHocSinhChuyen.Items.Count; i++)
             {
                 clbHocSinhChuyen.SetItemChecked(i, false);
             }
         }
 
-        /// <summary>
-        /// Xử lý nút "Xác nhận" trên panel chuyển lớp (gọi SP).
-        /// </summary>
         private void btnXacNhanChuyen_Click(object sender, EventArgs e)
         {
             List<string> maHocSinhList = new List<string>();
@@ -460,15 +1323,18 @@ namespace N6
 
             if (maHocSinhList.Count == 0)
             {
-                MessageBox.Show("Bạn chưa chọn học sinh nào để chuyển.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Bạn chưa chọn học sinh nào để chuyển.", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (cboLopMoi_Inline.SelectedValue == null)
             {
-                MessageBox.Show("Lỗi: Không xác định được lớp chuyển đến.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi: Không xác định được lớp chuyển đến.", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
             string maLopMoi = cboLopMoi_Inline.SelectedValue.ToString();
             string tenLopMoi = cboLopMoi_Inline.Text;
             string maLopHienTai = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
@@ -477,14 +1343,16 @@ namespace N6
             {
                 int soHocSinhDaChuyen = DatabaseHelper.UpdateStudentClass_Multi(maHocSinhList, maLopMoi);
 
-                MessageBox.Show($"Đã chuyển thành công {soHocSinhDaChuyen} học sinh sang lớp '{tenLopMoi}'.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"Đã chuyển thành công {soHocSinhDaChuyen} học sinh sang lớp '{tenLopMoi}'.",
+                    "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 pnlChuyenLop.Visible = false;
-                LoadClassDetails(maLopHienTai); // Tải lại lớp hiện tại (sĩ số giảm)
+                LoadClassDetails(maLopHienTai);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi thực hiện chuyển lớp: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi khi thực hiện chuyển lớp: " + ex.Message, "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -492,20 +1360,19 @@ namespace N6
 
         #region PHÂN CÔNG GIẢNG DẠY: GVCN, MÔN HỌC, IMPORT
 
-        /// <summary>
-        /// Xử lý nút Gán GVCN.
-        /// </summary>
         private void btnAssignGvcn_Click(object sender, EventArgs e)
         {
             if (dgvLopHoc.CurrentRow == null)
             {
-                MessageBox.Show("Vui lòng chọn lớp.", "Thông tin thiếu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng chọn lớp.", "Thông tin thiếu",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (cboGvcn.SelectedValue == null)
             {
-                MessageBox.Show("Vui lòng chọn giáo viên (hoặc 'Trống') để phân công.", "Thông tin thiếu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng chọn giáo viên (hoặc 'Trống') để phân công.",
+                    "Thông tin thiếu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -516,30 +1383,30 @@ namespace N6
 
                 DatabaseHelper.UpdateHomeroomTeacherForClass(maLop, maGV);
 
-                MessageBox.Show("Cập nhật giáo viên chủ nhiệm thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Cập nhật giáo viên chủ nhiệm thành công!", "Thành công",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // Sửa lỗi: Tải lại cache và áp dụng lại filter
                 string selectedKhoi = (cboKhoi.SelectedItem ?? "Tất cả các khối").ToString();
                 allLopHoc = DatabaseHelper.GetAllClasses();
                 isProgrammaticChange = true;
                 dgvLopHoc.DataSource = allLopHoc.DefaultView;
                 isProgrammaticChange = false;
-                allLopHoc.DefaultView.RowFilter = (selectedKhoi == "Tất cả các khối") ? string.Empty : $"Khoi = '{selectedKhoi}'";
+                allLopHoc.DefaultView.RowFilter = (selectedKhoi == "Tất cả các khối") ?
+                    string.Empty : $"Khoi = '{selectedKhoi}'";
 
                 LoadClassDetails(maLop);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi cập nhật GVCN: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi khi cập nhật GVCN: " + ex.Message, "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        /// <summary>
-        /// Xử lý khi ComboBox trong lưới Phân Công được hiển thị.
-        /// </summary>
         private void dgvPhanCong_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
         {
-            if (dgvPhanCong.CurrentCell.ColumnIndex == dgvPhanCong.Columns["AssignTeacherColumn"].Index && e.Control is ComboBox comboBox)
+            if (dgvPhanCong.CurrentCell.ColumnIndex == dgvPhanCong.Columns["AssignTeacherColumn"].Index &&
+                e.Control is ComboBox comboBox)
             {
                 comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
 
@@ -552,14 +1419,12 @@ namespace N6
                 }
                 else
                 {
-                    // Lọc GV dựa trên môn học
                     string safeTenMon = tenMon.Replace("'", "''");
                     dv.RowFilter = $"CacMonDay LIKE '%{safeTenMon}%'";
                 }
 
                 DataTable filteredTeachers = dv.ToTable();
 
-                // Thêm dòng "(Trống)"
                 DataRow emptyRow = filteredTeachers.NewRow();
                 emptyRow["Ten"] = "(Trống)";
                 emptyRow["MaGV"] = "";
@@ -578,12 +1443,11 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Xử lý khi giá trị trong ComboBox (lưới Phân Công) thay đổi -> Lưu ngay lập tức.
-        /// </summary>
         private void dgvPhanCong_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-            if (isProgrammaticChange || e.RowIndex < 0 || dgvPhanCong.Columns[e.ColumnIndex].Name != "AssignTeacherColumn") return;
+            if (isProgrammaticChange || e.RowIndex < 0 ||
+                dgvPhanCong.Columns[e.ColumnIndex].Name != "AssignTeacherColumn") return;
+
             try
             {
                 string maLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
@@ -593,10 +1457,10 @@ namespace N6
 
                 DatabaseHelper.UpdateTeachingAssignment(maLop, maMon, newMaGV);
 
-                // Cập nhật lại cột "Tên GV hiện tại"
                 var gv = allGiaoVien.AsEnumerable().FirstOrDefault(r => r.Field<string>("MaGV") == newMaGV);
                 isProgrammaticChange = true;
-                dgvPhanCong.Rows[e.RowIndex].Cells["TenGV"].Value = gv != null ? gv.Field<string>("Ten") : "(Trống)";
+                dgvPhanCong.Rows[e.RowIndex].Cells["TenGV"].Value = gv != null ?
+                    gv.Field<string>("Ten") : "(Trống)";
                 isProgrammaticChange = false;
             }
             catch (Exception ex)
@@ -605,24 +1469,20 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Bắt lỗi DataError (ví dụ: khi ComboBox bị lỗi binding).
-        /// </summary>
         private void dgvPhanCong_DataError(object sender, DataGridViewDataErrorEventArgs e)
         {
-            e.ThrowException = false; // Ngăn không cho crash
+            e.ThrowException = false;
         }
 
-        /// <summary>
-        /// Xử lý nút Import Phân công (Môn học).
-        /// </summary>
         private void btnImportPhanCong_Click(object sender, EventArgs e)
         {
             if (dgvLopHoc.CurrentRow == null)
             {
-                MessageBox.Show("Vui lòng chọn một lớp để import phân công.", "Chưa chọn lớp", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng chọn một lớp để import phân công.", "Chưa chọn lớp",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
             string maLop = dgvLopHoc.CurrentRow.Cells["MaLop"].Value.ToString();
             string tenLop = dgvLopHoc.CurrentRow.Cells["TenLop"].Value.ToString();
 
@@ -630,7 +1490,6 @@ namespace N6
             {
                 if (importForm.ShowDialog() == DialogResult.OK)
                 {
-                    // Tải lại lưới phân công
                     dgvPhanCong.DataSource = DatabaseHelper.GetTeachingAssignmentsByClass(maLop);
                     CustomizeAssignmentGrid();
                 }
@@ -641,9 +1500,6 @@ namespace N6
 
         #region HÀM TẢI DỮ LIỆU & TÙY CHỈNH GIAO DIỆN (Helper)
 
-        /// <summary>
-        /// Tải toàn bộ chi tiết của lớp (Info, HS, Phân công).
-        /// </summary>
         private void LoadClassDetails(string maLop)
         {
             isProgrammaticChange = true;
@@ -664,13 +1520,11 @@ namespace N6
                     string currentMaGVCN = classInfo["MaGVCN"]?.ToString() ?? "";
                     string currentTenGVCN = classInfo["TenGVCN"]?.ToString() ?? "Chưa có";
 
-                    // Thêm dòng "(Trống)"
                     DataRow emptyRow = dtAvailableTeachers.NewRow();
                     emptyRow["Ten"] = "(Trống)";
                     emptyRow["MaGV"] = "";
                     dtAvailableTeachers.Rows.InsertAt(emptyRow, 0);
 
-                    // Nếu GVCN hiện tại vẫn còn (đang CN lớp khác?), thêm họ vào list
                     if (!string.IsNullOrEmpty(currentMaGVCN))
                     {
                         bool exists = dtAvailableTeachers.AsEnumerable()
@@ -687,12 +1541,12 @@ namespace N6
                     cboGvcn.DataSource = dtAvailableTeachers;
                     cboGvcn.DisplayMember = "Ten";
                     cboGvcn.ValueMember = "MaGV";
-                    cboGvcn.SelectedValue = currentMaGVCN; // Đặt giá trị đã chọn
+                    cboGvcn.SelectedValue = currentMaGVCN;
 
-                    lblGVCN.ForeColor = (currentTenGVCN == "Chưa có") ? Color.FromArgb(220, 53, 69) : Color.FromArgb(108, 117, 125);
+                    lblGVCN.ForeColor = (currentTenGVCN == "Chưa có") ?
+                        Color.FromArgb(220, 53, 69) : Color.FromArgb(108, 117, 125);
                 }
 
-                // Tải lưới
                 dgvHocSinh.DataSource = DatabaseHelper.GetStudentsByClass(maLop);
                 CustomizeStudentGrid();
                 dgvPhanCong.DataSource = DatabaseHelper.GetTeachingAssignmentsByClass(maLop);
@@ -708,9 +1562,6 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Xóa chi tiết khi không có lớp nào được chọn.
-        /// </summary>
         private void ClearAllDetails()
         {
             lblTenLop.Text = "Chọn lớp để xem thông tin";
@@ -728,14 +1579,11 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Tùy chỉnh cột lưới Học Sinh.
-        /// </summary>
         private void CustomizeStudentGrid()
         {
             if (dgvHocSinh.DataSource == null || dgvHocSinh.Columns.Count == 0) return;
 
-            dgvHocSinh.ReadOnly = false; // Cho phép sửa
+            dgvHocSinh.ReadOnly = false;
 
             if (dgvHocSinh.Columns.Contains("STT"))
             {
@@ -768,13 +1616,17 @@ namespace N6
             dgvHocSinh.Columns["DiaChi"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
         }
 
-        /// <summary>
-        /// Tùy chỉnh cột lưới Phân Công (thêm ComboBox động).
-        /// </summary>
         private void CustomizeAssignmentGrid()
         {
             if (dgvPhanCong.DataSource == null || dgvPhanCong.Columns.Count == 0) return;
-            if (dgvPhanCong.Columns.Contains("AssignTeacherColumn")) dgvPhanCong.Columns.Remove("AssignTeacherColumn");
+
+            if (allGiaoVien == null)
+            {
+                return; 
+            }
+
+            if (dgvPhanCong.Columns.Contains("AssignTeacherColumn"))
+                dgvPhanCong.Columns.Remove("AssignTeacherColumn");
 
             dgvPhanCong.Columns["MaMon"].Visible = false;
             dgvPhanCong.Columns["MaGV"].Visible = false;
@@ -783,7 +1635,6 @@ namespace N6
             dgvPhanCong.Columns["TenGV"].HeaderText = "Giáo Viên Hiện Tại";
             dgvPhanCong.Columns["TenGV"].ReadOnly = true;
 
-            // Nguồn dữ liệu cho ComboBox (copy từ cache)
             DataTable dtColumnSource = allGiaoVien.Copy();
             DataRow emptyRowCol = dtColumnSource.NewRow();
             emptyRowCol["Ten"] = "(Trống)";
@@ -809,13 +1660,11 @@ namespace N6
 
             dgvPhanCong.Columns.Add(comboBoxColumn);
 
-            // Gán giá trị ban đầu cho ComboBox
             foreach (DataGridViewRow row in dgvPhanCong.Rows)
             {
                 row.Cells["AssignTeacherColumn"].Value = row.Cells["MaGV"].Value;
             }
 
-            // Gán sự kiện (lưu handler để Dispose)
             dgvEditingControlShowingHandler = new DataGridViewEditingControlShowingEventHandler(dgvPhanCong_EditingControlShowing);
             dgvCellValueChangedHandler = new DataGridViewCellEventHandler(dgvPhanCong_CellValueChanged);
 
@@ -829,9 +1678,6 @@ namespace N6
 
         #region HÀM VẼ GIAO DIỆN PHỤ (Helpers)
 
-        /// <summary>
-        /// Vẽ hiệu ứng bo góc và đổ bóng (hoặc viền).
-        /// </summary>
         private void DrawShadow(object sender, PaintEventArgs e, int radius, Color color, bool border = false)
         {
             Control control = sender as Control;
@@ -853,9 +1699,6 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Áp dụng style chung cho DataGridView (đã được gọi từ hàm cha).
-        /// </summary>
         private void StyleDataGridView(DataGridView dgv)
         {
             dgv.BorderStyle = BorderStyle.None;
@@ -877,9 +1720,6 @@ namespace N6
             dgv.RowTemplate.Height = 40;
         }
 
-        /// <summary>
-        /// Tạo GraphicsPath bo góc (helper).
-        /// </summary>
         private GraphicsPath CreateRoundedRect(Rectangle r, int radius)
         {
             r.Width--; r.Height--;
@@ -898,14 +1738,10 @@ namespace N6
 
         #region Dispose
 
-        /// <summary>
-        /// CHUẨN HÓA: Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
-        /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                // Gỡ sự kiện của control trong Designer
                 if (cboKhoi != null) this.cboKhoi.SelectedIndexChanged -= new System.EventHandler(this.cboKhoi_SelectedIndexChanged);
                 if (dgvLopHoc != null) this.dgvLopHoc.SelectionChanged -= new System.EventHandler(this.dgvLopHoc_SelectionChanged);
                 if (btnLuuHS != null) this.btnLuuHS.Click -= new System.EventHandler(this.btnLuuHS_Click);
@@ -914,8 +1750,9 @@ namespace N6
                 if (btnAssignGvcn != null) this.btnAssignGvcn.Click -= new System.EventHandler(this.btnAssignGvcn_Click);
                 if (btnImportPhanCong != null) this.btnImportPhanCong.Click -= new System.EventHandler(this.btnImportPhanCong_Click);
                 if (btnChuyenLop != null) this.btnChuyenLop.Click -= new System.EventHandler(this.btnChuyenLop_Click);
+                if (btnThemLop != null) this.btnThemLop.Click -= new System.EventHandler(this.btnThemLop_Click);
+                if (btnXoaLop != null) this.btnXoaLop.Click -= new System.EventHandler(this.btnXoaLop_Click);
 
-                // Gỡ sự kiện gán động
                 if (btnXacNhanChuyen != null) btnXacNhanChuyen.Click -= btnXacNhanChuyenClickHandler;
                 if (btnHuyChuyen != null) btnHuyChuyen.Click -= btnHuyChuyenClickHandler;
                 if (pnlFilter != null) pnlFilter.Paint -= pnlFilterPaintHandler;
@@ -928,7 +1765,6 @@ namespace N6
                     dgvPhanCong.CellValueChanged -= dgvCellValueChangedHandler;
                 }
 
-                // Hủy các control động
                 clbHocSinhChuyen?.Dispose();
                 cboLopMoi_Inline?.Dispose();
                 btnXacNhanChuyen?.Dispose();
