@@ -248,7 +248,7 @@ namespace N6
 
             Label otherTeacherLabel = new Label
             {
-                Text = "Giáo viên khác", // Bổ sung Text
+                Text = "", // Bổ sung Text
                 Font = new Font("Segoe UI", 12),
                 ForeColor = Color.FromArgb(97, 97, 97),
                 AutoSize = true
