@@ -8,29 +8,55 @@ using System.Windows.Forms;
 
 namespace N6
 {
+    /// <summary>
+    /// Form trò chơi "Ghép chữ" (Word Scramble) kèm ảnh gợi ý, chức năng gợi ý chữ,
+    /// kiểm tra đáp án và thống kê tiến trình.
+    /// </summary>
     public class GheChuForm : GameFormWithMusic
     {
+        #region Fields
+
         private List<WordScrambleItem> _items;
         private int _currentItemIndex = 0;
         private int _correctAnswers = 0;
         private PictureBox picHint;
-        private Label lblStatus, lblProgress;
-        private FlowLayoutPanel pnlAnswer, pnlChoices;
-        private RoundedButton btnHint, btnCheck;
+        private Label lblStatus;
+        private Label lblProgress;
+        private FlowLayoutPanel pnlAnswer;
+        private FlowLayoutPanel pnlChoices;
+        private RoundedButton btnHint;
+        private RoundedButton btnCheck;
         private Panel pnlButtons;
         private int _nextWordHintIndex = 0;
 
-        // ### THAY ĐỔI MỚI ###
+        // UI title
         private Label lblGameTitleTop;
 
+        #endregion
+
+        #region Constructor & Initialization
+
+        /// <summary>
+        /// Khởi tạo form Ghép chữ với danh sách item (hình + đáp án).
+        /// </summary>
+        /// <param name="items">Danh sách WordScrambleItem.</param>
         public GheChuForm(List<WordScrambleItem> items)
         {
-            if (items == null || items.Count == 0) { CloseWithWarning(); return; }
+            if (items == null || items.Count == 0)
+            {
+                CloseWithWarning();
+                return;
+            }
+
             _items = items;
             InitializeComponent();
+            MusicPlayer.PlaySpecificMusic("MNG04");
             LoadCurrentItem();
         }
 
+        /// <summary>
+        /// Thiết lập các control UI cho form ghép chữ.
+        /// </summary>
         private void InitializeComponent()
         {
             this.Text = "🧩 Ghép Chữ Đoán Hình";
@@ -50,7 +76,6 @@ namespace N6
                 MessageBox.Show("Không thể tải ảnh nền flashcard: " + ex.Message);
                 this.BackColor = Color.FromArgb(245, 247, 250);
             }
-            this.BackgroundImageLayout = ImageLayout.Stretch;
 
             lblProgress = new Label
             {
@@ -61,18 +86,17 @@ namespace N6
                 BackColor = Color.Transparent
             };
 
-            // ### THAY ĐỔI MỚI ###: Tên game phía trên ảnh
+            // Title top above image
             lblGameTitleTop = new Label
             {
-                Text = "GHÉP CHỮ", // Tên game
+                Text = "GHÉP CHỮ",
                 Font = new Font("Lexend", 18F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(111, 108, 97), // Màu chữ tương đồng với bảng gỗ
+                ForeColor = Color.FromArgb(111, 108, 97),
                 TextAlign = ContentAlignment.MiddleCenter,
-                Size = new Size(300, 40), // Kích thước khớp với pnlImage width
-                Location = new Point(362, 50), // Đặt phía trên pnlImage
+                Size = new Size(300, 40),
+                Location = new Point(362, 50),
                 BackColor = Color.Transparent
             };
-
 
             Panel pnlImage = new Panel
             {
@@ -85,11 +109,11 @@ namespace N6
             pnlImage.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using (var pen = new Pen(Color.FromArgb(220, 215, 205), 2)) // Viền màu xám be
+
+                using (var pen = new Pen(Color.FromArgb(220, 215, 205), 2))
                 {
-                    // Vẽ hình chữ nhật bo góc
                     Rectangle rect = new Rectangle(0, 0, pnlImage.Width - 1, pnlImage.Height - 1);
-                    using (GraphicsPath path = GetRoundedRectPath(rect, 10)) // Bo góc 10px
+                    using (GraphicsPath path = GetRoundedRectPath(rect, 10))
                     {
                         e.Graphics.DrawPath(pen, path);
                     }
@@ -124,8 +148,8 @@ namespace N6
                 AutoScroll = false,
                 Location = new Point(0, (pnlQuestionBg.Height - 80) / 2)
             };
-            pnlQuestionBg.Controls.Add(pnlAnswer);
 
+            pnlQuestionBg.Controls.Add(pnlAnswer);
 
             Label lblChoicesTitle = new Label
             {
@@ -140,7 +164,7 @@ namespace N6
             pnlChoices = new FlowLayoutPanel
             {
                 Size = new Size(840, 90),
-                Location = new Point(92, 500), // Điều chỉnh vị trí
+                Location = new Point(92, 500),
                 Padding = new Padding(10),
                 BackColor = Color.Transparent,
                 BorderStyle = BorderStyle.None,
@@ -166,12 +190,11 @@ namespace N6
                 ForeColor = Color.White,
                 CornerRadius = 12
             };
+
             btnCheck.FlatAppearance.BorderSize = 0;
             btnCheck.Click += BtnCheck_Click;
             btnCheck.MouseEnter += (s, e) => btnCheck.BackColor = Color.FromArgb(67, 167, 227);
             btnCheck.MouseLeave += (s, e) => btnCheck.BackColor = Color.FromArgb(87, 187, 247);
-
-            pnlButtons.Controls.AddRange(new Control[] { btnCheck, lblStatus, btnHint });
 
             lblStatus = new Label
             {
@@ -185,40 +208,40 @@ namespace N6
 
             btnHint = new RoundedButton
             {
-                Text = "💡 Gợi ý", // Thay chữ
+                Text = "💡 Gợi ý",
                 Size = new Size(160, 50),
                 Location = new Point(280, 15),
                 Font = new Font("Lexend", 12F, FontStyle.Bold),
-                BackColor = Color.FromArgb(244, 179, 80), // Màu cam
+                BackColor = Color.FromArgb(244, 179, 80),
                 ForeColor = Color.White,
                 CornerRadius = 12,
                 Visible = true
             };
+
             btnHint.FlatAppearance.BorderSize = 0;
-            // Thay đổi sự kiện:
             btnHint.Click += BtnHint_Click;
             btnHint.MouseEnter += (s, e) => btnHint.BackColor = Color.FromArgb(229, 159, 60);
             btnHint.MouseLeave += (s, e) => btnHint.BackColor = Color.FromArgb(244, 179, 80);
 
-            // Đảm bảo pnlButtons dùng btnHint:
+            // Ensure controls are added once
             pnlButtons.Controls.AddRange(new Control[] { btnCheck, lblStatus, btnHint });
 
-            pnlButtons.Controls.AddRange(new Control[] { btnCheck, lblStatus, btnHint });
-
-            this.Controls.AddRange(new Control[]
-            {
-            lblGameTitleTop,
-            pnlImage,
-            pnlQuestionBg,
-            lblChoicesTitle,
-            pnlChoices
-            });
-
+            this.Controls.AddRange(new Control[] { lblGameTitleTop, pnlImage, pnlQuestionBg, lblChoicesTitle, pnlChoices });
             this.Controls.Add(pnlButtons);
             this.Controls.Add(lblProgress);
             lblProgress.BringToFront();
         }
 
+        #endregion
+
+        #region UI Helpers
+
+        /// <summary>
+        /// Tạo GraphicsPath hình chữ nhật bo góc.
+        /// </summary>
+        /// <param name="rect">Hình chữ nhật nguồn.</param>
+        /// <param name="radius">Bán kính bo góc.</param>
+        /// <returns>GraphicsPath chứa đường path bo góc.</returns>
         private GraphicsPath GetRoundedRectPath(Rectangle rect, int radius)
         {
             GraphicsPath path = new GraphicsPath();
@@ -233,19 +256,32 @@ namespace N6
             return path;
         }
 
+        /// <summary>
+        /// Vẽ khung cho ô slot (sử dụng Paint event).
+        /// </summary>
         private void Slot_Paint(object sender, PaintEventArgs e)
         {
             Label lbl = sender as Label;
-            if (lbl == null) return;
+            if (lbl == null)
+            {
+                return;
+            }
 
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
             using (Pen pen = new Pen(Color.FromArgb(220, 215, 205), 2))
             {
                 e.Graphics.DrawRectangle(pen, 1, 1, lbl.Width - 2, lbl.Height - 2);
             }
         }
 
+        #endregion
 
+        #region Game Logic & Events
+
+        /// <summary>
+        /// Tải item (ảnh + đáp án) hiện tại lên giao diện, xây dựng các ô đáp án và các nút chữ cái (choices).
+        /// </summary>
         private void LoadCurrentItem()
         {
             pnlAnswer.Controls.Clear();
@@ -273,6 +309,7 @@ namespace N6
                 picHint.Image = null;
             }
 
+            // Load image safely: support file path or embedded resources, with fallbacks.
             try
             {
                 if (!string.IsNullOrWhiteSpace(current.ImageHintResourceName))
@@ -316,24 +353,41 @@ namespace N6
             }
             catch (OutOfMemoryException)
             {
+                // Hình ảnh corrupt hoặc quá lớn -> dùng placeholder
                 MessageBox.Show(
                     "Ảnh gợi ý bị lỗi hoặc quá lớn.\nSử dụng ảnh placeholder thay thế.",
                     "Cảnh báo",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning
                 );
-                try { picHint.Image = Properties.Resources.placeholder; }
-                catch { picHint.Image = null; }
+
+                try
+                {
+                    picHint.Image = Properties.Resources.placeholder;
+                }
+                catch
+                {
+                    picHint.Image = null;
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Lỗi tải ảnh: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                try { picHint.Image = Properties.Resources.placeholder; }
-                catch { picHint.Image = null; }
+
+                try
+                {
+                    picHint.Image = Properties.Resources.placeholder;
+                }
+                catch
+                {
+                    picHint.Image = null;
+                }
             }
 
+            // Tách thành các từ (nếu có)
             string[] words = current.Answer.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
+            // Tính toán kích thước các slot để căn giữa
             int totalWidth = 0;
             int slotWidth = 55;
             int slotMargin = 3;
@@ -343,6 +397,7 @@ namespace N6
             {
                 totalWidth += word.Length * (slotWidth + slotMargin * 2);
             }
+
             if (words.Length > 1)
             {
                 totalWidth += (words.Length - 1) * spacerWidth;
@@ -364,9 +419,11 @@ namespace N6
                     BackColor = Color.Transparent,
                     Tag = "SPACER"
                 };
+
                 pnlAnswer.Controls.Add(leftSpacer);
             }
 
+            // Tạo các ô slot cho mỗi ký tự, giữa các từ chèn spacer
             for (int wordIndex = 0; wordIndex < words.Length; wordIndex++)
             {
                 string word = words[wordIndex];
@@ -385,6 +442,7 @@ namespace N6
                         ForeColor = Color.FromArgb(64, 64, 64),
                         Cursor = Cursors.Hand
                     };
+
                     slot.Click += Answer_Click;
                     slot.Paint += Slot_Paint;
                     pnlAnswer.Controls.Add(slot);
@@ -401,12 +459,14 @@ namespace N6
                         BackColor = Color.Transparent,
                         Tag = "SPACER"
                     };
+
                     pnlAnswer.Controls.Add(spacer);
                 }
             }
 
             pnlAnswer.ResumeLayout();
 
+            // Chuẩn bị các chữ cái lựa chọn (shuffled)
             var random = new Random();
             string answerWithoutSpaces = current.Answer.Replace(" ", "");
             string shuffledAnswer = new string(answerWithoutSpaces.ToCharArray()
@@ -425,6 +485,7 @@ namespace N6
                     ForeColor = Color.White,
                     Margin = new Padding(5)
                 };
+
                 choice.FlatAppearance.BorderSize = 0;
                 choice.Click += Choice_Click;
                 choice.MouseEnter += (s, e) => ((Button)s).BackColor = Color.FromArgb(80, 184, 220);
@@ -434,6 +495,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Khi click một nút chữ cái (choice) sẽ tìm ô trống đầu tiên và gán chữ cái vào đó, ẩn nút tương ứng.
+        /// </summary>
         private void Choice_Click(object sender, EventArgs e)
         {
             Button choice = sender as Button;
@@ -455,6 +519,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Khi click một slot đã có chữ sẽ trả lại chữ về phần choices (hiện lại nút) và xóa nội dung slot.
+        /// </summary>
         private void Answer_Click(object sender, EventArgs e)
         {
             Label slot = sender as Label;
@@ -472,6 +539,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Đặt lại trạng thái hiện tại của câu hỏi (hiện lại các nút chữ, xóa slot).
+        /// </summary>
         private void ResetCurrentState()
         {
             var answerSlots = pnlAnswer.Controls.OfType<Label>()
@@ -484,6 +554,7 @@ namespace N6
                 {
                     btn.Visible = true;
                 }
+
                 slot.Text = "";
                 slot.Tag = null;
                 slot.BackColor = Color.White;
@@ -495,6 +566,9 @@ namespace N6
             lblStatus.Visible = false;
         }
 
+        /// <summary>
+        /// Kiểm tra đáp án hiện tại; nếu đúng tăng điểm và hiển thị popup; nếu sai cho phép retry hoặc next.
+        /// </summary>
         private async void CheckAnswer()
         {
             var answerSlots = pnlAnswer.Controls.OfType<Label>()
@@ -518,19 +592,17 @@ namespace N6
 
                     foreach (Label slot in answerSlots)
                     {
-                        slot.BackColor = Color.FromArgb(139, 195, 74); // Xanh lá
+                        slot.BackColor = Color.FromArgb(139, 195, 74); // xanh lá
                         slot.ForeColor = Color.White;
                     }
 
                     AnswerPopupResult res;
                     if (_currentItemIndex < _items.Count - 1)
                     {
-                        // Có câu hỏi tiếp theo -> Hiện nút Next
                         res = ShowAnswerPopup(true, "Tuyệt vời! Bạn giỏi quá!", "Tiếp theo", showRetry: false);
                     }
                     else
                     {
-                        // Câu hỏi cuối cùng -> Hiện nút Results
                         res = ShowAnswerPopup(true, "Tuyệt vời! Bạn giỏi quá!", "Xem Kết quả", showRetry: false);
                     }
 
@@ -547,12 +619,11 @@ namespace N6
                         }
                     }
                 }
-                else // Khi SAI
+                else
                 {
-
                     foreach (Label slot in answerSlots)
                     {
-                        slot.BackColor = Color.FromArgb(255, 118, 117); // Đỏ
+                        slot.BackColor = Color.FromArgb(255, 118, 117); // đỏ
                         slot.ForeColor = Color.White;
                     }
 
@@ -587,6 +658,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Xử lý khi nhấn nút Kiểm tra (validate đủ chữ rồi gọi CheckAnswer).
+        /// </summary>
         private void BtnCheck_Click(object sender, EventArgs e)
         {
             var answerSlots = pnlAnswer.Controls.OfType<Label>()
@@ -605,6 +679,10 @@ namespace N6
             CheckAnswer();
         }
 
+        /// <summary>
+        /// Xử lý khi nhấn nút Gợi ý: chọn một từ chưa đầy, chọn ngẫu nhiên một ô trống trong từ đó,
+        /// đặt ký tự đúng và ẩn nút chữ tương ứng.
+        /// </summary>
         private void BtnHint_Click(object sender, EventArgs e)
         {
             WordScrambleItem currentItem = _items[_currentItemIndex];
@@ -616,7 +694,7 @@ namespace N6
                                              .Where(l => l.Tag == null || l.Tag.ToString() != "SPACER")
                                              .ToList();
 
-            // Tạo danh sách các nhóm từ (Word Groups)
+            // Gom nhóm slots theo từng từ
             List<List<Label>> wordGroups = new List<List<Label>>();
             int currentStartIndex = 0;
 
@@ -627,10 +705,12 @@ namespace N6
                 currentStartIndex += word.Length;
             }
 
-            if (!wordGroups.Any()) return;
+            if (!wordGroups.Any())
+            {
+                return;
+            }
 
-            // Tìm Từ Mục Tiêu (Target Word) dựa trên _nextWordHintIndex
-            // Sử dụng vòng lặp để đảm bảo tìm được từ còn trống (nếu từ hiện tại đã đầy thì chuyển sang từ tiếp theo)
+            // Tìm từ mục tiêu dựa trên _nextWordHintIndex (vòng quay nếu từ đã đầy)
             List<Label> targetWordSlots = null;
             int wordsCount = wordGroups.Count;
             int startingIndex = _nextWordHintIndex;
@@ -643,52 +723,48 @@ namespace N6
 
                 if (currentGroup.Any(l => string.IsNullOrEmpty(l.Text)))
                 {
-                    // Tìm thấy từ còn trống
                     targetWordSlots = currentGroup;
-                    _nextWordHintIndex = (indexToHint + 1) % wordsCount; // Cập nhật chỉ mục cho lần tiếp theo
+                    _nextWordHintIndex = (indexToHint + 1) % wordsCount;
                     break;
                 }
 
-                // Nếu từ này đã đầy, kiểm tra từ tiếp theo trong vòng lặp
                 startingIndex++;
                 wordsChecked++;
             }
 
             if (targetWordSlots == null)
             {
-                // Tất cả các từ đã được điền hết
                 lblStatus.Text = "Đáp án đã được điền hết!";
                 lblStatus.ForeColor = Color.Red;
                 lblStatus.Visible = true;
                 return;
             }
 
-            // Tìm tất cả các ô trống trong từ mục tiêu
-            List<Label> emptySlotsInTargetWord = targetWordSlots
-                                                            .Where(l => string.IsNullOrEmpty(l.Text))
-                                                            .ToList();
+            // Lấy danh sách ô trống trong từ mục tiêu
+            List<Label> emptySlotsInTargetWord = targetWordSlots.Where(l => string.IsNullOrEmpty(l.Text)).ToList();
 
-            if (emptySlotsInTargetWord.Count == 0) return; // Không nên xảy ra do logic bước 3
+            if (emptySlotsInTargetWord.Count == 0)
+            {
+                return;
+            }
 
-            // CHỌN NGẪU NHIÊN một ô trống từ danh sách
+            // Chọn ngẫu nhiên một ô trống để gợi ý
             var random = new Random();
             Label targetSlot = emptySlotsInTargetWord[random.Next(emptySlotsInTargetWord.Count)];
 
-            // Tính toán chỉ mục tổng thể (Global Index) để lấy ký tự đúng
+            // Tìm ký tự đúng dựa trên vị trí global của slot
             int globalIndex = allSlots.IndexOf(targetSlot);
             char correctChar = correctAnswerNoSpaces[globalIndex];
 
-            // Tìm và ẩn Button tương ứng
+            // Tìm nút chữ tương ứng và ẩn nó, gán ký tự vào slot
             RoundedButton choiceButton = pnlChoices.Controls.OfType<RoundedButton>()
                 .FirstOrDefault(b => b.Text.Equals(correctChar.ToString(), StringComparison.OrdinalIgnoreCase) && b.Visible);
 
             if (choiceButton != null)
             {
-                // Thực hiện gợi ý
                 choiceButton.Visible = false;
                 targetSlot.Text = correctChar.ToString();
                 targetSlot.Tag = choiceButton;
-
                 lblStatus.Visible = false;
             }
             else
@@ -699,9 +775,14 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Kết thúc game và hiển thị kết quả cuối.
+        /// </summary>
         private void EndGame()
         {
             ShowFinalResultDialog(_correctAnswers, _items.Count);
         }
+
+        #endregion
     }
 }

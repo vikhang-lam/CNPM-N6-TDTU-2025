@@ -6,7 +6,11 @@ namespace N6
 {
     public abstract class BaseGameForm : Form
     {
-        public Font GameFont(float size, FontStyle style = FontStyle.Bold) { return new Font("Lexend", size, style, GraphicsUnit.Point, ((byte)(0))); }
+        public Font GameFont(float size, FontStyle style = FontStyle.Bold)
+        {
+            return new Font("Lexend", size, style, GraphicsUnit.Point, ((byte)(0)));
+        }
+
         public readonly Color BgColor = Color.FromArgb(240, 247, 255);
         public readonly Color PrimaryColor = Color.FromArgb(87, 187, 247);
         public readonly Color SecondaryColor = Color.FromArgb(255, 189, 89);
@@ -16,6 +20,7 @@ namespace N6
         public readonly Color MutedTextColor = Color.FromArgb(150, 150, 150);
 
         [System.Runtime.InteropServices.DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
+
         public static extern IntPtr CreateRoundRectRgn(int l, int t, int r, int b, int w, int h);
 
         protected void CloseWithWarning(string message = "Không có dữ liệu để bắt đầu game.")

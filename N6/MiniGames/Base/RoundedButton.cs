@@ -8,10 +8,21 @@ namespace N6
     public class RoundedButton : Button
     {
         private int cornerRadius = 25;
-        public int CornerRadius { get => cornerRadius; set { cornerRadius = value; Invalidate(); } }
+
+        public int CornerRadius
+        {
+            get => cornerRadius;
+            set
+            {
+                cornerRadius = value; Invalidate(); 
+            }
+        
+        }
+
         protected override void OnPaint(PaintEventArgs pevent)
         {
             GraphicsPath grPath = new GraphicsPath();
+
             if (cornerRadius > 0 && this.Width > 0 && this.Height > 0)
             {
                 Rectangle rect = new Rectangle(0, 0, this.Width, this.Height);
@@ -26,6 +37,7 @@ namespace N6
                 grPath.CloseFigure();
                 this.Region = new Region(grPath);
             }
+
             base.OnPaint(pevent);
         }
     }

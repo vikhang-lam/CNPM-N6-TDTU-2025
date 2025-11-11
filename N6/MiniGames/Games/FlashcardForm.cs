@@ -7,39 +7,54 @@ using System.Windows.Forms;
 
 namespace N6
 {
+    /// <summary>
+    /// Form hiển thị flashcards (term / definition) với khả năng lật thẻ và điều hướng.
+    /// </summary>
     public class FlashcardForm : GameFormWithMusic
     {
+        #region Fields
+
         private List<FlashcardItem> _cards;
         private int currentIndex = 0;
         private bool isFlipped = false;
-        private Panel cardPanel, cardShadowPanel;
-        private Label cardLabel, lblCardCount, lblHint, lblFrontIndicator, lblBackIndicator;
-        private RoundedButton btnNext, btnPrev, btnFlip;
+        private Panel cardPanel;
+        private Panel cardShadowPanel;
+        private Label cardLabel;
+        private Label lblCardCount;
+        private Label lblHint;
+        private Label lblFrontIndicator;
+        private Label lblBackIndicator;
+        private RoundedButton btnNext;
+        private RoundedButton btnPrev;
+        private RoundedButton btnFlip;
         private Panel pnlHeader;
         private Panel pnlCardCountContainer;
 
+        #endregion
+
+        #region Constructor & Initialization
+
+        /// <summary>
+        /// Khởi tạo FlashcardForm với danh sách thẻ.
+        /// </summary>
+        /// <param name="cards">Danh sách thẻ flashcard (term/definition).</param>
         public FlashcardForm(List<FlashcardItem> cards)
         {
-            if (cards == null || cards.Count == 0) { CloseWithWarning(); return; }
+            if (cards == null || cards.Count == 0)
+            {
+                CloseWithWarning();
+                return;
+            }
+
             _cards = cards;
             InitializeComponent();
+            MusicPlayer.PlaySpecificMusic("MNG03");
             ShowCard();
         }
 
-        private GraphicsPath GetRoundedRectPath(Rectangle rect, int radius)
-        {
-            GraphicsPath path = new GraphicsPath();
-            int diameter = radius * 2;
-
-            path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
-            path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
-            path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
-            path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
-            path.CloseFigure();
-
-            return path;
-        }
-
+        /// <summary>
+        /// Thiết lập các control UI cho form flashcard.
+        /// </summary>
         private void InitializeComponent()
         {
             this.Text = "📇 Flashcard";
@@ -57,6 +72,7 @@ namespace N6
             }
             catch (Exception ex)
             {
+                // Nếu không load được ảnh nền thì dùng màu nền mặc định và hiển thị warn nhẹ.
                 MessageBox.Show("Không thể tải ảnh nền flashcard: " + ex.Message);
                 this.BackColor = Color.FromArgb(245, 247, 250);
             }
@@ -80,20 +96,22 @@ namespace N6
                 Location = new Point((this.ClientSize.Width - 350) / 2, 130)
             };
 
-
             cardPanel = new Panel
             {
                 BackColor = Color.Transparent,
                 Cursor = Cursors.Hand,
                 Size = new Size(580, 330),
                 Location = new Point(210, 150)
-
             };
+
             int cornerRadius = 20;
+            // Thiết lập Region bo góc cho panel thẻ
             cardPanel.Region = new Region(GetRoundedRectPath(new Rectangle(0, 0, cardPanel.Width, cardPanel.Height), cornerRadius));
 
+            // Click trực tiếp lên panel để lật thẻ
             cardPanel.Click += (s, e) => FlipCard();
 
+            // Vẽ viền chấm và đổi màu theo trạng thái flipped
             cardPanel.Paint += (s, e) =>
             {
                 Rectangle rect = cardPanel.ClientRectangle;
@@ -118,6 +136,7 @@ namespace N6
                 AutoSize = true,
                 BackColor = Color.Transparent
             };
+
             lblBackIndicator = new Label
             {
                 Text = "MẶT SAU",
@@ -128,6 +147,7 @@ namespace N6
                 BackColor = Color.Transparent,
                 Visible = false
             };
+
             cardLabel = new Label
             {
                 Location = new Point(30, 80),
@@ -138,6 +158,8 @@ namespace N6
                 Cursor = Cursors.Hand,
                 BackColor = Color.Transparent
             };
+
+            // Cho phép click trên label cũng lật thẻ
             cardLabel.Click += (s, e) => FlipCard();
 
             cardPanel.Controls.AddRange(new Control[] { lblFrontIndicator, lblBackIndicator, cardLabel });
@@ -159,6 +181,7 @@ namespace N6
                 Location = new Point(center_x - navButtonWidth - 100, controlY),
                 Cursor = Cursors.Hand
             };
+
             btnPrev.FlatAppearance.BorderSize = 0;
             btnPrev.Click += (s, e) => Navigate(-1);
 
@@ -173,6 +196,7 @@ namespace N6
                 Cursor = Cursors.Default
             };
 
+            // Use Win32 round region for container để giữ hình tròn bo đẹp
             pnlCardCountContainer.Region = Region.FromHrgn(CreateRoundRectRgn(0, 0, pnlCardCountContainer.Width, pnlCardCountContainer.Height, navButtonRadius * 2, navButtonRadius * 2));
 
             pnlCardCountContainer.Paint += (s, e) =>
@@ -197,6 +221,7 @@ namespace N6
                 TextAlign = ContentAlignment.MiddleCenter,
                 BackColor = Color.Transparent
             };
+
             pnlCardCountContainer.Controls.Add(lblCardCount);
 
             btnNext = new RoundedButton
@@ -210,6 +235,7 @@ namespace N6
                 Location = new Point(center_x + 100, controlY),
                 Cursor = Cursors.Hand
             };
+
             btnNext.FlatAppearance.BorderSize = 0;
             btnNext.Click += (s, e) => Navigate(1);
 
@@ -228,27 +254,77 @@ namespace N6
                 Location = new Point((this.ClientSize.Width - 200) / 2, 580),
                 Cursor = Cursors.Hand
             };
+
             btnFlip.FlatAppearance.BorderSize = 0;
             btnFlip.Click += (s, e) => FlipCard();
 
             btnFlip.MouseEnter += (s, e) => btnFlip.BackColor = ControlPaint.Light(btnFlip.BackColor, 0.1f);
             btnFlip.MouseLeave += (s, e) => btnFlip.BackColor = Color.FromArgb(29, 209, 161);
 
-            this.Controls.AddRange(new Control[] { lblTitle, lblHint, cardPanel, btnPrev, pnlCardCountContainer, btnNext, btnFlip });
+            this.Controls.AddRange(new Control[]
+            {
+                lblTitle,
+                lblHint,
+                cardPanel,
+                btnPrev,
+                pnlCardCountContainer,
+                btnNext,
+                btnFlip
+            });
+        }
+
+        #endregion
+
+        #region UI Helpers
+
+        /// <summary>
+        /// Tạo GraphicsPath hình chữ nhật bo góc (dùng để Region hoặc vẽ).
+        /// </summary>
+        /// <param name="rect">Hình chữ nhật nguồn.</param>
+        /// <param name="radius">Bán kính bo góc.</param>
+        /// <returns>GraphicsPath chứa đường path bo góc.</returns>
+        private GraphicsPath GetRoundedRectPath(Rectangle rect, int radius)
+        {
+            GraphicsPath path = new GraphicsPath();
+            int diameter = radius * 2;
+
+            // Add arcs theo thứ tự: top-left, top-right, bottom-right, bottom-left
+            path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
+            path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
+            path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
+            path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
+            path.CloseFigure();
+
+            return path;
         }
 
         [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
         private static extern IntPtr CreateRoundRectRgn(
-            int nLeftRect, int nTopRect, int nRightRect, int nBottomRect,
-            int nWidthEllipse, int nHeightEllipse
+            int nLeftRect,
+            int nTopRect,
+            int nRightRect,
+            int nBottomRect,
+            int nWidthEllipse,
+            int nHeightEllipse
         );
 
+        #endregion
+
+        #region UI Events / Game Logic
+
+        /// <summary>
+        /// Lật trạng thái thẻ (front/back).
+        /// </summary>
         private void FlipCard()
         {
             isFlipped = !isFlipped;
             ShowCardContent();
         }
 
+        /// <summary>
+        /// Chuyển đến thẻ tiếp theo / trước đó.
+        /// </summary>
+        /// <param name="direction">-1 để quay về trước, +1 để đến thẻ sau.</param>
         private void Navigate(int direction)
         {
             int newIndex = currentIndex + direction;
@@ -259,6 +335,9 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Hiển thị thẻ hiện tại (reset trạng thái flip, cập nhật bộ đếm và trạng thái nút điều hướng).
+        /// </summary>
         private void ShowCard()
         {
             isFlipped = false;
@@ -275,6 +354,9 @@ namespace N6
             btnNext.BackColor = btnNext.Enabled ? Color.FromArgb(87, 187, 247) : Color.LightGray;
         }
 
+        /// <summary>
+        /// Hiển thị nội dung thẻ dựa trên trạng thái isFlipped.
+        /// </summary>
         private void ShowCardContent()
         {
             cardLabel.Text = isFlipped ? _cards[currentIndex].Definition : _cards[currentIndex].Term;
@@ -289,19 +371,24 @@ namespace N6
 
             cardPanel.Invalidate();
 
-            // Animation đơn giản
+            // Animation đơn giản: thay đổi font nhỏ rồi phóng to lại.
             cardLabel.Font = new Font("Lexend", 28F, FontStyle.Bold);
             System.Threading.Tasks.Task.Delay(100).ContinueWith(t =>
             {
+                // Kiểm tra form/label chưa bị dispose trước khi truy cập UI thread
                 if (!this.IsDisposed && cardLabel != null && !cardLabel.IsDisposed)
                 {
                     this.Invoke(new MethodInvoker(() =>
                     {
                         if (!cardLabel.IsDisposed)
+                        {
                             cardLabel.Font = new Font("Lexend", 32F, FontStyle.Bold);
+                        }
                     }));
                 }
             });
         }
+
+        #endregion
     }
 }

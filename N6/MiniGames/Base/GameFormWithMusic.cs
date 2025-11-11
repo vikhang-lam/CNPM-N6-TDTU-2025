@@ -8,17 +8,6 @@ namespace N6
 {
     public abstract class GameFormWithMusic : BaseGameForm
     {
-        public GameFormWithMusic()
-        {
-            try
-            {
-                this.Load += (s, e) =>
-                {
-                    MusicPlayer.PlayRandom();
-                };
-            }
-            catch { }
-        }
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
@@ -55,7 +44,10 @@ namespace N6
             form.Region = new Region(path);
         }
 
-        public enum AnswerPopupResult { Next, Retry, None }
+        public enum AnswerPopupResult 
+        { 
+            Next, Retry, None 
+        }
 
         protected AnswerPopupResult ShowAnswerPopup(bool isCorrect, string message, string primaryText = "Tiếp theo", bool showRetry = true)
         {
@@ -161,7 +153,12 @@ namespace N6
                 return AnswerPopupResult.None;
             }
         }
-        public enum FinalResultAction { Close, Restart, None }
+
+        public enum FinalResultAction 
+        {
+            Close, Restart, None
+        }
+
         protected void ShowFinalResultDialog(int score, int totalQuestions)
         {
             using (Form dlg = new Form())
@@ -180,6 +177,7 @@ namespace N6
                     BackColor = Color.FromArgb(29, 209, 161),
                     Padding = new Padding(10)
                 };
+
                 Label lblTitle = new Label
                 {
                     Text = "HOÀN THÀNH!",
@@ -190,7 +188,6 @@ namespace N6
                     BackColor = Color.Transparent
                 };
                 pnlHeader.Controls.Add(lblTitle);
-
 
                 Label lblIcon = new Label
                 {

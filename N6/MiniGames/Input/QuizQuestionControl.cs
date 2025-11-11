@@ -5,16 +5,41 @@ using System.Windows.Forms;
 
 namespace N6
 {
+    /// <summary>
+    /// Control cho một câu hỏi trắc nghiệm (1 câu, 4 đáp án).
+    /// </summary>
     public class QuizQuestionControl : UserControl
     {
+        #region Fields / Properties
+
+        // TextBox chứa nội dung câu hỏi.
         public TextBox TxtQuestion { get; private set; }
+
+        // TextBox cho đáp án A.
         public TextBox TxtOptionA { get; private set; }
+
+        // TextBox cho đáp án B.
         public TextBox TxtOptionB { get; private set; }
+
+        // TextBox cho đáp án C.
         public TextBox TxtOptionC { get; private set; }
+
+        // TextBox cho đáp án D.
         public TextBox TxtOptionD { get; private set; }
+
+        // ComboBox chọn đáp án đúng (A/B/C/D).
         public ComboBox CboCorrectAnswer { get; private set; }
+
+        // Nút xóa control.
         public Button BtnRemove { get; private set; }
 
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Khởi tạo QuizQuestionControl và xây dựng giao diện.
+        /// </summary>
         public QuizQuestionControl()
         {
             this.Size = new Size(680, 220);
@@ -32,6 +57,18 @@ namespace N6
                 }
             };
 
+            BuildUi();
+        }
+
+        #endregion
+
+        #region UI Build
+
+        /// <summary>
+        /// Xây dựng giao diện chi tiết cho control.
+        /// </summary>
+        private void BuildUi()
+        {
             // ===== PANEL HEADER =====
             Panel pnlHeader = new Panel
             {
@@ -72,6 +109,7 @@ namespace N6
                 Font = new Font("Lexend", 9F, FontStyle.Bold),
                 Cursor = Cursors.Hand
             };
+
             BtnRemove.FlatAppearance.BorderSize = 0;
 
             // ===== TEXTBOX CÂU HỎI =====
@@ -84,6 +122,7 @@ namespace N6
                 BackColor = Color.White,
                 ForeColor = Color.FromArgb(64, 64, 64)
             };
+
             PlaceholderProvider.SetPlaceholder(TxtQuestion, "Nhập nội dung câu hỏi tại đây...");
 
             // ===== LABEL ĐÁP ÁN + COMBOBOX CÙNG DÒNG =====
@@ -114,10 +153,11 @@ namespace N6
                 BackColor = Color.FromArgb(212, 237, 218),
                 FlatStyle = FlatStyle.Flat
             };
+
             CboCorrectAnswer.Items.AddRange(new object[] { "A", "B", "C", "D" });
             CboCorrectAnswer.SelectedIndex = 0;
 
-            // ===== CÁC TEXTBOX ĐÁP ÁN (CÂN ĐỐI BADGE VỚI TEXTBOX) =====
+            // ===== CÁC TEXTBOX ĐÁP ÁN =====
             int badgeWidth = 20;
             int badgeHeight = 20;
             int textBoxWidth = 285;
@@ -144,6 +184,7 @@ namespace N6
                 Font = new Font("Lexend", 9F),
                 BorderStyle = BorderStyle.FixedSingle
             };
+
             PlaceholderProvider.SetPlaceholder(TxtOptionA, "Nhập đáp án A");
 
             // Đáp án B
@@ -165,6 +206,7 @@ namespace N6
                 Font = new Font("Lexend", 9F),
                 BorderStyle = BorderStyle.FixedSingle
             };
+
             PlaceholderProvider.SetPlaceholder(TxtOptionB, "Nhập đáp án B");
 
             // Đáp án C
@@ -186,6 +228,7 @@ namespace N6
                 Font = new Font("Lexend", 9F),
                 BorderStyle = BorderStyle.FixedSingle
             };
+
             PlaceholderProvider.SetPlaceholder(TxtOptionC, "Nhập đáp án C");
 
             // Đáp án D
@@ -207,6 +250,7 @@ namespace N6
                 Font = new Font("Lexend", 9F),
                 BorderStyle = BorderStyle.FixedSingle
             };
+
             PlaceholderProvider.SetPlaceholder(TxtOptionD, "Nhập đáp án D");
 
             this.Controls.AddRange(new Control[]
@@ -224,6 +268,14 @@ namespace N6
             });
         }
 
+        #endregion
+
+        #region Set Data Methods
+
+        /// <summary>
+        /// Lấy dữ liệu câu hỏi trắc nghiệm từ control.
+        /// </summary>
+        /// <returns>QuizQuestion chứa câu hỏi, danh sách đáp án và đáp án đúng.</returns>
         public QuizQuestion GetData()
         {
             return new QuizQuestion
@@ -234,6 +286,10 @@ namespace N6
             };
         }
 
+        /// <summary>
+        /// Gán dữ liệu cho control từ một QuizQuestion.
+        /// </summary>
+        /// <param name="q">Dữ liệu câu hỏi.</param>
         public void SetData(QuizQuestion q)
         {
             TxtQuestion.Text = q.QuestionText;
@@ -248,5 +304,7 @@ namespace N6
             TxtOptionD.ForeColor = Color.Black;
             CboCorrectAnswer.SelectedItem = q.CorrectAnswer;
         }
+
+        #endregion
     }
 }

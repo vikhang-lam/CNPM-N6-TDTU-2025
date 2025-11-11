@@ -7,17 +7,35 @@ using System.Windows.Forms;
 
 namespace N6
 {
+    /// <summary>
+    /// Form trò chơi "Sắp xếp câu": người chơi click các từ theo thứ tự để tạo câu đúng.
+    /// </summary>
     public class SapXepCauForm : GameFormWithMusic
     {
+        #region Fields
+
         private List<SentenceScrambleItem> _sentences;
         private int _currentSentenceIndex = 0;
         private int _correctCount = 0;
-        private FlowLayoutPanel pnlChoices, pnlAnswer;
-        private Label lblInstruction, lblOriginalSentence, lblProgress;
-        private RoundedButton btnCheck, btnReset, btnShowHint;
+        private FlowLayoutPanel pnlChoices;
+        private FlowLayoutPanel pnlAnswer;
+        private Label lblInstruction;
+        private Label lblOriginalSentence;
+        private Label lblProgress;
+        private RoundedButton btnCheck;
+        private RoundedButton btnReset;
+        private RoundedButton btnShowHint;
         private bool _showingHint = false;
         private bool isCompleted = false;
 
+        #endregion
+
+        #region Constructor & Initialization
+
+        /// <summary>
+        /// Khởi tạo SapXepCauForm với danh sách câu.
+        /// </summary>
+        /// <param name="sentences">Danh sách SentenceScrambleItem chứa trường CorrectSentence.</param>
         public SapXepCauForm(List<SentenceScrambleItem> sentences)
         {
             if (sentences == null || sentences.Count == 0)
@@ -27,6 +45,7 @@ namespace N6
             }
 
             _sentences = sentences.Where(s => !string.IsNullOrWhiteSpace(s.CorrectSentence)).ToList();
+
             if (_sentences.Count == 0)
             {
                 CloseWithWarning("Không có câu hợp lệ để bắt đầu game!");
@@ -34,11 +53,13 @@ namespace N6
             }
 
             InitializeComponent();
+            MusicPlayer.PlaySpecificMusic("MNG06");
             LoadCurrentSentence();
         }
 
-        public SapXepCauForm(SentenceScrambleItem item) : this(new List<SentenceScrambleItem> { item }) { }
-
+        /// <summary>
+        /// Khởi tạo các control UI cho form Sắp xếp câu.
+        /// </summary>
         private void InitializeComponent()
         {
             this.Text = "🔄 Sắp xếp câu";
@@ -57,9 +78,10 @@ namespace N6
                 MessageBox.Show("Không thể tải ảnh nền flashcard: " + ex.Message);
                 this.BackColor = Color.FromArgb(245, 247, 250);
             }
+
             this.BackgroundImageLayout = ImageLayout.Stretch;
 
-            // ===== PANEL HEADER =====
+            // Header
             Panel pnlHeader = new Panel
             {
                 Dock = DockStyle.Top,
@@ -109,7 +131,6 @@ namespace N6
                 BackColor = Color.Transparent
             };
 
-            // 2. Dòng Gợi ý
             lblOriginalSentence = new Label
             {
                 Text = "",
@@ -157,13 +178,14 @@ namespace N6
                 BackColor = Color.Transparent
             };
 
-            var pnlButtons = new FlowLayoutPanel
+            var pnlControl = new FlowLayoutPanel
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.Left,
+                AutoSize = true,
                 FlowDirection = FlowDirection.LeftToRight,
-                Padding = new Padding(20, 25, 20, 20),
                 WrapContents = false,
-                BackColor = Color.Transparent
+                BackColor = Color.Transparent,
+                Padding = new Padding(20, 25, 20, 20)
             };
 
             btnCheck = new RoundedButton
@@ -202,22 +224,19 @@ namespace N6
             };
             btnShowHint.Click += BtnShowHint_Click;
 
-            var pnlControl = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Left,
-                AutoSize = true,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                BackColor = Color.Transparent,
-                Padding = new Padding(20, 25, 20, 20)
-            };
-
             pnlControl.Controls.AddRange(new Control[] { btnCheck, btnReset, btnShowHint });
             pnlBottom.Controls.Add(pnlControl);
 
             this.Controls.AddRange(new Control[] { pnlChoices, pnlAnswer, pnlBottom, pnlTop, pnlHeader });
         }
 
+        #endregion
+
+        #region Game Logic
+
+        /// <summary>
+        /// Tải câu hiện tại lên giao diện, xáo trộn từ và tạo nút từ cho pnlChoices.
+        /// </summary>
         private void LoadCurrentSentence()
         {
             if (_currentSentenceIndex >= _sentences.Count)
@@ -233,16 +252,16 @@ namespace N6
             btnCheck.Enabled = true;
             btnCheck.Visible = true;
 
-            // ************* THAY ĐỔI: Không cần đặt lại btnNext/lblResult *************
-
             btnShowHint.Text = "💡 Gợi ý";
             btnShowHint.BackColor = Color.FromArgb(255, 152, 0);
             _showingHint = false;
-            lblOriginalSentence.Visible = false; // Ẩn gợi ý
+            lblOriginalSentence.Visible = false;
 
-            var words = currentSentence.CorrectSentence.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                                                     .OrderBy(x => Guid.NewGuid())
-                                                     .ToList();
+            // Shuffle từ dùng Guid.NewGuid() — giữ nguyên logic gốc
+            var words = currentSentence.CorrectSentence
+                                      .Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                      .OrderBy(x => Guid.NewGuid())
+                                      .ToList();
 
             pnlChoices.Controls.Clear();
             pnlAnswer.Controls.Clear();
@@ -255,6 +274,9 @@ namespace N6
             lblOriginalSentence.Text = GenerateHint(currentSentence.CorrectSentence);
         }
 
+        /// <summary>
+        /// Toggle hiển thị gợi ý (nl. câu gợi ý).
+        /// </summary>
         private void BtnShowHint_Click(object sender, EventArgs e)
         {
             if (!_showingHint)
@@ -273,22 +295,35 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Tạo chuỗi gợi ý từ câu đúng bằng cách để lộ từ đầu và cuối, che giữa bằng dấu gạch dưới.
+        /// </summary>
+        /// <param name="correctSentence">Câu đầy đủ đúng.</param>
+        /// <returns>Chuỗi gợi ý hiển thị.</returns>
         private string GenerateHint(string correctSentence)
         {
             if (string.IsNullOrWhiteSpace(correctSentence))
+            {
                 return "💡 Gợi ý: (không có dữ liệu)";
+            }
 
             var words = correctSentence.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             int n = words.Length;
 
             if (n == 1)
+            {
                 return $"💡 Gợi ý: \"{words[0]}\"";
+            }
 
             if (n == 2)
+            {
                 return $"💡 Gợi ý: \"{words[0]} _\"";
+            }
 
-            var hintParts = new List<string>(n);
-            hintParts.Add(words[0]);
+            var hintParts = new List<string>(n)
+            {
+                words[0]
+            };
 
             for (int i = 1; i < n - 1; i++)
             {
@@ -302,6 +337,12 @@ namespace N6
             return $"💡 Gợi ý: \"{hint}\"";
         }
 
+        /// <summary>
+        /// Tạo một RoundedButton biểu diễn một từ và thêm vào parent FlowLayoutPanel.
+        /// </summary>
+        /// <param name="word">Từ hiển thị trên nút.</param>
+        /// <param name="parent">Panel chứa nút.</param>
+        /// <returns>RoundedButton mới.</returns>
         private RoundedButton CreateWordButton(string word, FlowLayoutPanel parent)
         {
             var btn = new RoundedButton
@@ -323,9 +364,19 @@ namespace N6
             return btn;
         }
 
+        #endregion
+
+        #region UI Events
+
+        /// <summary>
+        /// Xử lý khi người chơi click một từ: di chuyển giữa pnlChoices và pnlAnswer.
+        /// </summary>
         private async void WordButton_Click(object sender, EventArgs e)
         {
-            if (isCompleted) return;
+            if (isCompleted)
+            {
+                return;
+            }
 
             var btn = sender as RoundedButton;
 
@@ -346,12 +397,13 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Xử lý khi nhấn nút Kiểm tra: so sánh câu người chơi với câu đúng, hiển thị popup kết quả và xử lý Retry/Next.
+        /// </summary>
         private async void BtnCheck_Click(object sender, EventArgs e)
         {
             if (pnlAnswer.Controls.Count == 0)
             {
-                // Sử dụng MessageBox hoặc lblStatus tạm thời (nếu có) thay vì ShowResult
-                // ShowResult("⚠️ Hãy chọn ít nhất một từ!", Color.FromArgb(255, 118, 117));
                 MessageBox.Show("Hãy chọn ít nhất một từ!", "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -367,13 +419,13 @@ namespace N6
 
             bool isCorrect = userAnswer.Equals(correctSentence, StringComparison.OrdinalIgnoreCase);
 
-            // Vô hiệu hóa controls để đợi Popup
+            // Vô hiệu hóa controls chờ popup
             pnlAnswer.Enabled = false;
             pnlChoices.Enabled = false;
             btnReset.Enabled = false;
             btnShowHint.Enabled = false;
 
-            // Tô màu kết quả
+            // Tô màu câu trả lời
             foreach (RoundedButton btn in pnlAnswer.Controls.OfType<RoundedButton>())
             {
                 btn.BackColor = isCorrect ? Color.FromArgb(76, 175, 80) : Color.FromArgb(255, 118, 117);
@@ -385,22 +437,21 @@ namespace N6
             {
                 _correctCount++;
                 lblProgress.Text = $" Câu {_currentSentenceIndex + 1}/{_sentences.Count} | Đúng: {_correctCount}";
-                isCompleted = true; // Đánh dấu câu đã hoàn thành
+                isCompleted = true;
 
                 string nextActionText = (_currentSentenceIndex < _sentences.Count - 1) ? "Tiếp theo" : "Xem Kết quả";
                 res = ShowAnswerPopup(true, "Tuyệt vời! Chính xác!", nextActionText, showRetry: false);
             }
-            else // Khi SAI
+            else
             {
                 string nextActionText = (_currentSentenceIndex < _sentences.Count - 1) ? "Tiếp theo" : "Xem Kết quả";
                 res = ShowAnswerPopup(false, "Tiếc quá, chưa đúng!", nextActionText, showRetry: true);
             }
 
-            // Xử lý kết quả Popup
             if (res == AnswerPopupResult.Retry)
             {
-                // Khôi phục trạng thái cho người dùng thử lại
-                BtnReset_Click(null, null); // Dùng hàm reset để đưa từ về lại
+                // Khôi phục trạng thái để thử lại
+                BtnReset_Click(null, null);
             }
             else if (res == AnswerPopupResult.Next)
             {
@@ -415,11 +466,9 @@ namespace N6
                 }
             }
 
-            // Đảm bảo nút Kiểm tra được phục hồi
+            // Phục hồi trạng thái nút & controls
             btnCheck.Enabled = true;
             btnCheck.Text = "✅ Kiểm tra";
-
-            // Phục hồi Controls sau khi Popup đóng (hoặc sau khi Retry)
             pnlAnswer.Enabled = true;
             pnlChoices.Enabled = true;
             btnReset.Enabled = true;
@@ -427,7 +476,7 @@ namespace N6
 
             if (!isCorrect && res != AnswerPopupResult.Retry)
             {
-                // Nếu sai VÀ không Retry, phục hồi màu về màu trả lời (Teal)
+                // Nếu sai và không Retry, phục hồi màu các nút trong answer về màu ban đầu (teal)
                 foreach (RoundedButton btn in pnlAnswer.Controls.OfType<RoundedButton>())
                 {
                     btn.BackColor = Color.FromArgb(23, 162, 184);
@@ -435,9 +484,13 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Làm lại câu hiện tại: đưa các từ về pnlChoices và reset trạng thái.
+        /// </summary>
         private void BtnReset_Click(object sender, EventArgs e)
         {
             var buttonsInAnswer = pnlAnswer.Controls.OfType<RoundedButton>().ToArray();
+
             foreach (var btn in buttonsInAnswer)
             {
                 pnlAnswer.Controls.Remove(btn);
@@ -445,9 +498,7 @@ namespace N6
                 btn.BackColor = Color.FromArgb(40, 167, 69);
             }
 
-            // ************* THAY ĐỔI: Loại bỏ logic ẩn hiện nút Next/Result tùy chỉnh *************
             isCompleted = false;
-
             _showingHint = false;
             btnShowHint.Text = "💡 Gợi ý";
             btnShowHint.BackColor = Color.FromArgb(255, 152, 0);
@@ -463,11 +514,18 @@ namespace N6
             btnCheck.Text = "✅ Kiểm tra";
         }
 
-        // ************* THAY ĐỔI: Dùng ShowFinalResultDialog chung *************
+        #endregion
+
+        #region End / Results
+
+        /// <summary>
+        /// Hiển thị kết quả cuối cùng cho toàn bộ danh sách câu.
+        /// </summary>
         private void EndAllSentences()
         {
-            // Gọi hàm hiển thị kết quả cuối cùng từ GameFormWithMusic
             ShowFinalResultDialog(_correctCount, _sentences.Count);
         }
+
+        #endregion
     }
 }

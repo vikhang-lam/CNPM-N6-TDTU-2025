@@ -6,27 +6,48 @@ using System.Windows.Forms;
 
 namespace N6
 {
+    /// <summary>
+    /// Form chơi Quiz nhanh với hỗ trợ nhạc nền và giao diện các lựa chọn tròn.
+    /// </summary>
     public class QuizGameForm : GameFormWithMusic
     {
+        #region Fields
+
         private List<QuizQuestion> _questions;
         private int currentQuestionIndex = 0;
         private int score = 0;
-        private Label lblQuestion, lblScore, lblQuestionCount;
+        private Label lblQuestion, lblQuestionCount;
         private List<RoundedButton> optionButtons;
         private Panel pnlQuestionCard;
 
+        #endregion
+
+        #region Constructor & Initialization
+
+        /// <summary>
+        /// Khởi tạo QuizGameForm với danh sách câu hỏi.
+        /// </summary>
+        /// <param name="questions">Danh sách câu hỏi ngang (QuizQuestion).</param>
         public QuizGameForm(List<QuizQuestion> questions)
         {
-            if (questions == null || questions.Count == 0) { CloseWithWarning(); return; }
+            if (questions == null || questions.Count == 0)
+            {
+                CloseWithWarning();
+                return;
+            }
+
             _questions = questions;
             InitializeComponent();
+            MusicPlayer.PlaySpecificMusic("MNG01");
             LoadQuestion();
         }
 
-
+        /// <summary>
+        /// Thiết lập các control UI động cho form.
+        /// </summary>
         private void InitializeComponent()
         {
-            this.Text = "📝 Quiz";
+            this.Text = "📝 Quiz nhanh";
             this.Size = new Size(900, 700);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -44,15 +65,38 @@ namespace N6
 
             Panel pnlHeader = new Panel
             {
-                Dock = DockStyle.Top,
-                Height = 80,
-                BackColor = Color.FromArgb(141, 94, 61)
+                Location = new Point(0, 0),
+                Size = new Size(this.Width, 100),
+                BackColor = Color.Transparent
             };
-            Label lblIcon = new Label { Text = "📝", Font = new Font("Segoe UI", 20F), ForeColor = Color.White, Location = new Point(30, 10), AutoSize = true, BackColor = Color.Transparent };
-            Label lblGameTitle = new Label { Text = "Quiz nhanh", Font = new Font("Lexend", 20F, FontStyle.Bold), ForeColor = Color.White, Location = new Point(80, 12), AutoSize = true, BackColor = Color.Transparent };
-            lblQuestionCount = new Label { Location = new Point(80, 42), AutoSize = true, Font = new Font("Lexend", 14F, FontStyle.Bold), ForeColor = Color.FromArgb(255, 215, 0), BackColor = Color.Transparent };
-            lblScore = new Label { Text = "Điểm: 0", Location = new Point(750, 25), AutoSize = true, Font = new Font("Lexend", 18F, FontStyle.Bold), ForeColor = Color.FromArgb(255, 215, 0), BackColor = Color.Transparent };
-            pnlHeader.Controls.AddRange(new Control[] { lblIcon, lblGameTitle, lblQuestionCount, lblScore });
+
+            this.Controls.Add(pnlHeader);
+
+            Label lblGameTitle = new Label
+            {
+                Text = "Quiz nhanh",
+                ForeColor = Color.FromArgb(17, 45, 78),
+                Font = new Font("Lexend", 20F, FontStyle.Bold),
+                BackColor = Color.Transparent,
+                Location = new Point(350, 25),
+                AutoSize = true
+            };
+
+            lblQuestionCount = new Label
+            {
+                Location = new Point(this.Width - 900, 5),
+                Size = new Size(210, 30),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Color.FromArgb(220, 53, 69),
+                Font = new Font("Lexend", 14F, FontStyle.Bold),
+                BackColor = Color.Transparent
+            };
+
+            pnlHeader.Controls.AddRange(new Control[]
+            {
+                lblGameTitle,
+                lblQuestionCount
+            });
 
             pnlQuestionCard = new Panel
             {
@@ -61,6 +105,7 @@ namespace N6
                 BackColor = Color.Transparent
             };
 
+            // Custom paint để vẽ bubble có mũi tên
             pnlQuestionCard.Paint += (s, e) =>
             {
                 Rectangle rect = pnlQuestionCard.ClientRectangle;
@@ -79,7 +124,7 @@ namespace N6
                     path.CloseFigure();
 
                     // vẽ nền bubble bán trong suốt để không còn "white box"
-                    using (SolidBrush brush = new SolidBrush(Color.FromArgb(230, 255, 255, 255))) // hơi mờ, nền vẫn rõ
+                    using (SolidBrush brush = new SolidBrush(Color.FromArgb(230, 255, 255, 255)))
                     {
                         e.Graphics.FillPath(brush, path);
                     }
@@ -123,7 +168,8 @@ namespace N6
 
             optionButtons = new List<RoundedButton>();
             string[] prefixes = { "A", "B", "C", "D" };
-            Color[] colors = {
+            Color[] colors =
+            {
                 Color.FromArgb(87, 187, 247),
                 Color.FromArgb(255, 189, 89),
                 Color.FromArgb(29, 209, 161),
@@ -147,18 +193,27 @@ namespace N6
 
                 btn.FlatAppearance.BorderSize = 0;
 
+                // Hover effect: nhẹ làm sáng khi di chuột nếu button còn enable
                 btn.MouseEnter += (s, e) =>
                 {
                     var b = s as RoundedButton;
-                    if (b.Enabled) b.BackColor = ControlPaint.Light(b.BackColor, 0.08f);
+                    if (b.Enabled)
+                    {
+                        b.BackColor = ControlPaint.Light(b.BackColor, 0.08f);
+                    }
                 };
+
+                // Trả lại màu gốc khi rời chuột
                 btn.MouseLeave += (s, e) =>
                 {
                     var b = s as RoundedButton;
                     if (b.Enabled)
                     {
                         int idx = Array.IndexOf(prefixes, b.Tag.ToString());
-                        if (idx >= 0) b.BackColor = colors[idx];
+                        if (idx >= 0)
+                        {
+                            b.BackColor = colors[idx];
+                        }
                     }
                 };
 
@@ -167,9 +222,24 @@ namespace N6
             }
 
             // add controls
-            this.Controls.AddRange(new Control[] { pnlHeader, pnlQuestionCard, tlp });
+            this.Controls.AddRange(new Control[]
+            {
+                pnlHeader,
+                pnlQuestionCard,
+                tlp
+            });
         }
 
+        #endregion
+
+        #region UI Helpers
+
+        /// <summary>
+        /// Tạo GraphicsPath hình chữ nhật bo góc.
+        /// </summary>
+        /// <param name="rect">Hình chữ nhật nguồn.</param>
+        /// <param name="radius">Bán kính bo góc.</param>
+        /// <returns>GraphicsPath chứa đường path bo góc.</returns>
         private GraphicsPath GetRoundedRectangle(Rectangle rect, int radius)
         {
             GraphicsPath path = new GraphicsPath();
@@ -195,6 +265,13 @@ namespace N6
             return path;
         }
 
+        #endregion
+
+        #region Game Logic
+
+        /// <summary>
+        /// Tải câu hỏi hiện tại lên giao diện, hoặc kết thúc game nếu hết câu hỏi.
+        /// </summary>
         private void LoadQuestion()
         {
             if (currentQuestionIndex < _questions.Count)
@@ -203,12 +280,13 @@ namespace N6
                 QuizQuestion q = _questions[currentQuestionIndex];
                 lblQuestion.Text = q.QuestionText;
 
-                Color[] colors = {
-                Color.FromArgb(87, 187, 247),
-                Color.FromArgb(255, 189, 89),
-                Color.FromArgb(29, 209, 161),
-                Color.FromArgb(255, 118, 117)
-            };
+                Color[] colors =
+                {
+                    Color.FromArgb(87, 187, 247),
+                    Color.FromArgb(255, 189, 89),
+                    Color.FromArgb(29, 209, 161),
+                    Color.FromArgb(255, 118, 117)
+                };
 
                 for (int i = 0; i < 4; i++)
                 {
@@ -228,12 +306,19 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Đặt lại trạng thái các nút cho câu hỏi hiện tại (màu, văn bản, enabled).
+        /// </summary>
         private void ResetButtonsForCurrentQuestion()
         {
-            if (_questions == null || currentQuestionIndex >= _questions.Count) return;
+            if (_questions == null || currentQuestionIndex >= _questions.Count)
+            {
+                return;
+            }
 
             var q = _questions[currentQuestionIndex];
-            Color[] colors = {
+            Color[] colors =
+            {
                 Color.FromArgb(87, 187, 247),
                 Color.FromArgb(255, 189, 89),
                 Color.FromArgb(29, 209, 161),
@@ -251,13 +336,29 @@ namespace N6
             }
         }
 
+        #endregion
+
+        #region UI Events
+
+        /// <summary>
+        /// Xử lý khi người chơi chọn một phương án.
+        /// </summary>
+        /// <param name="sender">Button được click.</param>
+        /// <param name="e">Event args.</param>
         private async void OptionButton_Click(object sender, EventArgs e)
         {
-            if (_questions == null || currentQuestionIndex >= _questions.Count) return;
+            if (_questions == null || currentQuestionIndex >= _questions.Count)
+            {
+                return;
+            }
 
             var clickedButton = sender as RoundedButton;
-            if (clickedButton == null) return;
+            if (clickedButton == null)
+            {
+                return;
+            }
 
+            // Vô hiệu toàn bộ nút để tránh nhiều click
             optionButtons.ForEach(b => b.Enabled = false);
 
             var q = _questions[currentQuestionIndex];
@@ -276,7 +377,6 @@ namespace N6
             if (isCorrect)
             {
                 score++;
-                lblScore.Text = $"Điểm: {score}";
                 lblQuestionCount.Text = $" Câu {currentQuestionIndex + 1}/{_questions.Count} | Đúng: {score}";
 
                 clickedButton.BackColor = Color.FromArgb(40, 167, 69);
@@ -294,11 +394,13 @@ namespace N6
                         ShowFinalResultDialog(score, _questions.Count);
                         return;
                     }
+
                     currentQuestionIndex++;
                     LoadQuestion();
                 }
                 else
                 {
+                    // Trường hợp đóng popup khác: cho phép tiếp tục tương tác (hồi enabled)
                     optionButtons.ForEach(b => b.Enabled = true);
                 }
             }
@@ -314,6 +416,7 @@ namespace N6
 
                 if (res == AnswerPopupResult.Retry)
                 {
+                    // Người chơi muốn thử lại => reset về trạng thái ban đầu cho câu này
                     ResetButtonsForCurrentQuestion();
                 }
                 else if (res == AnswerPopupResult.Next)
@@ -323,19 +426,26 @@ namespace N6
                         ShowFinalResultDialog(score, _questions.Count);
                         return;
                     }
+
                     currentQuestionIndex++;
                     LoadQuestion();
                 }
                 else
                 {
+                    // Các trường hợp khác: bật lại tương tác
                     optionButtons.ForEach(b => b.Enabled = true);
                 }
             }
         }
 
+        /// <summary>
+        /// Kết thúc trò chơi và hiển thị kết quả cuối cùng.
+        /// </summary>
         private void EndGame()
         {
             ShowFinalResultDialog(score, _questions.Count);
         }
+
+        #endregion
     }
 }

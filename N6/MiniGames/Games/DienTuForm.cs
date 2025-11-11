@@ -7,18 +7,35 @@ using System.Windows.Forms;
 
 namespace N6
 {
+    /// <summary>
+    /// Form trò chơi "Điền từ vào chỗ trống" cho phép người chơi nhập đáp án, kiểm tra và xem kết quả.
+    /// </summary>
     public class DienTuForm : GameFormWithMusic
     {
+        #region Fields
+
         private List<FillBlankQuestion> _questions;
         private int _currentIndex = 0;
         private int _correctCount = 0;
 
-        // Đã xóa lblHeader
-        private Label lblQuestion, lblResult, lblProgress;
+        // UI controls
+        private Label lblQuestion;
+        private Label lblResult;
+        private Label lblProgress;
         private TextBox txtAnswer;
-        private RoundedButton btnCheck, btnSkip, btnNext;
+        private RoundedButton btnCheck;
+        private RoundedButton btnSkip;
+        private RoundedButton btnNext;
         private Panel pnlMainCard;
 
+        #endregion
+
+        #region Constructor & Initialization
+
+        /// <summary>
+        /// Khởi tạo form Điền từ với danh sách câu hỏi.
+        /// </summary>
+        /// <param name="questions">Danh sách câu hỏi loại FillBlankQuestion.</param>
         public DienTuForm(List<FillBlankQuestion> questions)
         {
             if (questions == null || questions.Count == 0 || string.IsNullOrWhiteSpace(questions[0].QuestionText))
@@ -26,11 +43,16 @@ namespace N6
                 CloseWithWarning("Không có dữ liệu để bắt đầu game.");
                 return;
             }
+
             _questions = questions;
             InitializeComponent();
+            MusicPlayer.PlaySpecificMusic("MNG07");
             LoadQuestion();
         }
 
+        /// <summary>
+        /// Thiết lập các control UI cho form.
+        /// </summary>
         private void InitializeComponent()
         {
             this.Text = "✍️ Điền từ vào chỗ trống";
@@ -50,39 +72,34 @@ namespace N6
                 MessageBox.Show("Không thể tải ảnh nền flashcard: " + ex.Message);
                 this.BackColor = Color.FromArgb(245, 247, 250);
             }
-            this.BackgroundImageLayout = ImageLayout.Stretch;
 
-            // --- Cấu trúc Header MỚI (Giống Quiz) ---
-            // ===== PANEL HEADER (BANNER) - Chỉ chứa Title và Progress =====
+            // Header banner: Title + Progress
             Panel pnlHeader = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 90, // GIẢM CHIỀU CAO VỀ 90px (để banner trên cùng)
+                Height = 90,
                 BackColor = Color.Transparent
             };
 
-            // Tiêu đề game (CĂN GIỮA trên banner)
             Label lblGameTitle = new Label
             {
                 Text = "Điền từ vào chỗ trống",
-                Font = new Font("Lexend", 20F, FontStyle.Bold), // Điều chỉnh Font
+                Font = new Font("Lexend", 20F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(52, 58, 64),
-                Location = new Point(0, 50), // Vị trí chính giữa banner
+                Location = new Point(0, 50),
                 AutoSize = false,
                 Width = this.ClientSize.Width,
                 Height = 40,
                 TextAlign = ContentAlignment.MiddleCenter,
                 BackColor = Color.Transparent
             };
-            lblGameTitle.Text = "Điền từ vào chỗ trống";
 
-            // Tiến độ (GÓC TRÁI trên banner)
             lblProgress = new Label
             {
                 Location = new Point(30, 10),
                 AutoSize = true,
                 Font = new Font("Lexend", 14F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(19, 104, 206), // Dùng màu xanh
+                ForeColor = Color.FromArgb(19, 104, 206),
                 BackColor = Color.Transparent
             };
 
@@ -100,7 +117,10 @@ namespace N6
 
             this.Resize += (s, e) =>
             {
-                if (lblGameTitle != null) lblGameTitle.Width = this.ClientSize.Width;
+                if (lblGameTitle != null)
+                {
+                    lblGameTitle.Width = this.ClientSize.Width;
+                }
 
                 if (lblInstruction != null)
                 {
@@ -110,6 +130,7 @@ namespace N6
                         lblInstruction.Location = new Point((this.ClientSize.Width - (int)size.Width) / 2, 95);
                     }
                 }
+
                 if (pnlMainCard != null)
                 {
                     pnlMainCard.Location = new Point((this.ClientSize.Width - 820) / 2, 130);
@@ -125,7 +146,7 @@ namespace N6
 
             pnlMainCard.Paint += (s, e) =>
             {
-                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
                 // Shadow
                 using (var shadowBrush = new SolidBrush(Color.FromArgb(20, 0, 0, 0)))
@@ -133,13 +154,14 @@ namespace N6
                     e.Graphics.FillRectangle(shadowBrush, 5, 5, pnlMainCard.Width - 5, pnlMainCard.Height - 5);
                 }
 
-                // Background với bo góc
+                // Background with rounded corners
                 using (var path = GetRoundedRectPath(new Rectangle(0, 0, pnlMainCard.Width - 1, pnlMainCard.Height - 1), 15))
                 {
                     using (var brush = new SolidBrush(Color.White))
                     {
                         e.Graphics.FillPath(brush, path);
                     }
+
                     using (var pen = new Pen(Color.FromArgb(220, 230, 240), 2))
                     {
                         e.Graphics.DrawPath(pen, path);
@@ -165,6 +187,8 @@ namespace N6
                 Height = 40,
                 BorderStyle = BorderStyle.FixedSingle
             };
+
+            // Enter để submit
             txtAnswer.KeyPress += (s, e) =>
             {
                 if (e.KeyChar == (char)Keys.Enter)
@@ -192,6 +216,7 @@ namespace N6
                 BackColor = Color.Transparent,
                 Padding = new Padding(20, 15, 20, 15)
             };
+
             var pnlButtons = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -213,6 +238,7 @@ namespace N6
                 CornerRadius = 10,
                 Margin = new Padding(0, 0, 15, 0)
             };
+
             btnCheck.Click += BtnCheck_Click;
 
             btnSkip = new RoundedButton
@@ -225,6 +251,7 @@ namespace N6
                 CornerRadius = 10,
                 Margin = new Padding(0, 0, 15, 0)
             };
+
             btnSkip.Click += BtnSkip_Click;
 
             btnNext = new RoundedButton
@@ -238,6 +265,7 @@ namespace N6
                 Margin = new Padding(0, 0, 15, 0),
                 Visible = false
             };
+
             btnNext.Click += BtnNext_Click;
 
             pnlButtons.Controls.AddRange(new Control[] { btnCheck, btnSkip, btnNext });
@@ -246,7 +274,16 @@ namespace N6
             this.Controls.AddRange(new Control[] { pnlMainCard, pnlBottom, lblInstruction, pnlHeader });
         }
 
-        // Helper method để vẽ bo góc (GIỮ NGUYÊN)
+        #endregion
+
+        #region UI Helpers
+
+        /// <summary>
+        /// Tạo GraphicsPath hình chữ nhật bo góc.
+        /// </summary>
+        /// <param name="rect">Hình chữ nhật nguồn.</param>
+        /// <param name="radius">Bán kính bo góc.</param>
+        /// <returns>GraphicsPath chứa đường path bo góc.</returns>
         private GraphicsPath GetRoundedRectPath(Rectangle rect, int radius)
         {
             GraphicsPath path = new GraphicsPath();
@@ -261,7 +298,13 @@ namespace N6
             return path;
         }
 
-        // --- CÁC HÀM CÒN LẠI GIỮ NGUYÊN ---
+        #endregion
+
+        #region Game Logic & Events
+
+        /// <summary>
+        /// Tải câu hỏi hiện tại lên giao diện hoặc hiển thị kết quả nếu đã hết câu.
+        /// </summary>
         private void LoadQuestion()
         {
             if (_currentIndex >= _questions.Count)
@@ -288,6 +331,9 @@ namespace N6
             btnNext.Visible = false;
         }
 
+        /// <summary>
+        /// Xử lý sự kiện khi nhấn nút Kiểm tra.
+        /// </summary>
         private async void BtnCheck_Click(object sender, EventArgs e)
         {
             string userAnswer = txtAnswer.Text.Trim();
@@ -297,6 +343,7 @@ namespace N6
             btnCheck.Enabled = false;
             btnSkip.Enabled = false;
 
+            // Delay nhỏ để UX (hiệu ứng)
             await Task.Delay(500);
 
             bool isCorrect = string.Equals(userAnswer, correctAnswer, StringComparison.OrdinalIgnoreCase);
@@ -319,6 +366,7 @@ namespace N6
 
             if (res == AnswerPopupResult.Retry)
             {
+                // Cho phép người chơi thử lại
                 txtAnswer.Enabled = true;
                 btnCheck.Enabled = true;
                 btnSkip.Enabled = true;
@@ -348,10 +396,12 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Bỏ qua câu hỏi hiện tại (hiển thị đáp án và tùy chọn tiếp).
+        /// </summary>
         private void BtnSkip_Click(object sender, EventArgs e)
         {
             string correctAnswer = _questions[_currentIndex].Answer;
-
             string nextActionText = (_currentIndex < _questions.Count - 1) ? "Tiếp theo" : "Xem Kết quả";
 
             AnswerPopupResult res = ShowAnswerPopup(
@@ -375,15 +425,23 @@ namespace N6
             }
         }
 
+        /// <summary>
+        /// Chuyển đến câu tiếp theo (dùng khi người chơi chọn Next).
+        /// </summary>
         private void BtnNext_Click(object sender, EventArgs e)
         {
             _currentIndex++;
             LoadQuestion();
         }
 
+        /// <summary>
+        /// Hiển thị kết quả cuối cùng.
+        /// </summary>
         private void ShowFinalResult()
         {
             ShowFinalResultDialog(_correctCount, _questions.Count);
         }
+
+        #endregion
     }
 }

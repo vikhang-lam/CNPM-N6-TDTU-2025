@@ -6,15 +6,38 @@ using System.Windows.Forms;
 
 namespace N6
 {
+    /// <summary>
+    /// Control cho một mục Word Scramble (ảnh gợi ý + câu hỏi + đáp án).
+    /// </summary>
     public class WordScrambleControl : UserControl
     {
+        #region Fields / Properties
+
+        // Tên file ảnh (hiển thị).
         public TextBox TxtImageName { get; private set; }
+
+        // TextBox chứa gợi ý / câu hỏi.
         public TextBox TxtQuestion { get; private set; }
+
+        // TextBox chứa đáp án.
         public TextBox TxtAnswer { get; private set; }
+
+        // Nút xóa control.
         public Button BtnRemove { get; private set; }
+
+        // Nút mở dialog chọn ảnh.
         public Button BtnBrowseImage { get; private set; }
+
+        // PictureBox xem trước ảnh.
         public PictureBox PicPreview { get; private set; }
 
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Khởi tạo control và xây dựng giao diện.
+        /// </summary>
         public WordScrambleControl()
         {
             this.Size = new Size(720, 180);
@@ -40,6 +63,7 @@ namespace N6
                     {
                         e.Graphics.FillPath(brush, path);
                     }
+
                     using (var pen = new Pen(Color.FromArgb(230, 230, 230), 2))
                     {
                         e.Graphics.DrawPath(pen, path);
@@ -47,6 +71,18 @@ namespace N6
                 }
             };
 
+            BuildUi();
+        }
+
+        #endregion
+
+        #region UI Build
+
+        /// <summary>
+        /// Xây dựng giao diện chi tiết cho WordScrambleControl.
+        /// </summary>
+        private void BuildUi()
+        {
             // ===== LEFT SECTION: IMAGE PREVIEW =====
             Panel pnlImageSection = new Panel
             {
@@ -84,6 +120,7 @@ namespace N6
                 Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
                 Cursor = Cursors.Hand
             };
+
             BtnBrowseImage.FlatAppearance.BorderSize = 0;
             BtnBrowseImage.Click += BtnBrowseImage_Click;
             BtnBrowseImage.MouseEnter += (s, e) => BtnBrowseImage.BackColor = Color.FromArgb(0, 103, 235);
@@ -99,7 +136,6 @@ namespace N6
                 BackColor = Color.Transparent
             };
 
-            // Hình ảnh gợi ý
             Label lblImagePath = new Label
             {
                 Text = "🖼️ Hình ảnh gợi ý:",
@@ -118,9 +154,9 @@ namespace N6
                 BackColor = Color.FromArgb(248, 249, 250),
                 BorderStyle = BorderStyle.FixedSingle
             };
+
             PlaceholderProvider.SetPlaceholder(TxtImageName, "Chưa chọn ảnh...");
 
-            // Câu hỏi
             Label lblQuestion = new Label
             {
                 Text = "💡 Câu hỏi/Gợi ý:",
@@ -138,12 +174,13 @@ namespace N6
                 BorderStyle = BorderStyle.FixedSingle,
                 BackColor = Color.White
             };
+
             PlaceholderProvider.SetPlaceholder(TxtQuestion, "Ví dụ: Hãy ghép câu hoàn chỉnh...");
 
             pnlFormSection.Controls.AddRange(new Control[]
             {
-            lblImagePath, TxtImageName,
-            lblQuestion, TxtQuestion
+                lblImagePath, TxtImageName,
+                lblQuestion, TxtQuestion
             });
 
             // ===== RIGHT SECTION: ANSWER + DELETE =====
@@ -154,7 +191,6 @@ namespace N6
                 BackColor = Color.Transparent
             };
 
-            // 4. THU NHỎ DẤU TICK
             Label lblAnswerCheck = new Label
             {
                 Text = "✓",
@@ -184,7 +220,10 @@ namespace N6
                 TextAlign = HorizontalAlignment.Center,
                 Multiline = true
             };
+
             PlaceholderProvider.SetPlaceholder(TxtAnswer, "ĐÁP ÁN");
+
+            // Biến đổi nhập thành chữ hoa (giữ logic)
             TxtAnswer.TextChanged += (s, e) =>
             {
                 if (TxtAnswer.ForeColor != Color.Gray)
@@ -206,6 +245,7 @@ namespace N6
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 Cursor = Cursors.Hand
             };
+
             BtnRemove.FlatAppearance.BorderSize = 0;
             BtnRemove.MouseEnter += (s, e) => BtnRemove.BackColor = Color.FromArgb(200, 35, 51);
             BtnRemove.MouseLeave += (s, e) => BtnRemove.BackColor = Color.FromArgb(220, 53, 69);
@@ -215,6 +255,16 @@ namespace N6
             this.Controls.AddRange(new Control[] { pnlImageSection, pnlFormSection, pnlRightSection });
         }
 
+        #endregion
+
+        #region Helpers
+
+        /// <summary>
+        /// Tạo GraphicsPath bo góc (helper).
+        /// </summary>
+        /// <param name="rect">Hình chữ nhật.</param>
+        /// <param name="radius">Bán kính bo góc.</param>
+        /// <returns>GraphicsPath tương ứng.</returns>
         private GraphicsPath GetRoundedRectPath(Rectangle rect, int radius)
         {
             GraphicsPath path = new GraphicsPath();
@@ -233,6 +283,13 @@ namespace N6
             return path;
         }
 
+        #endregion
+
+        #region Event Handlers
+
+        /// <summary>
+        /// Xử lý chọn ảnh từ đĩa, hiển thị preview và lưu đường dẫn vào Tag.
+        /// </summary>
         private void BtnBrowseImage_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog ofd = new OpenFileDialog())
@@ -249,6 +306,7 @@ namespace N6
                             PicPreview.Image.Dispose();
                         }
 
+                        // Lấy ảnh tạm rồi clone vào PictureBox để tránh lock file
                         using (var tempImage = Image.FromFile(ofd.FileName))
                         {
                             PicPreview.Image = new Bitmap(tempImage);
@@ -266,6 +324,14 @@ namespace N6
             }
         }
 
+        #endregion
+
+        #region Set Data Methods
+
+        /// <summary>
+        /// Lấy dữ liệu WordScrambleItem từ control này.
+        /// </summary>
+        /// <returns>WordScrambleItem chứa đường dẫn/ tên ảnh, câu hỏi và đáp án.</returns>
         public WordScrambleItem GetData()
         {
             return new WordScrambleItem
@@ -276,6 +342,10 @@ namespace N6
             };
         }
 
+        /// <summary>
+        /// Gán dữ liệu cho control từ một WordScrambleItem.
+        /// </summary>
+        /// <param name="item">Dữ liệu cần gán.</param>
         public void SetData(WordScrambleItem item)
         {
             TxtImageName.Text = item.ImageHintResourceName;
@@ -285,20 +355,32 @@ namespace N6
             {
                 if (File.Exists(item.ImageHintResourceName))
                 {
-                    if (PicPreview.Image != null) PicPreview.Image.Dispose();
+                    if (PicPreview.Image != null)
+                    {
+                        PicPreview.Image.Dispose();
+                    }
+
                     using (var tempImage = Image.FromFile(item.ImageHintResourceName))
                     {
                         PicPreview.Image = new Bitmap(tempImage);
                     }
+
                     TxtImageName.Tag = item.ImageHintResourceName;
                 }
                 else
                 {
                     var resourceImage = Properties.Resources.ResourceManager.GetObject(item.ImageHintResourceName);
-                    if (resourceImage != null) PicPreview.Image = (Image)resourceImage;
+                    if (resourceImage != null)
+                    {
+                        PicPreview.Image = (Image)resourceImage;
+                    }
                 }
             }
-            catch { PicPreview.Image = null; }
+            catch
+            {
+                // Nếu không tải được ảnh thì đặt Null (giữ logic ban đầu)
+                PicPreview.Image = null;
+            }
 
             TxtQuestion.Text = item.Question;
             TxtQuestion.ForeColor = Color.Black;
@@ -306,13 +388,23 @@ namespace N6
             TxtAnswer.ForeColor = Color.FromArgb(40, 167, 69);
         }
 
+        #endregion
+
+        #region Dispose
+
+        /// <summary>
+        /// Dọn dẹp tài nguyên (hình ảnh).
+        /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
                 PicPreview?.Image?.Dispose();
             }
+
             base.Dispose(disposing);
         }
+
+        #endregion
     }
 }
