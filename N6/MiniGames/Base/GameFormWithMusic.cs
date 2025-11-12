@@ -101,7 +101,7 @@ namespace N6
                     Text = primaryText,
                     Size = btnSize,
                     BackColor = Color.FromArgb(87, 187, 247),
-                    ForeColor = Color.White,
+                    ForeColor = Color.Black,
                     CornerRadius = 10,
                     Font = new Font("Lexend", 12F, FontStyle.Bold),
                 };

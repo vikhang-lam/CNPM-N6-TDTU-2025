@@ -79,10 +79,10 @@ namespace N6
 
             Label lblTitle = new Label
             {
-                Text = "Flashcard",
+                Text = "FLASHCARD",
                 Font = new Font("Lexend", 18F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(141, 94, 61),
-                Location = new Point(450, 60),
+                Location = new Point(440, 55),
                 AutoSize = true,
                 BackColor = Color.Transparent
             };
