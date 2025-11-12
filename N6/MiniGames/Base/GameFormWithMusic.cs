@@ -34,10 +34,10 @@ namespace N6
             }
 
             // Định nghĩa hình dạng bo tròn (sử dụng đường cong cung tròn - AddArc)
-            path.AddArc(0, 0, radius * 2, radius * 2, 180, 90);           // Góc trên bên trái
-            path.AddArc(w - radius * 2, 0, radius * 2, radius * 2, 270, 90); // Góc trên bên phải
-            path.AddArc(w - radius * 2, h - radius * 2, radius * 2, radius * 2, 0, 90); // Góc dưới bên phải
-            path.AddArc(0, h - radius * 2, radius * 2, radius * 2, 90, 90); // Góc dưới bên trái
+            path.AddArc(0, 0, radius * 2, radius * 2, 180, 90);
+            path.AddArc(w - radius * 2, 0, radius * 2, radius * 2, 270, 90);
+            path.AddArc(w - radius * 2, h - radius * 2, radius * 2, radius * 2, 0, 90);
+            path.AddArc(0, h - radius * 2, radius * 2, radius * 2, 90, 90);
             path.CloseAllFigures();
 
             // Áp dụng hình dạng đã tạo cho Region của Form
@@ -61,27 +61,6 @@ namespace N6
                 //dlg.BackColor = isCorrect ? Color.FromArgb(230, 255, 240) : Color.FromArgb(255, 230, 230);
                 dlg.Font = new Font("Lexend", 11F);
                 dlg.ControlBox = false;
-
-                try
-                {
-                    string imagePath = GetResourceFilePath("popup_bg.png"); // Đổi tên file phù hợp
-                    if (File.Exists(imagePath))
-                    {
-                        dlg.BackgroundImage = Image.FromFile(imagePath);
-
-                        // SỬA: Đặt chế độ hiển thị Stretch để ảnh vừa Form
-                        dlg.BackgroundImageLayout = ImageLayout.Stretch;
-                    }
-                    else
-                    {
-                        // Fallback nếu không tìm thấy ảnh
-                        dlg.BackColor = isCorrect ? Color.FromArgb(230, 255, 240) : Color.FromArgb(255, 230, 230);
-                    }
-                }
-                catch (Exception)
-                {
-                    dlg.BackColor = isCorrect ? Color.FromArgb(230, 255, 240) : Color.FromArgb(255, 230, 230);
-                }
 
                 Label lblMessage = new Label
                 {

@@ -62,7 +62,7 @@ namespace N6
         /// </summary>
         private void InitializeComponent()
         {
-            this.Text = "🔄 Sắp xếp câu";
+            this.Text = "Sắp xếp câu";
             this.Size = new Size(900, 700);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.MinimumSize = new Size(800, 650);

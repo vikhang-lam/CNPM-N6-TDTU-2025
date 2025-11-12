@@ -59,7 +59,7 @@ namespace N6
         /// </summary>
         private void InitializeComponent()
         {
-            this.Text = "🧩 Ghép Chữ Đoán Hình";
+            this.Text = "Ghép Chữ Đoán Hình";
             this.Size = new Size(1024, 788);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -198,7 +198,7 @@ namespace N6
 
             lblStatus = new Label
             {
-                Location = new Point(350, 20),
+                Location = new Point(500, 20),
                 Size = new Size(324, 40),
                 Font = new Font("Lexend", 14F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleCenter,

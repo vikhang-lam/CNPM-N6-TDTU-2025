@@ -47,7 +47,7 @@ namespace N6
         /// </summary>
         private void InitializeComponent()
         {
-            this.Text = "🃏 Lật thẻ trí nhớ";
+            this.Text = "Lật thẻ trí nhớ";
             this.Size = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.BackColor = BgColor;
