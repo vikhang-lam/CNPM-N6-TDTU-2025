@@ -59,15 +59,6 @@ namespace N6
             InitializeComponent();
             this.DoubleBuffered = true;
             this.StartPosition = FormStartPosition.CenterScreen;
-
-            // Gán các sự kiện từ Designer (sẽ được gỡ trong Dispose)
-            this.Load += MenuAdmin_Load;
-            this.avatarAdmin.Click += UserControl_Click;
-            this.lblAdminName.Click += UserControl_Click;
-            this.btnThemeToggle.Click += btnThemeToggle_Click;
-            this.labelClose.Click += labelClose_Click;
-            this.labelMinimize.Click += labelMinimize_Click;
-            this.labelMaximize.Click += labelMaximize_Click;
         }
 
         private void MenuAdmin_Load(object sender, EventArgs e)
