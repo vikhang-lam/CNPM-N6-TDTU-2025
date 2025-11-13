@@ -83,10 +83,10 @@ namespace N6
 
             Label lblGameTitle = new Label
             {
-                Text = "Điền từ vào chỗ trống",
+                Text = "ĐIỀN TỪ VÀO CHỖ TRỐNG",
                 Font = new Font("Lexend", 20F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(52, 58, 64),
-                Location = new Point(0, 50),
+                ForeColor = Color.FromArgb(141, 94, 61),
+                Location = new Point(10, 45),
                 AutoSize = false,
                 Width = this.ClientSize.Width,
                 Height = 40,

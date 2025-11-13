@@ -123,8 +123,8 @@ namespace N6
             btnPlay = new RoundedButton
             {
                 Text = "Bắt đầu chơi",
-                Dock = DockStyle.Right,
-                Width = 150,
+                Size = new Size(130, 48),
+                Location = new Point(620, 16),
                 BackColor = kahootGreen,
                 ForeColor = Color.White,
                 Font = new Font("Lexend", 11F, FontStyle.Bold),
@@ -134,20 +134,19 @@ namespace N6
             btnSave = new RoundedButton
             {
                 Text = "Lưu dữ liệu",
-                Dock = DockStyle.Right,
-                Width = 150,
+                Size = new Size(130, 48),
+                Location = new Point(480, 16),
                 BackColor = kahootBlue,
                 ForeColor = Color.White,
                 Font = new Font("Lexend", 11F, FontStyle.Bold),
-                Margin = new Padding(0, 0, 10, 0),
                 CornerRadius = 10
             };
 
             btnReload = new RoundedButton
             {
                 Text = "Tải lại",
-                Dock = DockStyle.Left,
-                Width = 120,
+                Size = new Size(120, 48),
+                Location = new Point(140, 16),
                 BackColor = kahootYellow,
                 ForeColor = Color.White,
                 Font = new Font("Lexend", 11F, FontStyle.Bold),
@@ -157,22 +156,20 @@ namespace N6
             btnLoadExcel = new RoundedButton
             {
                 Text = "Tải từ Excel",
-                Dock = DockStyle.Left,
-                Width = 120,
+                Size = new Size(120, 48),
+                Location = new Point(10, 16), // cách trái 10px
                 BackColor = Color.Gray,
                 ForeColor = Color.White,
                 Font = new Font("Lexend", 11F, FontStyle.Bold),
-                Margin = new Padding(10, 0, 0, 0),
                 CornerRadius = 10
             };
 
-            pnlToolbar.Controls.AddRange(new Control[]
-            {
-                btnPlay,
-                btnSave,
-                btnReload,
-                btnLoadExcel
-            });
+            // Thêm từng nút vào toolbar theo thứ tự mong muốn
+            pnlToolbar.Controls.Add(btnLoadExcel);
+            pnlToolbar.Controls.Add(btnReload);
+            pnlToolbar.Controls.Add(btnPlay);
+            pnlToolbar.Controls.Add(btnSave);
+            
 
             pnlInputArea = new FlowLayoutPanel
             {

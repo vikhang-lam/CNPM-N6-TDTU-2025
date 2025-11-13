@@ -91,9 +91,9 @@ namespace N6
 
             Label lblTitle = new Label
             {
-                Text = "Sắp xếp câu",
+                Text = "SẮP XẾP CÂU",
                 Font = new Font("Lexend", 20F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(52, 58, 64),
+                ForeColor = Color.FromArgb(141, 94, 61),
                 Location = new Point(350, 50),
                 AutoSize = true,
                 BackColor = Color.Transparent

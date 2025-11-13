@@ -20,6 +20,10 @@ namespace N6
         private List<RoundedButton> optionButtons;
         private Panel pnlQuestionCard;
 
+        // Container with rounded border that wraps question count + progress bar
+        private Panel pnlQuestionStatusContainer;
+        private Panel pnlProgress;
+
         #endregion
 
         #region Constructor & Initialization
@@ -74,28 +78,47 @@ namespace N6
 
             Label lblGameTitle = new Label
             {
-                Text = "Quiz nhanh",
+                Text = "QUIZ NHANH",
                 ForeColor = Color.FromArgb(17, 45, 78),
-                Font = new Font("Lexend", 20F, FontStyle.Bold),
+                Font = new Font("Roboto Light", 24F, FontStyle.Regular),
                 BackColor = Color.Transparent,
-                Location = new Point(350, 25),
+                Location = new Point(370, 10),
                 AutoSize = true
             };
 
-            lblQuestionCount = new Label
+            pnlQuestionStatusContainer = new Panel
             {
-                Location = new Point(this.Width/2 - 450, 5),
-                Size = new Size(210, 30),
-                TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = Color.FromArgb(220, 53, 69),
-                Font = new Font("Lexend", 14F, FontStyle.Bold),
+                Location = new Point(15, 10),
+                Size = new Size(180, 52),
                 BackColor = Color.Transparent
             };
+            pnlQuestionStatusContainer.Paint += PnlQuestionStatusContainer_Paint;
+
+            lblQuestionCount = new Label
+            {
+                Location = new Point(12, 6),
+                Size = new Size(pnlQuestionStatusContainer.Width - 24, 22),
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = Color.FromArgb(220, 53, 69),
+                Font = new Font("Lexend", 12F, FontStyle.Bold),
+                BackColor = Color.Transparent
+            };
+
+            pnlProgress = new Panel
+            {
+                Location = new Point(12, lblQuestionCount.Bottom + 6),
+                Size = new Size(pnlQuestionStatusContainer.Width - 20, 14),
+                BackColor = Color.Transparent
+            };
+            pnlProgress.Paint += PnlProgress_Paint;
+
+            pnlQuestionStatusContainer.Controls.Add(lblQuestionCount);
+            pnlQuestionStatusContainer.Controls.Add(pnlProgress);
 
             pnlHeader.Controls.AddRange(new Control[]
             {
                 lblGameTitle,
-                lblQuestionCount
+                pnlQuestionStatusContainer
             });
 
             pnlQuestionCard = new Panel
@@ -141,7 +164,6 @@ namespace N6
             lblQuestion = new Label
             {
                 Location = new Point(10, 5),
-                // đặt rộng hơn để chữ không bị wrap sớm; bật AutoEllipsis để hiển thị "..." nếu quá dài
                 Size = new Size(pnlQuestionCard.Width - 20, pnlQuestionCard.Height - 30),
                 AutoSize = false,
                 AutoEllipsis = true,
@@ -270,6 +292,61 @@ namespace N6
             return path;
         }
 
+        private void PnlProgress_Paint(object sender, PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var rect = pnlProgress.ClientRectangle;
+            rect.Inflate(-1, -1);
+
+            using (var trackPath = GetRoundedRectangle(rect, rect.Height / 2))
+            using (var trackBrush = new SolidBrush(Color.FromArgb(240, 240, 240)))
+            using (var trackPen = new Pen(Color.FromArgb(210, 210, 210), 1f))
+            {
+                g.FillPath(trackBrush, trackPath);
+                g.DrawPath(trackPen, trackPath);
+            }
+
+            double ratio = 0.0;
+            if (_questions != null && _questions.Count > 0)
+            {
+                ratio = Math.Max(0.0, Math.Min(1.0, (double)(currentQuestionIndex + 1) / _questions.Count));
+            }
+
+            if (ratio > 0.0)
+            {
+                int fillWidth = Math.Max(4, (int)Math.Round(rect.Width * ratio));
+                Rectangle fillRect = new Rectangle(rect.X, rect.Y, fillWidth, rect.Height);
+
+                using (var fillPath = GetRoundedRectangle(fillRect, rect.Height / 2))
+                using (var fillBrush = new SolidBrush(Color.FromArgb(46, 204, 113)))
+                {
+                    g.FillPath(fillBrush, fillPath);
+                }
+            }
+        }
+
+        private void PnlQuestionStatusContainer_Paint(object sender, PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var rect = pnlQuestionStatusContainer.ClientRectangle;
+            rect.Inflate(-1, -1);
+
+            using (var path = GetRoundedRectangle(rect, 12))
+            {
+                using (var bgBrush = new SolidBrush(Color.FromArgb(230, 255, 255, 255)))
+                {
+                    g.FillPath(bgBrush, path);
+                }
+
+                using (var pen = new Pen(Color.FromArgb(180, 180, 180), 1.5f))
+                {
+                    g.DrawPath(pen, path);
+                }
+            }
+        }
+
         #endregion
 
         #region Game Logic
@@ -304,6 +381,8 @@ namespace N6
 
                     optionButtons[i].Font = new Font("Arial", 16F, FontStyle.Bold);
                 }
+
+                pnlQuestionStatusContainer.Invalidate();
             }
             else
             {
@@ -384,6 +463,8 @@ namespace N6
                 score++;
                 lblQuestionCount.Text = $" Câu {currentQuestionIndex + 1}/{_questions.Count} | Đúng: {score}";
 
+                pnlQuestionStatusContainer.Invalidate();
+
                 clickedButton.BackColor = Color.FromArgb(40, 167, 69);
                 clickedButton.ForeColor = Color.White;
                 clickedButton.Text = $"{prefix}. ✓ {originalText}";
@@ -423,6 +504,7 @@ namespace N6
                 {
                     // Người chơi muốn thử lại => reset về trạng thái ban đầu cho câu này
                     ResetButtonsForCurrentQuestion();
+                    optionButtons.ForEach(b => b.Enabled = true);
                 }
                 else if (res == AnswerPopupResult.Next)
                 {
