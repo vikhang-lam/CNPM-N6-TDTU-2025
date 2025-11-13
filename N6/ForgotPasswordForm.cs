@@ -16,6 +16,7 @@ namespace N6
         private readonly Dictionary<Control, Color> _borderColors = new Dictionary<Control, Color>();
         private Point _lastPoint;
         private readonly PaintEventHandler _pnlBorderPaintHandler;
+        private bool otpAlreadyChecked = false;
 
         public ForgotPasswordForm()
         {
@@ -48,16 +49,27 @@ namespace N6
         /// </summary>
         private void ForgotPasswordForm_Load(object sender, EventArgs e)
         {
-            // Ẩn các control không cần thiết lúc đầu
-            pnlOtpBorder.Visible = false;
-            btnCheckOtp.Visible = false;
-            pnlPasswordBorder.Visible = false;
-            pnlConfirmPasswordBorder.Visible = false;
-            btnResetPassword.Visible = false;
+            // Đặt chiều cao tối đa của form ngay từ đầu
+            this.Height = 440;
 
-            // Điều chỉnh kích thước form cho bước 1
-            this.Height = 220;
-            btnCancel.Location = new Point(this.Width / 2 - btnCancel.Width / 2, 170);
+            // 1. Phần Username
+            pnlUsernameBorder.Visible = true;
+            pnlUsernameBorder.Enabled = true;
+            btnSendOtp.Visible = true;
+            btnSendOtp.Enabled = true;
+
+            // 2. Phần OTP
+            pnlOtpBorder.Visible = true;
+            pnlOtpBorder.Enabled = true;
+            btnCheckOtp.Visible = true;
+            btnCheckOtp.Enabled = true;
+
+            // 3. Phần Mật khẩu
+            pnlPasswordBorder.Visible = true;
+            pnlPasswordBorder.Enabled = false; // Bị làm xám
+            pnlConfirmPasswordBorder.Visible = true;
+            pnlConfirmPasswordBorder.Enabled = false; // Bị làm xám
+
         }
 
         /// <summary>
@@ -91,8 +103,10 @@ namespace N6
                     {
                         MessageBox.Show($"Đã gửi mã OTP đến email: {result.Email}.\nVui lòng kiểm tra (có thể trong Spam).", "Thành Công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                        // 3. Hiển thị các control bị ẩn
-                        ShowOtpStep();
+                        // 3. Vô hiệu hóa phần gửi OTP
+                        txtUsernameOrEmail.Enabled = false;
+                        pnlUsernameBorder.BackColor = Color.LightGray;
+                        btnSendOtp.Enabled = false; // Đã làm ở trên, nhưng cho chắc chắn
                     }
                     // else: Lỗi đã được ném (throw) và bắt (catch) bởi EmailHelper
                 }
@@ -109,34 +123,13 @@ namespace N6
             }
             finally
             {
-                btnSendOtp.Enabled = true;
+                // Chỉ bật lại nếu có lỗi VÀ email chưa được gửi
+                if (txtUsernameOrEmail.Enabled == true) // Kiểm tra logic này
+                {
+                    btnSendOtp.Enabled = true;
+                }
                 btnSendOtp.Text = "Gửi OTP";
             }
-        }
-
-        /// <summary>
-        /// Hiển thị các control cho bước 2 (Nhập OTP).
-        /// </summary>
-        private void ShowOtpStep()
-        {
-            // Hiển thị panel OTP và nút Check OTP
-            pnlOtpBorder.Visible = true;
-            btnCheckOtp.Visible = true;
-
-            // Ẩn các control của bước 3 (nếu có)
-            pnlPasswordBorder.Visible = false;
-            pnlConfirmPasswordBorder.Visible = false;
-            btnResetPassword.Visible = false;
-
-            // Điều chỉnh kích thước form và vị trí nút
-            this.Height = 280;
-            btnCheckOtp.Location = new Point(120, 230);
-            btnCancel.Location = new Point(315, 230);
-
-            // Vô hiệu hóa phần gửi OTP
-            txtUsernameOrEmail.Enabled = false;
-            btnSendOtp.Enabled = false;
-            pnlUsernameBorder.BackColor = Color.LightGray;
         }
 
         /// <summary>
@@ -144,34 +137,59 @@ namespace N6
         /// </summary>
         private void btnCheckOtp_Click(object sender, EventArgs e)
         {
-            if (IsPlaceholder(txtOtp) || string.IsNullOrWhiteSpace(txtOtp.Text))
+            if (otpAlreadyChecked)
+            {
+                MessageBox.Show("Bạn đã xác nhận OTP thành công rồi, vui lòng nhập mật khẩu để thay đổi.",
+                                "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtOtp.Text) || txtOtp.Text.Contains("Nhập mã OTP"))
             {
                 MessageBox.Show("Vui lòng nhập mã OTP.", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // Chỉ cần hiện các control của bước 3
-            // Việc xác thực OTP THỰC SỰ sẽ diễn ra khi bấm "Đặt Lại Mật Khẩu"
-            ShowPasswordStep();
-        }
+            try
+            {
+                string usernameOrEmail = txtUsernameOrEmail.Text.Trim();
+                string otp = txtOtp.Text.Trim();
 
-        /// <summary>
-        /// Hiển thị các control cho bước 3 (Nhập Mật khẩu mới).
-        /// </summary>
-        private void ShowPasswordStep()
-        {
-            // Ẩn nút Check OTP
-            btnCheckOtp.Visible = false;
+                var status = DatabaseHelper.CheckOtp(usernameOrEmail, otp);
 
-            // Hiển thị các control nhập mật khẩu
-            pnlPasswordBorder.Visible = true;
-            pnlConfirmPasswordBorder.Visible = true;
-            btnResetPassword.Visible = true;
+                switch (status)
+                {
+                    case ResetPasswordStatus.Success:
+                        otpAlreadyChecked = true;
 
-            // Di chuyển và đổi kích thước form về trạng thái đầy đủ
-            this.Height = 440;
-            btnResetPassword.Location = new Point(120, 370);
-            btnCancel.Location = new Point(315, 370);
+                        // KÍCH HOẠT PHẦN MẬT KHẨU
+                        pnlPasswordBorder.Enabled = true;
+                        pnlConfirmPasswordBorder.Enabled = true;
+                        btnResetPassword.Enabled = true;
+
+                        // Cập nhật nút Check OTP
+                        btnCheckOtp.Text = "Đã Xác Nhận";
+                        btnCheckOtp.BackColor = Color.LightGreen;
+                        btnCheckOtp.Enabled = false; // Vô hiệu hóa nút check sau khi thành công
+                        break;
+
+                    case ResetPasswordStatus.InvalidOtp:
+                        MessageBox.Show("Mã OTP không chính xác. Vui lòng thử lại.", "Lỗi OTP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+
+                    case ResetPasswordStatus.OtpExpired:
+                        MessageBox.Show("Mã OTP đã hết hạn. Vui lòng nhấn 'Gửi OTP' để nhận mã mới.", "Lỗi OTP", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        break;
+
+                    case ResetPasswordStatus.AccountNotFound:
+                        MessageBox.Show("Không tìm thấy tài khoản phù hợp.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Đã xảy ra lỗi khi xác thực OTP: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>

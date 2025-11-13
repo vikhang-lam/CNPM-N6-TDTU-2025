@@ -667,6 +667,47 @@ BEGIN
 END;
 GO
 
+GO
+create PROCEDURE sp_CheckOtp
+    @UsernameOrEmail NVARCHAR(50),
+    @OTP VARCHAR(6)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @MaGV VARCHAR(10);
+    DECLARE @StoredOtp VARCHAR(6);
+    DECLARE @OtpExpiry DATETIME;
+
+    SELECT TOP 1 
+        @MaGV = MaGV,
+        @StoredOtp = ResetOTP,
+        @OtpExpiry = OTPExpiry
+    FROM GiaoVien
+    WHERE 
+        (Username = @UsernameOrEmail OR Email = @UsernameOrEmail)
+        AND TrangThai = N'Đã xác nhận';
+
+    IF @MaGV IS NULL
+    BEGIN
+        SELECT 0 AS Result; RETURN;
+    END
+
+    IF @StoredOtp IS NULL OR @StoredOtp != @OTP
+    BEGIN
+        SELECT 1 AS Result; RETURN;
+    END
+
+    IF @OtpExpiry < GETDATE()
+    BEGIN
+        SELECT 2 AS Result; RETURN;
+    END
+
+    SELECT 100 AS Result;
+END
+GO
+
+
 -- ================================================================
 -- MODULE 2: QUẢN LÝ HỒ SƠ (PROFILE)
 -- ================================================================

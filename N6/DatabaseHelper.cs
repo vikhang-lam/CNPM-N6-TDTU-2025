@@ -1519,6 +1519,23 @@ public static class DatabaseHelper
         return new OtpRequestResult { Success = false };
     }
 
+    public static ResetPasswordStatus CheckOtp(string usernameOrEmail, string otp)
+    {
+        var pUser = new SqlParameter("@UsernameOrEmail", usernameOrEmail);
+        var pOtp = new SqlParameter("@OTP", otp);
+
+        // Phương thức này gọi SP 'sp_CheckOtp' MỚI mà bạn phải tạo ở Bước 2
+        object result = ExecuteScalarStoredProcedure("sp_CheckOtp", pUser, pOtp);
+
+        if (result != null && result != DBNull.Value)
+        {
+            return (ResetPasswordStatus)Convert.ToInt32(result);
+        }
+
+        // Mặc định trả về AccountNotFound nếu có lỗi
+        return ResetPasswordStatus.AccountNotFound;
+    }
+
     public static ResetPasswordStatus ResetPasswordWithOtp(string usernameOrEmail, string otp, string newPassword)
     {
         var pUser = new SqlParameter("@UsernameOrEmail", usernameOrEmail);

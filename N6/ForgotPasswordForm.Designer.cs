@@ -48,7 +48,7 @@
             this.pnlUsernameBorder.Controls.Add(this.txtUsernameOrEmail);
             this.pnlUsernameBorder.Location = new System.Drawing.Point(50, 110);
             this.pnlUsernameBorder.Name = "pnlUsernameBorder";
-            this.pnlUsernameBorder.Size = new System.Drawing.Size(360, 45);
+            this.pnlUsernameBorder.Size = new System.Drawing.Size(364, 45);
             this.pnlUsernameBorder.TabIndex = 0;
             // 
             // txtUsernameOrEmail
@@ -57,7 +57,7 @@
             this.txtUsernameOrEmail.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.txtUsernameOrEmail.Location = new System.Drawing.Point(15, 12);
             this.txtUsernameOrEmail.Name = "txtUsernameOrEmail";
-            this.txtUsernameOrEmail.Size = new System.Drawing.Size(330, 23);
+            this.txtUsernameOrEmail.Size = new System.Drawing.Size(331, 23);
             this.txtUsernameOrEmail.TabIndex = 0;
             // 
             // pnlOtpBorder
@@ -65,7 +65,7 @@
             this.pnlOtpBorder.Controls.Add(this.txtOtp);
             this.pnlOtpBorder.Location = new System.Drawing.Point(50, 175);
             this.pnlOtpBorder.Name = "pnlOtpBorder";
-            this.pnlOtpBorder.Size = new System.Drawing.Size(360, 45);
+            this.pnlOtpBorder.Size = new System.Drawing.Size(307, 45);
             this.pnlOtpBorder.TabIndex = 2;
             // 
             // txtOtp
@@ -74,7 +74,7 @@
             this.txtOtp.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.txtOtp.Location = new System.Drawing.Point(15, 12);
             this.txtOtp.Name = "txtOtp";
-            this.txtOtp.Size = new System.Drawing.Size(330, 23);
+            this.txtOtp.Size = new System.Drawing.Size(289, 23);
             this.txtOtp.TabIndex = 0;
             // 
             // pnlPasswordBorder
@@ -187,9 +187,9 @@
             this.btnCheckOtp.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCheckOtp.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnCheckOtp.ForeColor = System.Drawing.Color.White;
-            this.btnCheckOtp.Location = new System.Drawing.Point(420, 175);
+            this.btnCheckOtp.Location = new System.Drawing.Point(363, 175);
             this.btnCheckOtp.Name = "btnCheckOtp";
-            this.btnCheckOtp.Size = new System.Drawing.Size(130, 45);
+            this.btnCheckOtp.Size = new System.Drawing.Size(187, 45);
             this.btnCheckOtp.TabIndex = 3;
             this.btnCheckOtp.Text = "Xác nhận";
             this.btnCheckOtp.UseVisualStyleBackColor = false;
