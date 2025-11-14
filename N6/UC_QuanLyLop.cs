@@ -308,6 +308,21 @@ namespace N6
         /// </summary>
         private void btnQuayLaiChonLop_Click(object sender, EventArgs e)
         {
+            if (manualSessionActive)
+            {
+                var r = MessageBox.Show(
+                    "Bạn chưa lưu điểm danh. Nếu thoát, dữ liệu sẽ bị mất.\nBạn có chắc muốn thoát?",
+                    "Chưa lưu",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning
+                );
+
+                if (r == DialogResult.No)
+                    return;
+
+                manualSessionActive = false;
+            }
+
             ShowLopChonUI();
         }
 
@@ -319,9 +334,29 @@ namespace N6
             var rb = sender as RadioButton;
             if (rb == null || !rb.Checked || isHomeroomView) return;
 
-            UpdateTabStyles(); // Cập nhật màu sắc
-            if (rb == rbDiemDanh) ShowDiemDanh(selectQRTab: false);
-            else if (rb == rbQR) ShowDiemDanh(selectQRTab: true);
+            // Nếu đang điểm danh mà chưa lưu → cảnh báo
+            if (manualSessionActive)
+            {
+                var r = MessageBox.Show(
+                    "Phiên điểm danh chưa được lưu. Bạn có chắc muốn rời khỏi?",
+                    "Chưa lưu dữ liệu",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning
+                );
+
+                if (r == DialogResult.No)
+                {
+                    rb.Checked = false; // Hủy chuyển tab
+                    return;
+                }
+
+                manualSessionActive = false;
+            }
+
+            UpdateTabStyles();
+
+            if (rb == rbDiemDanh) ShowDiemDanh(false);
+            else if (rb == rbQR) ShowDiemDanh(true);
             else if (rb == rbKetQua) ShowKetQua();
             else if (rb == rbHocSinh) ShowHocSinh();
         }
@@ -441,7 +476,7 @@ namespace N6
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Lỗi SetGridColumnHeaders: {ex.Message}");
+                Debug.WriteLine($"Lỗi SetGridColumnHeaders");
             }
         }
 
@@ -797,7 +832,7 @@ namespace N6
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi tải dữ liệu quỹ lớp: " + ex.Message);
+                MessageBox.Show("Lỗi tải dữ liệu quỹ lớp");
             }
         }
 
@@ -819,7 +854,7 @@ namespace N6
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Lỗi khi xóa: " + ex.Message);
+                        MessageBox.Show(" Đã có lỗi hệ thống xảy ra , hãy thử lại sau ");
                     }
                 }
             }
@@ -900,7 +935,7 @@ namespace N6
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi tải trạng thái khóa điểm: " + ex.Message);
+                MessageBox.Show("Lỗi khi tải trạng thái khóa điểm");
             }
         }
 
@@ -1119,38 +1154,49 @@ namespace N6
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi tải điểm danh: " + ex.Message);
+                MessageBox.Show("Lỗi tải điểm danh: ");
             }
         }
 
         private void BtnLuuTC_Click(object sender, EventArgs e)
         {
-            // CHUẨN HÓA: Đã xóa '_'
             if (!manualSessionActive)
             {
                 MessageBox.Show("Chưa ở phiên điểm danh.");
                 return;
             }
+
             try
             {
                 dgvDiemDanh.EndEdit();
                 int saved = 0;
+
                 DateTime thoiDiemLuu = dtpNgayTC.Value.Date + dtpThoiGianTC.Value.TimeOfDay;
+
                 foreach (DataGridViewRow row in dgvDiemDanh.Rows)
                 {
                     if (row.IsNewRow) continue;
+
                     string maHS = row.Cells["MaHS"]?.Value?.ToString();
                     if (string.IsNullOrEmpty(maHS)) continue;
+
                     string tt = row.Cells["TrangThai"]?.Value?.ToString();
-                    if (string.Equals(tt, "Vắng mặt", StringComparison.OrdinalIgnoreCase)) tt = "Vắng";
-                    if (string.IsNullOrWhiteSpace(tt)) tt = "Có mặt";
-                    // CHUẨN HÓA: Đã xóa '_'
+
+                    if (string.Equals(tt, "Vắng mặt", StringComparison.OrdinalIgnoreCase))
+                        tt = "Vắng";
+
+                    if (string.IsNullOrWhiteSpace(tt))
+                        tt = "Có mặt";
+
                     DatabaseHelper.UpsertAttendance(maHS, maLop, thoiDiemLuu, cbBuoiTC.SelectedItem?.ToString(), tt);
                     saved++;
                 }
+
                 MessageBox.Show($"Đã lưu {saved} bản ghi.");
-                manualSessionActive = false; // CHUẨN HÓA: Đã xóa '_'
+
+                manualSessionActive = false;  // Reset trạng thái phiên điểm danh
                 btnLuuTC.Enabled = false;
+
                 LoadThuCong(readOnly: false, createIfEmpty: false);
             }
             catch (Exception ex)
@@ -1158,6 +1204,7 @@ namespace N6
                 MessageBox.Show("Lỗi lưu điểm danh: " + ex.Message);
             }
         }
+
 
         private void DgvThuCong_CurrentCellDirtyStateChanged(object sender, EventArgs e) { if (dgvDiemDanh.IsCurrentCellDirty) dgvDiemDanh.CommitEdit(DataGridViewDataErrorContexts.Commit); }
         private void DgvThuCong_CellEndEdit(object sender, DataGridViewCellEventArgs e) { UpdateThongKeThuCong(); }
@@ -1385,6 +1432,9 @@ namespace N6
             dgvKi1.DataSource = null; dgvKi1.Columns.Clear();
             dgvKi2.DataSource = null; dgvKi2.Columns.Clear();
 
+            dgvKi1.DataError += DgvResult_DataError;
+            dgvKi2.DataError += DgvResult_DataError;
+
             p1.Controls.Add(dgvKi1);
             p2.Controls.Add(dgvKi2);
             tab.TabPages.Add(p1);
@@ -1419,37 +1469,56 @@ namespace N6
         }
 
         /// <summary>
+        /// Kiểm tra data các cột.
+        /// </summary>
+        private void DgvResult_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            e.ThrowException = false;
+            e.Cancel = true;
+
+            MessageBox.Show(
+                "Điểm phải là số từ 0 đến 10 (ví dụ: 8.5).",
+                "Sai định dạng",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            );
+        }
+
+        /// <summary>
         /// Cài đặt DataGridView hiển thị điểm (gán DataSource, sự kiện, khóa cột).
         /// </summary>
         private void SetupResultGrid(DataGridView dgv, DataTable dt, int ki, string maMon)
         {
             if (dgv == null) return;
 
-            // Gỡ sự kiện cũ trước khi gán DataSource mới
+            // Gỡ sự kiện cũ
             dgv.CellEndEdit -= ResultGrid_CellEndEdit;
             dgv.CellValidating -= ResultGrid_CellValidating;
             dgv.CurrentCellDirtyStateChanged -= ResultGrid_CurrentCellDirtyStateChanged;
+            dgv.DataError -= DgvResult_DataError;
 
             dgv.Dock = DockStyle.Fill;
-            dgv.CellBorderStyle = DataGridViewCellBorderStyle.Single;
-            dgv.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
             dgv.DataSource = null;
             dgv.Columns.Clear();
             dgv.AutoGenerateColumns = true;
             dgv.DataSource = dt;
 
-            if (dt != null && dt.Columns.Contains("HoTen") && dgv.Columns.Contains("HoTen")) dgv.Columns["HoTen"].ReadOnly = true;
-            if (dt != null && dt.Columns.Contains("MaHS") && dgv.Columns.Contains("MaHS")) dgv.Columns["MaHS"].Visible = false;
+            if (dt != null && dt.Columns.Contains("HoTen") && dgv.Columns.Contains("HoTen"))
+                dgv.Columns["HoTen"].ReadOnly = true;
+            if (dt != null && dt.Columns.Contains("MaHS") && dgv.Columns.Contains("MaHS"))
+                dgv.Columns["MaHS"].Visible = false;
 
-            ApplyColumnLocks(dgv, ki); // Áp dụng khóa cột
+            ApplyColumnLocks(dgv, ki);
 
-            dgv.Tag = Tuple.Create(ki, maMon); // Lưu trữ ngữ cảnh (Học kỳ, Môn học)
+            dgv.Tag = Tuple.Create(ki, maMon);
 
-            // Gán sự kiện mới
+            // Gán lại sự kiện đầy đủ
             dgv.CurrentCellDirtyStateChanged += ResultGrid_CurrentCellDirtyStateChanged;
             dgv.CellEndEdit += ResultGrid_CellEndEdit;
             dgv.CellValidating += ResultGrid_CellValidating;
+            dgv.DataError += DgvResult_DataError;
         }
+
 
         /// <summary>
         /// Áp dụng trạng thái ReadOnly và style khóa cho các cột điểm đã bị khóa.
@@ -1560,7 +1629,7 @@ namespace N6
             catch (Exception ex)
             {
                 // Bắt lỗi (ví dụ: lỗi 50000 từ CSDL) và tải lại lưới
-                MessageBox.Show("Lỗi khi lưu: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi khi lưu ", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 LoadKetQuaGrids();
             }
         }

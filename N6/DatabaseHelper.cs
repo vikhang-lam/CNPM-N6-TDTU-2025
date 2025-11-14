@@ -685,17 +685,46 @@ public static class DatabaseHelper
 
     public static void UpdateTeacher(string maGV, string ten, string email, string sdt)
     {
-        var pMaGV = new SqlParameter("@id", maGV);
-        var pTen = new SqlParameter("@t", ten);
-        var pEmail = new SqlParameter("@e", email);
-        var pSdt = new SqlParameter("@s", sdt);
-        ExecuteNonQueryStoredProcedure("sp_UpdateGiaoVien", pMaGV, pTen, pEmail, pSdt);
+        try
+        {
+            var pMaGV = new SqlParameter("@id", maGV);
+            var pTen = new SqlParameter("@t", ten);
+            var pEmail = new SqlParameter("@e", email);
+            var pSdt = new SqlParameter("@s", sdt);
+            ExecuteNonQueryStoredProcedure("sp_UpdateGiaoVien", pMaGV, pTen, pEmail, pSdt);
+        }
+        catch (SqlException ex) // [THÊM MỚI]
+        {
+            // Bắt lỗi RAISERROR (50000) từ Stored Procedure
+            if (ex.Number == 50000)
+            {
+                throw new Exception(ex.Message);
+            }
+            throw; // Ném lại các lỗi SQL nghiêm trọng khác
+        }
     }
 
     public static void DeleteTeacher(string maGV)
     {
-        var pMaGV = new SqlParameter("@id", maGV);
-        ExecuteNonQueryStoredProcedure("sp_DeleteGiaoVien", pMaGV);
+        try
+        {
+            var pMaGV = new SqlParameter("@id", maGV);
+            ExecuteNonQueryStoredProcedure("sp_DeleteGiaoVien", pMaGV);
+        }
+        catch (SqlException ex)
+        {
+            // Bắt lỗi RAISERROR (mã 50000) từ Stored Procedure
+            if (ex.Number == 50000)
+            {
+                // Ném lại Exception CHỈ chứa thông báo lỗi thân thiện
+                throw new Exception(ex.Message, ex);
+            }
+            else
+            {
+                // Ném lại các lỗi SQL nghiêm trọng khác
+                throw;
+            }
+        }
     }
     public static DataTable GetAllTeachers()
     {

@@ -562,7 +562,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_CreateTeacherRequest
+Create PROCEDURE sp_CreateTeacherRequest
     @Ten NVARCHAR(100),
     @Username NVARCHAR(50),
     @Password VARCHAR(30),
@@ -571,12 +571,22 @@ CREATE PROCEDURE sp_CreateTeacherRequest
 AS
 BEGIN
     SET NOCOUNT ON;
+    
+    -- Kiểm tra Tên đăng nhập
     IF EXISTS (SELECT 1 FROM GiaoVien WHERE Username=@Username)
     BEGIN
         RAISERROR(N'Tên đăng nhập này đã tồn tại. Vui lòng chọn tên khác.', 16, 1);
         RETURN;
     END
 
+    -- [CẬP NHẬT] Thêm kiểm tra Email
+    IF EXISTS (SELECT 1 FROM GiaoVien WHERE Email=@Email)
+    BEGIN
+        RAISERROR(N'Email này đã tồn tại. Vui lòng sử dụng email khác.', 16, 1);
+        RETURN;
+    END
+
+    -- Tiếp tục logic tạo mã GV nếu không trùng
     DECLARE @newId INT;
     SELECT @newId = ISNULL(MAX(CAST(SUBSTRING(MaGV, 3, LEN(MaGV)) AS INT)), 0) + 1 FROM GiaoVien;
     
@@ -2059,33 +2069,82 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_UpdateGiaoVien
+create PROCEDURE sp_UpdateGiaoVien
     @id VARCHAR(10),
     @t NVARCHAR(100),
     @e NVARCHAR(50),
     @s VARCHAR(15)
 AS
 BEGIN
-    UPDATE GiaoVien SET Ten=@t, Email=@e, SDT=@s WHERE MaGV=@id;
+    SET NOCOUNT ON;
+
+    -- [THÊM MỚI] Kiểm tra email trùng lặp với một giáo viên KHÁC
+    IF EXISTS (SELECT 1 FROM GiaoVien WHERE Email = @e AND MaGV != @id)
+    BEGIN
+        RAISERROR(N'Email này đã được sử dụng bởi một giáo viên khác. Vui lòng chọn email khác.', 16, 1);
+        RETURN;
+    END
+
+    -- Giữ lại logic cập nhật cũ
+    UPDATE GiaoVien 
+    SET Ten=@t, Email=@e, SDT=@s 
+    WHERE MaGV=@id;
 END;
 GO
 
-CREATE PROCEDURE sp_DeleteGiaoVien
+create PROCEDURE sp_DeleteGiaoVien
     @id VARCHAR(10)
 AS
 BEGIN
-    DELETE FROM GiaoVien WHERE MaGV=@id;
-END;
-GO
+    SET NOCOUNT ON;
 
-CREATE PROCEDURE sp_GetTeacherAssignments
-    @MaGV VARCHAR(10)
-AS
-BEGIN
-    SELECT pc.MaMon, mh.TenMon, pc.MaLop
-    FROM PhanCongGiangDay pc
-    INNER JOIN MonHoc mh ON pc.MaMon = mh.MaMon
-    WHERE pc.MaGV = @MaGV;
+    DECLARE @Conf_PhanCongGiangDay NVARCHAR(MAX);
+    DECLARE @Conf_GVCN NVARCHAR(MAX);
+    DECLARE @ErrorMessage NVARCHAR(MAX);
+
+    -- 1. Kiểm tra bảng Phân Công Giảng Dạy
+    -- (Tập hợp tất cả các môn/lớp mà giáo viên đang dạy)
+    SELECT @Conf_PhanCongGiangDay = STUFF(
+        (SELECT N', ' + mh.TenMon + N' (' + lh.TenLop + N')'
+         FROM PhanCongGiangDay pcg
+         JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+         JOIN LopHoc lh ON pcg.MaLop = lh.MaLop
+         WHERE pcg.MaGV = @id
+         FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, N'');
+
+    -- 2. Kiểm tra bảng Lớp Học (xem có làm GVCN không)
+    SELECT @Conf_GVCN = STUFF(
+        (SELECT N',   ' + lh.TenLop
+         FROM LopHoc lh
+         WHERE lh.MaGVCN = @id
+         FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, N'');
+
+    -- 3. Xây dựng thông báo lỗi nếu có xung đột
+    SET @ErrorMessage = N'';
+    IF @Conf_PhanCongGiangDay IS NOT NULL
+    BEGIN
+        SET @ErrorMessage = @ErrorMessage + N' - Đang giảng dạy: ' + @Conf_PhanCongGiangDay + N'.';
+    END
+    IF @Conf_GVCN IS NOT NULL
+    BEGIN
+        SET @ErrorMessage = @ErrorMessage + N' - Đang chủ nhiệm: ' + @Conf_GVCN + N'.';
+    END
+
+    -- 4. Nếu có lỗi (ErrorMessage không rỗng), thì báo lỗi. Ngược lại, tiến hành xóa.
+    IF @ErrorMessage != N''
+    BEGIN
+        SET @ErrorMessage = N'Không thể xóa giáo viên. Giáo viên này hiện đang có các phân công sau:' + @ErrorMessage + N' Vui lòng gỡ các phân công này trước khi xóa.';
+        RAISERROR(@ErrorMessage, 16, 1); -- Mã lỗi 16, mức độ 1
+        RETURN;
+    END
+    ELSE
+    BEGIN
+        -- Không có xung đột, tiến hành xóa
+        -- (Bảng GiaoVien_MonHoc và PhanCongGiangDay sẽ tự động xóa theo ON DELETE CASCADE
+        -- mà bạn đã định nghĩa trong data.sql, nhưng LopHoc (GVCN) thì không,
+        -- nên logic kiểm tra ở trên là rất quan trọng)
+        DELETE FROM GiaoVien WHERE MaGV = @id;
+    END
 END;
 GO
 
@@ -2514,19 +2573,38 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_InsertMonHoc
+create PROCEDURE sp_InsertMonHoc
     @TenMon NVARCHAR(100)
 AS
 BEGIN
     SET NOCOUNT ON;
+    
+    DECLARE @CleanedTenMon VARCHAR(100); -- Dùng VARCHAR để loại bỏ dấu
     DECLARE @NewMaMon VARCHAR(10);
-    SET @NewMaMon = UPPER(SUBSTRING(REPLACE(REPLACE(REPLACE(@TenMon, ' ', ''), '(', ''), ')', ''), 1, 10));
 
+    -- BƯỚC 1: [SỬA LỖI] Chuyển NVARCHAR (tiếng Việt có dấu) sang VARCHAR (không dấu)
+    -- Bằng cách sử dụng Collation 'Latin1_General_CI_AS' để loại bỏ dấu
+    SET @CleanedTenMon = @TenMon COLLATE Latin1_General_CI_AS;
+
+    -- BƯỚC 2: Loại bỏ các ký tự đặc biệt (giữ lại logic cũ của bạn)
+    SET @CleanedTenMon = REPLACE(@CleanedTenMon, ' ', '');
+    SET @CleanedTenMon = REPLACE(@CleanedTenMon, '(', '');
+    SET @CleanedTenMon = REPLACE(@CleanedTenMon, ')', '');
+    SET @CleanedTenMon = REPLACE(@CleanedTenMon, '-', '');
+    SET @CleanedTenMon = REPLACE(@CleanedTenMon, '/', '');
+    -- Bạn có thể thêm các lệnh REPLACE khác ở đây nếu cần
+
+    -- BƯỚC 3: Lấy 10 ký tự đầu và viết hoa
+    SET @NewMaMon = UPPER(SUBSTRING(@CleanedTenMon, 1, 10));
+
+    -- BƯỚC 4: Kiểm tra tồn tại (giữ nguyên logic cũ)
     IF EXISTS (SELECT 1 FROM MonHoc WHERE MaMon = @NewMaMon OR TenMon = @TenMon)
     BEGIN
         RAISERROR(N'Mã môn hoặc Tên môn này đã tồn tại.', 16, 1);
         RETURN;
     END
+
+    -- BƯỚC 5: Thêm mới
     INSERT INTO MonHoc (MaMon, TenMon) VALUES (@NewMaMon, @TenMon);
 END;
 GO
