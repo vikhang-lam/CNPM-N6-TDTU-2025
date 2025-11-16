@@ -319,6 +319,12 @@
     <Compile Include="ForgotPasswordForm.Designer.cs">
       <DependentUpon>ForgotPasswordForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Form_ShareDocument.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form_ShareDocument.Designer.cs">
+      <DependentUpon>Form_ShareDocument.cs</DependentUpon>
+    </Compile>
     <Compile Include="frmAssistiveMenu.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -553,6 +559,9 @@
     </Compile>
     <EmbeddedResource Include="ForgotPasswordForm.resx">
       <DependentUpon>ForgotPasswordForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form_ShareDocument.resx">
+      <DependentUpon>Form_ShareDocument.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="frmImportExcel.resx">
       <DependentUpon>frmImportExcel.cs</DependentUpon>

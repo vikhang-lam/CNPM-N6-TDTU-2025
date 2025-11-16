@@ -161,7 +161,18 @@ CREATE TABLE ThoiHanDiem (
     PRIMARY KEY (MaCotDiem, Khoi, HocKy)
 );
 
-PRINT 'ĐÃ TẠO TẤT CẢ CÁC BẢNG (ĐÃ SỬA LỖI FK).';
+CREATE TABLE TaiLieu_ChiaSe_GiaoVien (
+    MaTL VARCHAR(10) NOT NULL,
+    MaGV VARCHAR(10) NOT NULL,
+    PRIMARY KEY (MaTL, MaGV),
+    -- Luồng 1: Nếu Tài liệu bị xóa -> Xóa quyền này 
+    FOREIGN KEY (MaTL) REFERENCES TaiLieu(MaTL) ON DELETE CASCADE,
+    -- Luồng 2:Nếu Giáo viên (người nhận) bị xóa -> KHÔNG làm gì cả
+    FOREIGN KEY (MaGV) REFERENCES GiaoVien(MaGV) ON DELETE NO ACTION 
+);
+GO
+
+PRINT 'ĐÃ TẠO TẤT CẢ CÁC BẢNG.';
 GO
 
 --================================================================
@@ -1520,6 +1531,136 @@ BEGIN
 END;
 GO
 
+-- 2. TẠO SP LẤY DANH SÁCH GIÁO VIÊN (ĐỂ CHIA SẺ)
+-- (SP này không cần tạo lại nếu đã tạo rồi)
+IF OBJECT_ID('sp_GetAllTeachersForSharing', 'P') IS NULL
+BEGIN
+    EXEC('
+    CREATE PROCEDURE sp_GetAllTeachersForSharing
+        @MaGvOwner VARCHAR(10)
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        SELECT MaGV, Ten 
+        FROM GiaoVien 
+        WHERE MaGV != @MaGvOwner 
+          AND TrangThai = N''Đã xác nhận'' 
+        ORDER BY Ten;
+    END;
+    ')
+    PRINT N'Đã tạo SP sp_GetAllTeachersForSharing.';
+END
+GO
+
+-- 3. TẠO SP LẤY TRẠNG THÁI CHIA SẺ HIỆN TẠI
+-- (SP này không cần tạo lại nếu đã tạo rồi)
+IF OBJECT_ID('sp_GetDocumentStatus', 'P') IS NULL
+BEGIN
+    EXEC('
+    CREATE PROCEDURE sp_GetDocumentStatus
+        @MaTL VARCHAR(10)
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        SELECT TrangThaiChiaSe FROM TaiLieu WHERE MaTL = @MaTL;
+    END;
+    ')
+    PRINT N'Đã tạo SP sp_GetDocumentStatus.';
+END
+GO
+
+-- 4. TẠO SP LẤY DANH SÁCH GIÁO VIÊN ĐÃ ĐƯỢC CHIA SẺ
+-- (SP này không cần tạo lại nếu đã tạo rồi)
+IF OBJECT_ID('sp_GetSharedWithTeachers', 'P') IS NULL
+BEGIN
+    EXEC('
+    CREATE PROCEDURE sp_GetSharedWithTeachers
+        @MaTL VARCHAR(10)
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        SELECT MaGV FROM TaiLieu_ChiaSe_GiaoVien WHERE MaTL = @MaTL;
+    END;
+    ')
+    PRINT N'Đã tạo SP sp_GetSharedWithTeachers.';
+END
+GO
+
+-- 5. TẠO SP CẬP NHẬT TỔNG QUÁT (SP NÀY LÀM HẾT MỌI VIỆC)
+-- (SP này không cần tạo lại nếu đã tạo rồi)
+IF OBJECT_ID('sp_UpdateDocumentSharing', 'P') IS NULL
+BEGIN
+    EXEC('
+    CREATE PROCEDURE sp_UpdateDocumentSharing
+        @MaTL VARCHAR(10),
+        @TrangThai NVARCHAR(20),
+        @GiaoVienList ut_MaHSList READONLY -- Tái sử dụng Type có sẵn
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        BEGIN TRANSACTION;
+        BEGIN TRY
+            UPDATE TaiLieu SET TrangThaiChiaSe = @TrangThai WHERE MaTL = @MaTL;
+            DELETE FROM TaiLieu_ChiaSe_GiaoVien WHERE MaTL = @MaTL;
+            
+            IF @TrangThai = N''Giáo viên cụ thể''
+            BEGIN
+                INSERT INTO TaiLieu_ChiaSe_GiaoVien (MaTL, MaGV)
+                SELECT @MaTL, MaHS FROM @GiaoVienList;
+            END
+
+            COMMIT TRANSACTION;
+        END TRY
+        BEGIN CATCH
+            ROLLBACK TRANSACTION;
+            ;THROW;
+        END CATCH
+    END;
+    ')
+    PRINT N'Đã tạo SP sp_UpdateDocumentSharing.';
+END
+GO
+
+-- 6. SỬA SP "LẤY TÀI LIỆU ĐƯỢC CHIA SẺ"
+-- Sửa SP cũ (Nếu SP 'sp_GetTaiLieuSharedWithUploader' không tồn tại thì tạo mới)
+IF OBJECT_ID('sp_GetTaiLieuSharedWithUploader', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetTaiLieuSharedWithUploader;
+GO
+
+-- Đổi tên SP này cho rõ nghĩa hơn
+IF OBJECT_ID('sp_GetSharedDocumentsForTeacher', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetSharedDocumentsForTeacher;
+GO
+
+CREATE PROCEDURE sp_GetSharedDocumentsForTeacher
+    @MaGV_HienTai VARCHAR(10) -- SP này cần biết AI ĐANG XEM
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Lấy tài liệu chia sẻ công khai (TrangThai = 'Chia sẻ')
+    SELECT 
+        tl.MaTL, tl.TenTL, tl.MoTa, tl.Kieu, tl.NgayTaiLen, 
+        gv.Ten AS TenGV,
+        N'Công khai' AS LoaiChiaSe
+    FROM TaiLieu tl
+    INNER JOIN GiaoVien gv ON tl.MaGV = gv.MaGV
+    WHERE tl.TrangThaiChiaSe = N'Chia sẻ'
+      AND tl.MaGV != @MaGV_HienTai
+
+    UNION
+
+    -- Lấy tài liệu được chia sẻ CỤ THỂ cho mình
+    SELECT 
+        tl.MaTL, tl.TenTL, tl.MoTa, tl.Kieu, tl.NgayTaiLen, 
+        gv.Ten AS TenGV,
+        N'Chia sẻ riêng' AS LoaiChiaSe
+    FROM TaiLieu_ChiaSe_GiaoVien tsgv
+    INNER JOIN TaiLieu tl ON tsgv.MaTL = tl.MaTL
+    INNER JOIN GiaoVien gv ON tl.MaGV = gv.MaGV
+    WHERE tsgv.MaGV = @MaGV_HienTai;
+END;
+GO
 -- 🎮 MINI-GAME
 CREATE PROCEDURE sp_GetMiniGames
 AS

@@ -469,10 +469,69 @@ public static class DatabaseHelper
     #endregion
 
     #region Documents (Tài liệu)
+
     public static DataTable GetDocumentsByTeacher(string maGV)
     {
         var pMaGV = new SqlParameter("@gv", maGV);
         return ExecuteStoredProcedure("sp_GetTaiLieuByGV", pMaGV);
+    }
+
+    /// <summary>
+    /// (MỚI) Lấy danh sách giáo viên để hiển thị trong form chia sẻ.
+    /// </summary>
+    public static DataTable GetAllTeachersForSharing(string maGvOwner)
+    {
+        var pMaGV = new SqlParameter("@MaGvOwner", maGvOwner);
+        return ExecuteStoredProcedure("sp_GetAllTeachersForSharing", pMaGV);
+    }
+
+    /// <summary>
+    /// (MỚI) Lấy trạng thái chia sẻ (Riêng tư, Chia sẻ,...)
+    /// </summary>
+    public static string GetDocumentStatus(string maTL)
+    {
+        var pMaTL = new SqlParameter("@MaTL", maTL);
+        object result = ExecuteScalarStoredProcedure("sp_GetDocumentStatus", pMaTL);
+        return result?.ToString() ?? "Riêng tư";
+    }
+
+    /// <summary>
+    /// (MỚI) Lấy danh sách MaGV được chia sẻ cụ thể.
+    /// </summary>
+    public static List<string> GetSharedWithTeachers(string maTL)
+    {
+        var pMaTL = new SqlParameter("@MaTL", maTL);
+        DataTable dt = ExecuteStoredProcedure("sp_GetSharedWithTeachers", pMaTL);
+        return dt.AsEnumerable().Select(row => row.Field<string>("MaGV")).ToList();
+    }
+
+    /// <summary>
+    /// (MỚI) Cập nhật trạng thái chia sẻ tổng quát (SP mới)
+    /// </summary>
+    public static void UpdateDocumentSharing(string maTL, string trangThai, List<string> maGiaoVienList)
+    {
+        // Chuyển List<string> thành DataTable để gửi
+        DataTable dt = new DataTable();
+        dt.Columns.Add("MaHS", typeof(string)); // Tên cột phải khớp với Table Type 'ut_MaHSList'
+        foreach (string maGV in maGiaoVienList)
+        {
+            dt.Rows.Add(maGV);
+        }
+
+        var pMaTL = new SqlParameter("@MaTL", maTL);
+        var pTrangThai = new SqlParameter("@TrangThai", trangThai);
+        var pGVList = new SqlParameter("@GiaoVienList", SqlDbType.Structured)
+        {
+            TypeName = "ut_MaHSList", // Tái sử dụng Type này
+            Value = dt
+        };
+
+        ExecuteNonQueryStoredProcedure("sp_UpdateDocumentSharing", pMaTL, pTrangThai, pGVList);
+    }
+    public static DataTable GetSharedDocumentsForTeacher(string maGV)
+    {
+        var pMaGV = new SqlParameter("@MaGV_HienTai", maGV);
+        return ExecuteStoredProcedure("sp_GetSharedDocumentsForTeacher", pMaGV);
     }
 
     public static void InsertDocument(string maGV, string ten, string moTa, string filePath, string trangThai)

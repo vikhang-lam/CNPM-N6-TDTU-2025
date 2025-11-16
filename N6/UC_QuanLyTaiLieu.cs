@@ -4,8 +4,8 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using PdfiumViewer;
-using System.Diagnostics; // Thêm
-using System.Linq; // Thêm
+using System.Diagnostics;
+using System.Linq;
 
 namespace N6
 {
@@ -60,8 +60,7 @@ namespace N6
                         {
                             btn.Click -= ViewDocument_Click;
                             btn.Click -= DownloadDocument_Click;
-                            btn.Click -= ShareDocument_Click;
-                            btn.Click -= UnshareDocument_Click;
+                            btn.Click -= OpenShareForm_Click;
                             btn.Click -= DeleteDocument_Click;
                         }
                     }
@@ -73,7 +72,7 @@ namespace N6
 
             // Lấy dữ liệu từ CSDL
             DataTable dt = shared
-                ? DatabaseHelper.GetSharedDocumentsWithUploader()
+                ? DatabaseHelper.GetSharedDocumentsForTeacher(maGV)
                 : DatabaseHelper.GetDocumentsByTeacher(maGV);
 
             // Tạo các thẻ (card) cho từng tài liệu
@@ -109,12 +108,12 @@ namespace N6
                 btnDownload.Click += DownloadDocument_Click;
 
                 Button btnShare = CreateModernButton("🔗 Chia sẻ", Color.FromArgb(67, 181, 129));
-                btnShare.Tag = maTL;
-                btnShare.Click += ShareDocument_Click;
+                btnShare.Tag = rowCopy;
+                btnShare.Click += OpenShareForm_Click;
 
-                Button btnUnshare = CreateModernButton("🗑 Hủy", Color.FromArgb(114, 118, 125));
-                btnUnshare.Tag = maTL;
-                btnUnshare.Click += UnshareDocument_Click;
+                Button btnEditShare = CreateModernButton("⚙️ Sửa", Color.FromArgb(114, 118, 125));
+                btnEditShare.Tag = rowCopy;
+                btnEditShare.Click += OpenShareForm_Click;
 
                 Button btnDelete = CreateModernButton("❌", Color.FromArgb(237, 66, 69));
                 btnDelete.Tag = new Tuple<string, bool>(maTL, shared); // Lưu MaTL và context (tab nào)
@@ -132,11 +131,12 @@ namespace N6
                 {
                     panelButtons.Controls.Add(btnView, 0, 0);
                     string trangThai = rowCopy["TrangThaiChiaSe"].ToString();
-                    if (trangThai == "Chia sẻ")
+
+                    if (trangThai == "Chia sẻ" || trangThai == "Giáo viên cụ thể")
                     {
-                        panelButtons.Controls.Add(btnUnshare, 1, 0);
+                        panelButtons.Controls.Add(btnEditShare, 1, 0);
                     }
-                    else
+                    else // "Riêng tư"
                     {
                         panelButtons.Controls.Add(btnShare, 1, 0);
                     }
@@ -270,42 +270,23 @@ namespace N6
         }
 
         /// <summary>
-        /// Xử lý sự kiện chia sẻ tài liệu.
+        /// Mở Form tùy chọn chia sẻ khi click nút "Chia sẻ" hoặc "Sửa"
         /// </summary>
-        private void ShareDocument_Click(object sender, EventArgs e)
+        private void OpenShareForm_Click(object sender, EventArgs e)
         {
-            string maTL = (sender as Button)?.Tag?.ToString();
-            if (string.IsNullOrEmpty(maTL)) return;
+            if (!((sender as Button)?.Tag is DataRow row)) return;
 
-            try
-            {
-                DatabaseHelper.ShareDocument(maTL);
-                MessageBox.Show("Đã chia sẻ tài liệu thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                btnRefresh_Click(null, null); // Tải lại cả 2 tab
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi khi chia sẻ: " + ex.Message);
-            }
-        }
+            string maTL = row["MaTL"].ToString();
+            string tenTL = row["TenTL"].ToString();
 
-        /// <summary>
-        /// Xử lý sự kiện hủy chia sẻ tài liệu.
-        /// </summary>
-        private void UnshareDocument_Click(object sender, EventArgs e)
-        {
-            string maTL = (sender as Button)?.Tag?.ToString();
-            if (string.IsNullOrEmpty(maTL)) return;
-
-            try
+            // Mở form mới
+            using (Form_ShareDocument shareForm = new Form_ShareDocument(maTL, tenTL, this.maGV))
             {
-                DatabaseHelper.UnshareDocument(maTL);
-                MessageBox.Show("Đã hủy chia sẻ tài liệu!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                btnRefresh_Click(null, null); // Tải lại cả 2 tab
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi khi hủy chia sẻ: " + ex.Message);
+                if (shareForm.ShowDialog() == DialogResult.OK)
+                {
+                    MessageBox.Show("Đã cập nhật cài đặt chia sẻ!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    btnRefresh_Click(null, null); // Tải lại cả 2 tab
+                }
             }
         }
 
@@ -397,7 +378,7 @@ namespace N6
         /// <summary>
         /// Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
         /// </summary>
- 
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -407,7 +388,6 @@ namespace N6
                 if (this.btnRefresh != null) this.btnRefresh.Click -= new System.EventHandler(this.btnRefresh_Click);
                 if (this.panelToolbar != null) this.panelToolbar.Paint -= new System.Windows.Forms.PaintEventHandler(this.panelToolbar_Paint);
 
-                // ### PHẦN SỬA LỖI QUAN TRỌNG ###
                 // Dọn dẹp các control động (Card) trong cả 2 FlowLayoutPanel
                 foreach (FlowLayoutPanel targetPanel in new[] { flowMyDocs, flowSharedDocs })
                 {
@@ -427,17 +407,15 @@ namespace N6
                                     {
                                         btn.Click -= ViewDocument_Click;
                                         btn.Click -= DownloadDocument_Click;
-                                        btn.Click -= ShareDocument_Click;
-                                        btn.Click -= UnshareDocument_Click;
+                                        btn.Click -= OpenShareForm_Click;
                                         btn.Click -= DeleteDocument_Click;
                                     }
                                 }
                             }
-                            shadowPanel.Dispose(); // Hủy control
+                            shadowPanel.Dispose();
                         }
                     }
                 }
-                // ### KẾT THÚC PHẦN SỬA LỖI ###
 
                 if (components != null)
                 {
