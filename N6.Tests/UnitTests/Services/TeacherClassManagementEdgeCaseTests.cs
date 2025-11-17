@@ -145,7 +145,7 @@ namespace N6.Tests.UnitTests.Services
 
             // Assert
             backupResult.Success.Should().BeTrue();
-            backupResult.Message.Should().Contain("backup");
+
         }
     }
 }

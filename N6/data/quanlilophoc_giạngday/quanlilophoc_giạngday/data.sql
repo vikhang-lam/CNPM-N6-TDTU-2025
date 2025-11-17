@@ -2159,7 +2159,7 @@ PRINT 'TẠO STORED PROCEDURE CHO MODULE QUẢN TRỊ...';
 GO
 
 -- 🧑‍💼 QUẢN LÝ GIÁO VIÊN
-CREATE PROCEDURE sp_GetAllGiaoVien
+create PROCEDURE sp_GetAllGiaoVien
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -2170,6 +2170,9 @@ BEGIN
         gv.Email, 
         gv.SDT, 
         gv.TrangThai,
+        -- Thêm cột Lớp Chủ Nhiệm (Nếu không chủ nhiệm thì để trống)
+        ISNULL(lh.TenLop, N'') AS LopChuNhiem,
+        -- Logic lấy môn dạy cũ giữ nguyên
         ISNULL(STUFF((
             SELECT N', ' + mh.TenMon
             FROM GiaoVien_MonHoc gvm
@@ -2178,17 +2181,37 @@ BEGIN
             ORDER BY mh.TenMon
             FOR XML PATH('')
         ), 1, 2, N''), N'Chưa có môn') AS CacMonDay
-    FROM GiaoVien gv;
+    FROM GiaoVien gv
+    LEFT JOIN LopHoc lh ON gv.MaGV = lh.MaGVCN; -- JOIN để lấy lớp chủ nhiệm
 END;
 GO
 
-CREATE PROCEDURE sp_GetGiaoVienByTrangThai
+create PROCEDURE sp_GetGiaoVienByTrangThai
     @tt NVARCHAR(20)
 AS
 BEGIN
-    SELECT MaGV, Ten, Username, Email, SDT, TrangThai 
-    FROM GiaoVien 
-    WHERE TrangThai = @tt;
+    SET NOCOUNT ON;
+    SELECT 
+        gv.MaGV, 
+        gv.Ten, 
+        gv.Username, 
+        gv.Email, 
+        gv.SDT, 
+        gv.TrangThai,
+        -- Thêm cột Lớp Chủ Nhiệm
+        ISNULL(lh.TenLop, N'') AS LopChuNhiem,
+        -- Thêm cột Môn dạy (để đồng bộ giao diện với tab Tất cả)
+        ISNULL(STUFF((
+            SELECT N', ' + mh.TenMon
+            FROM GiaoVien_MonHoc gvm
+            JOIN MonHoc mh ON gvm.MaMon = mh.MaMon
+            WHERE gvm.MaGV = gv.MaGV
+            ORDER BY mh.TenMon
+            FOR XML PATH('')
+        ), 1, 2, N''), N'Chưa có môn') AS CacMonDay
+    FROM GiaoVien gv
+    LEFT JOIN LopHoc lh ON gv.MaGV = lh.MaGVCN
+    WHERE gv.TrangThai = @tt;
 END;
 GO
 

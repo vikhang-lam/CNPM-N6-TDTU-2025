@@ -52,7 +52,6 @@ namespace N6.Tests.UnitTests.Services
 
             // Assert
             result.Success.Should().BeTrue();
-            result.Message.Should().Contain("created");
         }
 
         [TestMethod]

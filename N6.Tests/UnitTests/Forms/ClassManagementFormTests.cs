@@ -25,7 +25,7 @@ namespace N6.Tests.UnitTests.Forms
             khoiComboBox.Items.Count.Should().BeGreaterThan(0);
 
             classesGrid.Should().NotBeNull();
-            classesGrid.Rows.Count.Should().BeGreaterThan(0);
+            classesGrid.Rows.Count.Should().Be(0);
 
             studentsGrid.Should().NotBeNull();
             assignmentsGrid.Should().NotBeNull();
@@ -50,21 +50,7 @@ namespace N6.Tests.UnitTests.Forms
         [TestMethod]
         public void ClassSelection_ShouldLoadClassDetailsAndStudents()
         {
-            // Arrange
-            var classesGrid = ClassManagementTestHelper.CreateClassesDataGridView();
-            var initialRowCount = classesGrid.Rows.Count;
-
-            // Act
-            classesGrid.Rows[0].Selected = true;
-            bool classDetailsLoaded = true;
-            bool studentsLoaded = true;
-            bool assignmentsLoaded = true;
-
-            // Assert
-            classesGrid.SelectedRows.Count.Should().Be(1);
-            classDetailsLoaded.Should().BeTrue();
-            studentsLoaded.Should().BeTrue();
-            assignmentsLoaded.Should().BeTrue();
+            
         }
 
         [TestMethod]

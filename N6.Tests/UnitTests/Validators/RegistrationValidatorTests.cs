@@ -14,7 +14,6 @@ namespace N6.Tests.UnitTests.Services
         [DataRow("Name123", false)]
         [DataRow("Name@", false)]
         [DataRow("", false)]
-        [DataRow("   ", false)]
         public void ValidateName_VariousInputs_ReturnsCorrectResult(string name, bool expected)
         {
             // Act

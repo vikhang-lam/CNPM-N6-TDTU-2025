@@ -136,13 +136,20 @@ namespace N6
                 if (dgvGV.Columns["MaGV"] != null)
                 {
                     dgvGV.Columns["MaGV"].HeaderText = "Mã Giáo Viên";
-                    dgvGV.Columns["MaGV"].ReadOnly = true; // Đảm bảo Mã GV không bị sửa
+                    dgvGV.Columns["MaGV"].ReadOnly = true;
                 }
                 if (dgvGV.Columns["Ten"] != null) dgvGV.Columns["Ten"].HeaderText = "Họ và Tên";
                 if (dgvGV.Columns["Username"] != null) dgvGV.Columns["Username"].HeaderText = "Tên đăng nhập";
                 if (dgvGV.Columns["Email"] != null) dgvGV.Columns["Email"].HeaderText = "Email";
                 if (dgvGV.Columns["SDT"] != null) dgvGV.Columns["SDT"].HeaderText = "Số Điện Thoại";
                 if (dgvGV.Columns["TrangThai"] != null) dgvGV.Columns["TrangThai"].HeaderText = "Trạng Thái";
+
+                if (dgvGV.Columns["LopChuNhiem"] != null)
+                {
+                    dgvGV.Columns["LopChuNhiem"].HeaderText = "Chủ Nhiệm Lớp";
+                    dgvGV.Columns["LopChuNhiem"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                }
+
                 if (dgvGV.Columns["CacMonDay"] != null) dgvGV.Columns["CacMonDay"].HeaderText = "Môn Dạy";
             }
             catch (Exception ex)

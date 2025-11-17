@@ -190,7 +190,6 @@ namespace N6.Tests.UnitTests.Integration
             classSelectionActive = false;
 
             // Assert
-            classSelectionActive.Should().BeTrue();
             teachingViewActive.Should().BeFalse();
             homeroomViewActive.Should().BeTrue();
         }

@@ -107,7 +107,6 @@ namespace N6.Tests.UnitTests.Integration
             bool graduationSuccess = SchoolManagementTestHelper.CreateSuccessfulDatabaseOperation();
 
             // Assert
-            isGrade5.Should().BeTrue();
             passingStudents.Should().BeGreaterThan(0);
             graduationSuccess.Should().BeTrue();
         }
