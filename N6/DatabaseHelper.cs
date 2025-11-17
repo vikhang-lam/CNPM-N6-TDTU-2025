@@ -1640,4 +1640,52 @@ public static class DatabaseHelper
     }
 
     #endregion
+    #region kho luu tru
+
+    public static DataTable GetArchiveYears()
+    {
+        return ExecuteStoredProcedure("sp_GetArchiveYears");
+    }
+
+    public static DataTable GetArchiveClasses(string namHoc, string khoi)
+    {
+        var pNam = new SqlParameter("@NamHoc", namHoc);
+        var pKhoi = new SqlParameter("@Khoi", (object)khoi ?? DBNull.Value);
+        return ExecuteStoredProcedure("sp_GetArchiveClasses", pNam, pKhoi);
+    }
+
+    public static DataTable GetStudentFullTranscript(string maHS)
+    {
+        var pMaHS = new SqlParameter("@MaHS", maHS);
+        return ExecuteStoredProcedure("sp_GetStudentFullTranscript", pMaHS);
+    }
+
+    public static string GetClassIdByName(string tenLop)
+    {
+        // Helper nhỏ dùng câu lệnh text (hoặc bạn có thể tạo SP riêng nếu muốn strict 100%)
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            using (SqlCommand cmd = new SqlCommand("SELECT TOP 1 MaLop FROM LopHoc WHERE TenLop = @t", conn))
+            {
+                cmd.Parameters.AddWithValue("@t", tenLop);
+                var res = cmd.ExecuteScalar();
+                return res?.ToString();
+            }
+        }
+    }
+
+    public static int GetCurrentClassCount(string maLop)
+    {
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        {
+            conn.Open();
+            using (SqlCommand cmd = new SqlCommand("SELECT COUNT(*) FROM HocSinh WHERE MaLop = @m", conn))
+            {
+                cmd.Parameters.AddWithValue("@m", maLop);
+                return (int)cmd.ExecuteScalar();
+            }
+        }
+    }
+    #endregion
 }

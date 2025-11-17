@@ -1,61 +1,73 @@
 ﻿using System;
-using System.Collections.Generic; // Cần cho List
+using System.Collections.Generic;
 using System.Data;
-using System.Drawing; // Cần cho việc vẽ TabControl
-using System.Linq; // Cần cho LINQ
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace N6
 {
     /// <summary>
-    /// UserControl dành cho Ban Giám Hiệu để quản lý các nghiệp vụ toàn trường
-    /// như quản lý môn học, thời hạn nhập điểm, và quy trình xét lên lớp.
+    /// UserControl quản lý nghiệp vụ toàn trường: Môn học, Thời hạn điểm, Lên lớp, Lưu trữ.
     /// </summary>
     public partial class UC_QuanLyTruongHoc : UserControl
     {
         #region Fields (Biến thành viên)
 
-        // Cache để ComboBox dùng (cần cập nhật sau khi lên lớp)
+        // Cache dữ liệu
         private DataTable allLopHocCache;
-        private DataTable allThoiHanDiemCache; // Cache cho tab Thời Hạn
+        private DataTable allThoiHanDiemCache;
 
-        // Dữ liệu cho tab Lên lớp
+        // Dữ liệu cho tab Lên Lớp
         private List<StudentPromotionInfo> currentClassStudents = null;
         private string currentMaLopCu = null;
         private string currentKhoi = null;
         private bool currentIsLop5 = false;
 
+        // Biến hỗ trợ tính toán Lên lớp tự động
+        private string _autoTargetClassIdForPassers = null;
+        private string _autoTargetClassNameForPassers = "";
+
+        // Controls cho tab Kho Lưu Trữ (Dynamic UI)
+        private TabPage tabKhoLuuTru;
+        private ComboBox cboArchiveNamHoc;
+        private ComboBox cboArchiveKhoi;
+        private ComboBox cboArchiveLop;     // Thay thế Grid lớp cũ
+        private TextBox txtSearchStudent;   // Thanh tìm kiếm
+        private DataGridView dgvArchiveStudents;
+        private DataGridView dgvArchiveTeachers;
+        private Label lblArchiveGVCN;
+
         #endregion
 
         #region Constructor & Load
 
-        /// <summary>
-        /// Khởi tạo UserControl quản lý trường học.
-        /// </summary>
         public UC_QuanLyTruongHoc()
         {
             InitializeComponent();
-            // Style DataGridView được áp dụng trong Designer mới
         }
 
-        /// <summary>
-        /// Xử lý sự kiện Load, tải dữ liệu ban đầu cho các tab.
-        /// </summary>
         private void UC_QuanLyTruongHoc_Load(object sender, EventArgs e)
         {
+            // 1. Tải dữ liệu cho các tab tĩnh (đã có trong Designer)
             LoadKhoiFilters();
             LoadMonHoc();
             LoadThoiHanDiem();
-            LoadLopCuComboBox(); // Tải danh sách lớp vào ComboBox tab Lên lớp
-            ResetLenLopUI();     // Đặt lại giao diện tab Lên lớp
+            LoadLopCuComboBox();
+            ResetLenLopUI();
+
+            // 2. Khởi tạo giao diện tab Kho Lưu Trữ (Code-behind)
+            SetupArchiveTab();
         }
 
-        /// <summary>
-        /// Tải danh sách các khối vào ComboBox lọc (tab Thời Hạn).
-        /// </summary>
         private void LoadKhoiFilters()
         {
-            string[] khoiItems = { "Tất cả", "Khối 1", "Khối 2", "Khối 3", "Khối 4", "Khối 5" };
+            string[] khoiItems =
+            {
+                "Tất cả", "Khối 1", "Khối 2", "Khối 3", "Khối 4", "Khối 5"
+            };
+
             cboKhoiFilter.Items.Clear();
             cboKhoiFilter.Items.AddRange(khoiItems);
             cboKhoiFilter.SelectedIndex = 0;
@@ -63,21 +75,23 @@ namespace N6
 
         #endregion
 
-        #region Quản lý Môn Học
+        #region 1. Quản lý Môn Học
 
-        /// <summary>
-        /// Tải danh sách tất cả môn học lên DataGridView.
-        /// </summary>
         private void LoadMonHoc()
         {
             try
             {
                 dgvMonHoc.DataSource = DatabaseHelper.GetAllSubjects();
+
+                // Cấu hình cột tự động giãn, tránh thanh trượt
+                dgvMonHoc.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
                 if (dgvMonHoc.Columns.Contains("MaMon"))
                 {
                     dgvMonHoc.Columns["MaMon"].HeaderText = "Mã Môn";
                     dgvMonHoc.Columns["MaMon"].FillWeight = 30;
                 }
+
                 if (dgvMonHoc.Columns.Contains("TenMon"))
                 {
                     dgvMonHoc.Columns["TenMon"].HeaderText = "Tên Môn Học";
@@ -88,29 +102,25 @@ namespace N6
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi tải danh sách môn học: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi tải môn học: " + ex.Message);
             }
         }
 
-        /// <summary>
-        /// Xóa trắng các ô nhập liệu và đặt lại trạng thái các nút của tab Môn Học.
-        /// </summary>
         private void ClearMonHocInputs()
         {
             txtMaMon.Clear();
             txtTenMon.Clear();
             txtMaMon.ReadOnly = true;
             txtMaMon.BackColor = SystemColors.Control;
+
             btnThemMon.Enabled = true;
             btnSuaMon.Enabled = false;
             btnXoaMon.Enabled = false;
+
             dgvMonHoc.ClearSelection();
             txtTenMon.Focus();
         }
 
-        /// <summary>
-        /// Xử lý khi nhấn vào một ô trên lưới Môn Học, điền thông tin lên form.
-        /// </summary>
         private void dgvMonHoc_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0)
@@ -120,319 +130,215 @@ namespace N6
                 txtTenMon.Text = row.Cells["TenMon"].Value?.ToString();
 
                 txtMaMon.ReadOnly = true;
-                txtMaMon.BackColor = SystemColors.Control;
                 btnThemMon.Enabled = false;
                 btnSuaMon.Enabled = true;
                 btnXoaMon.Enabled = true;
             }
         }
 
-        /// <summary>
-        /// Xử lý nút "Làm Mới" (tab Môn Học).
-        /// </summary>
-        private void btnMoiMon_Click(object sender, EventArgs e)
-        {
-            ClearMonHocInputs();
-        }
-
-        /// <summary>
-        /// Xử lý nút "Thêm" (tab Môn Học).
-        /// </summary>
         private void btnThemMon_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtTenMon.Text))
             {
-                MessageBox.Show("Tên môn học không được để trống.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                txtTenMon.Focus();
+                MessageBox.Show("Tên môn không được để trống.");
                 return;
             }
 
             try
             {
                 DatabaseHelper.InsertSubject(txtTenMon.Text.Trim());
-                MessageBox.Show("Thêm môn học thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Thêm môn học thành công!");
                 LoadMonHoc();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi thêm môn học: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi: " + ex.Message);
             }
         }
 
-        /// <summary>
-        /// Xử lý nút "Sửa" (tab Môn Học).
-        /// </summary>
         private void btnSuaMon_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtMaMon.Text) || string.IsNullOrWhiteSpace(txtTenMon.Text))
-            {
-                MessageBox.Show("Vui lòng chọn một môn học và nhập tên mới.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
             try
             {
                 DatabaseHelper.UpdateSubject(txtMaMon.Text, txtTenMon.Text.Trim());
-                MessageBox.Show("Cập nhật môn học thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Cập nhật thành công!");
                 LoadMonHoc();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi cập nhật môn học: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi: " + ex.Message);
             }
         }
 
-        /// <summary>
-        /// Xử lý nút "Xóa" (tab Môn Học).
-        /// </summary>
         private void btnXoaMon_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtMaMon.Text))
-            {
-                MessageBox.Show("Vui lòng chọn một môn học để xóa.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
+            if (string.IsNullOrWhiteSpace(txtMaMon.Text)) return;
 
-            DialogResult confirm = MessageBox.Show($"Bạn có chắc chắn muốn xóa môn '{txtTenMon.Text}' ({txtMaMon.Text})?\nLưu ý: Chỉ xóa được khi môn học không đang được sử dụng.", "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (confirm == DialogResult.Yes)
+            DialogResult dr = MessageBox.Show($"Xóa môn '{txtTenMon.Text}'?", "Xác nhận",
+                                              MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            if (dr == DialogResult.Yes)
             {
                 try
                 {
                     DatabaseHelper.DeleteSubject(txtMaMon.Text);
-                    MessageBox.Show("Xóa môn học thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     LoadMonHoc();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Lỗi khi xóa môn học: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Lỗi: " + ex.Message);
                 }
             }
         }
 
+        private void btnMoiMon_Click(object sender, EventArgs e)
+        {
+            ClearMonHocInputs();
+        }
+
         #endregion
 
-        #region Quản lý Thời Hạn Điểm
+        #region 2. Quản lý Thời Hạn Điểm
 
-        /// <summary>
-        /// Tải dữ liệu thời hạn nhập điểm lên DataGridView và cache.
-        /// </summary>
         private void LoadThoiHanDiem()
         {
             try
             {
                 allThoiHanDiemCache = DatabaseHelper.GetScoreDeadlines();
                 dgvThoiHanDiem.DataSource = allThoiHanDiemCache;
+
                 cboKhoiFilter_SelectedIndexChanged(null, null);
                 CustomizeThoiHanGrid();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi tải thời hạn nhập điểm: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi tải thời hạn: " + ex.Message);
             }
         }
 
-        /// <summary>
-        /// Tùy chỉnh hiển thị các cột cho lưới Thời Hạn Điểm.
-        /// </summary>
         private void CustomizeThoiHanGrid()
         {
-            dgvThoiHanDiem.Columns["MaCotDiem"].HeaderText = "Mã Cột Điểm";
-            dgvThoiHanDiem.Columns["MaCotDiem"].ReadOnly = true;
-            dgvThoiHanDiem.Columns["TenHienThi"].HeaderText = "Tên Cột Điểm";
-            dgvThoiHanDiem.Columns["TenHienThi"].ReadOnly = true;
-            dgvThoiHanDiem.Columns["Khoi"].HeaderText = "Khối";
-            dgvThoiHanDiem.Columns["Khoi"].ReadOnly = true;
-            dgvThoiHanDiem.Columns["HocKy"].HeaderText = "Học Kỳ";
-            dgvThoiHanDiem.Columns["HocKy"].ReadOnly = true;
-            dgvThoiHanDiem.Columns["NgayMoDiem"].HeaderText = "Ngày Mở";
-            dgvThoiHanDiem.Columns["NgayKhoaDiem"].HeaderText = "Ngày Khóa";
-            dgvThoiHanDiem.Columns["KhoaThuCong"].HeaderText = "Khóa Thủ Công";
-            dgvThoiHanDiem.Columns["DaKhoa"].HeaderText = "Đã Khóa";
-            dgvThoiHanDiem.Columns["DaKhoa"].ReadOnly = true;
+            dgvThoiHanDiem.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
-            dgvThoiHanDiem.Columns["MaCotDiem"].FillWeight = 80;
-            dgvThoiHanDiem.Columns["TenHienThi"].FillWeight = 120;
-            dgvThoiHanDiem.Columns["Khoi"].FillWeight = 50;
-            dgvThoiHanDiem.Columns["HocKy"].FillWeight = 40;
-            dgvThoiHanDiem.Columns["NgayMoDiem"].FillWeight = 70;
-            dgvThoiHanDiem.Columns["NgayKhoaDiem"].FillWeight = 70;
-            dgvThoiHanDiem.Columns["KhoaThuCong"].FillWeight = 60;
-            dgvThoiHanDiem.Columns["DaKhoa"].FillWeight = 50;
+            var colSettings = new Dictionary<string, (string Header, int Weight)>
+            {
+                { "MaCotDiem", ("Mã", 15) },
+                { "TenHienThi", ("Tên Cột Điểm", 30) },
+                { "Khoi", ("Khối", 10) },
+                { "HocKy", ("HK", 10) },
+                { "NgayMoDiem", ("Ngày Mở", 15) },
+                { "NgayKhoaDiem", ("Ngày Khóa", 15) },
+                { "KhoaThuCong", ("Khóa Tay", 10) },
+                { "DaKhoa", ("Trạng Thái", 10) }
+            };
 
-            dgvThoiHanDiem.Columns["NgayMoDiem"].DefaultCellStyle.Format = "dd/MM/yyyy";
-            dgvThoiHanDiem.Columns["NgayKhoaDiem"].DefaultCellStyle.Format = "dd/MM/yyyy";
+            foreach (var col in colSettings)
+            {
+                if (dgvThoiHanDiem.Columns.Contains(col.Key))
+                {
+                    dgvThoiHanDiem.Columns[col.Key].HeaderText = col.Value.Header;
+                    dgvThoiHanDiem.Columns[col.Key].FillWeight = col.Value.Weight;
+                }
+            }
+
+            if (dgvThoiHanDiem.Columns.Contains("NgayMoDiem"))
+            {
+                dgvThoiHanDiem.Columns["NgayMoDiem"].DefaultCellStyle.Format = "dd/MM/yyyy";
+            }
+
+            if (dgvThoiHanDiem.Columns.Contains("NgayKhoaDiem"))
+            {
+                dgvThoiHanDiem.Columns["NgayKhoaDiem"].DefaultCellStyle.Format = "dd/MM/yyyy";
+            }
+
             ConvertBoolColumnToCheckbox(dgvThoiHanDiem, "KhoaThuCong");
             ConvertBoolColumnToCheckbox(dgvThoiHanDiem, "DaKhoa", true);
         }
 
-        /// <summary>
-        /// Chuyển đổi một cột (thường là bool/bit) thành DataGridViewCheckBoxColumn.
-        /// </summary>
-        /// <param name="dgv">DataGridView chứa cột.</param>
-        /// <param name="columnName">Tên cột cần chuyển đổi.</param>
-        /// <param name="readOnly">Cột CheckBox có bị khóa không.</param>
-        private void ConvertBoolColumnToCheckbox(DataGridView dgv, string columnName, bool readOnly = false)
+        private void ConvertBoolColumnToCheckbox(DataGridView dgv, string colName, bool readOnly = false)
         {
-            if (dgv.Columns.Contains(columnName) && !(dgv.Columns[columnName] is DataGridViewCheckBoxColumn))
+            if (dgv.Columns.Contains(colName) && !(dgv.Columns[colName] is DataGridViewCheckBoxColumn))
             {
-                int colIndex = dgv.Columns[columnName].Index;
-                string headerText = dgv.Columns[columnName].HeaderText;
-                float fillWeight = dgv.Columns[columnName].FillWeight;
+                int idx = dgv.Columns[colName].Index;
+                string header = dgv.Columns[colName].HeaderText;
+                float weight = dgv.Columns[colName].FillWeight;
 
-                dgv.Columns.Remove(columnName);
+                dgv.Columns.Remove(colName);
 
-                DataGridViewCheckBoxColumn chkCol = new DataGridViewCheckBoxColumn
+                var chk = new DataGridViewCheckBoxColumn
                 {
-                    Name = columnName,
-                    HeaderText = headerText,
-                    DataPropertyName = columnName,
-                    FillWeight = fillWeight,
-                    ReadOnly = readOnly,
-                    FlatStyle = FlatStyle.Standard
+                    Name = colName,
+                    DataPropertyName = colName,
+                    HeaderText = header,
+                    FillWeight = weight,
+                    ReadOnly = readOnly
                 };
-                dgv.Columns.Insert(colIndex, chkCol);
-            }
-            else if (dgv.Columns.Contains(columnName) && dgv.Columns[columnName] is DataGridViewCheckBoxColumn)
-            {
-                ((DataGridViewCheckBoxColumn)dgv.Columns[columnName]).ReadOnly = readOnly;
+
+                dgv.Columns.Insert(idx, chk);
             }
         }
 
-        /// <summary>
-        /// Định dạng màu sắc và ToolTip cho lưới Thời Hạn Điểm.
-        /// </summary>
         private void dgvThoiHanDiem_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
-            if (e.RowIndex < 0 || e.ColumnIndex < 0 || e.RowIndex >= dgvThoiHanDiem.Rows.Count) return;
-
-            DataGridViewCell cell = dgvThoiHanDiem.Rows[e.RowIndex].Cells[e.ColumnIndex];
-            string colName = dgvThoiHanDiem.Columns[e.ColumnIndex].Name;
-
-            if (colName == "DaKhoa")
+            if (dgvThoiHanDiem.Columns[e.ColumnIndex].Name == "DaKhoa" && e.Value != null)
             {
-                bool isLocked = false;
-                if (cell.Value != null && cell.Value != DBNull.Value)
-                {
-                    isLocked = Convert.ToBoolean(cell.Value);
-                }
-
+                bool isLocked = (bool)e.Value;
                 if (isLocked)
                 {
                     e.CellStyle.BackColor = Color.FromArgb(255, 223, 223);
                     e.CellStyle.SelectionBackColor = Color.FromArgb(255, 180, 180);
-                    cell.ToolTipText = "Đã khóa (Quá hạn hoặc khóa thủ công)";
-                }
-                else
-                {
-                    e.CellStyle.BackColor = (e.RowIndex % 2 == 0) ? dgvThoiHanDiem.DefaultCellStyle.BackColor : dgvThoiHanDiem.AlternatingRowsDefaultCellStyle.BackColor;
-                    e.CellStyle.SelectionBackColor = dgvThoiHanDiem.DefaultCellStyle.SelectionBackColor;
-                    cell.ToolTipText = "Đang mở";
-                }
-                e.FormattingApplied = true;
-            }
-            else if (colName == "KhoaThuCong")
-            {
-                bool isManualLock = false;
-                if (cell.Value != null && cell.Value != DBNull.Value)
-                {
-                    isManualLock = Convert.ToBoolean(cell.Value);
-                }
-                cell.ToolTipText = isManualLock ? "Đang khóa thủ công" : "Mở thủ công";
-                e.CellStyle.BackColor = (e.RowIndex % 2 == 0) ? dgvThoiHanDiem.DefaultCellStyle.BackColor : dgvThoiHanDiem.AlternatingRowsDefaultCellStyle.BackColor;
-                e.CellStyle.SelectionBackColor = dgvThoiHanDiem.DefaultCellStyle.SelectionBackColor;
-                e.FormattingApplied = true;
-            }
-            else if (e.CellStyle != null)
-            {
-                e.CellStyle.BackColor = (e.RowIndex % 2 == 0) ? dgvThoiHanDiem.DefaultCellStyle.BackColor : dgvThoiHanDiem.AlternatingRowsDefaultCellStyle.BackColor;
-                e.CellStyle.SelectionBackColor = dgvThoiHanDiem.DefaultCellStyle.SelectionBackColor;
-                if (string.IsNullOrEmpty(cell.ToolTipText))
-                {
-                    cell.ToolTipText = string.Empty;
                 }
             }
         }
 
-
-        /// <summary>
-        /// Xử lý nút "Lưu Thay Đổi" (tab Thời Hạn).
-        /// </summary>
         private void btnLuuThoiHan_Click(object sender, EventArgs e)
         {
             try
             {
-                this.BindingContext[dgvThoiHanDiem.DataSource].EndCurrentEdit();
-
-                int updatedCount = 0;
-                DataTable dtSource = allThoiHanDiemCache;
-                DataTable changes = dtSource.GetChanges(DataRowState.Modified);
-
+                BindingContext[dgvThoiHanDiem.DataSource].EndCurrentEdit();
+                DataTable changes = allThoiHanDiemCache.GetChanges(DataRowState.Modified);
 
                 if (changes != null)
                 {
                     foreach (DataRow row in changes.Rows)
                     {
-                        string maCotDiem = row["MaCotDiem", DataRowVersion.Original].ToString();
-                        string khoi = row["Khoi", DataRowVersion.Original].ToString();
-                        int hocKy = Convert.ToInt32(row["HocKy", DataRowVersion.Original]);
-
-                        DateTime ngayMo = Convert.ToDateTime(row["NgayMoDiem", DataRowVersion.Current]);
-                        DateTime ngayKhoa = Convert.ToDateTime(row["NgayKhoaDiem", DataRowVersion.Current]);
-                        bool khoaThuCong = Convert.ToBoolean(row["KhoaThuCong", DataRowVersion.Current]);
-
-                        DatabaseHelper.UpdateScoreDeadline(maCotDiem, khoi, hocKy, ngayMo, ngayKhoa, khoaThuCong);
-                        updatedCount++;
+                        DatabaseHelper.UpdateScoreDeadline(
+                            row["MaCotDiem"].ToString(),
+                            row["Khoi"].ToString(),
+                            Convert.ToInt32(row["HocKy"]),
+                            Convert.ToDateTime(row["NgayMoDiem"]),
+                            Convert.ToDateTime(row["NgayKhoaDiem"]),
+                            Convert.ToBoolean(row["KhoaThuCong"])
+                        );
                     }
-                    dtSource.AcceptChanges();
-                }
-
-                if (updatedCount > 0)
-                {
-                    MessageBox.Show($"Đã cập nhật thành công {updatedCount} thời hạn.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    allThoiHanDiemCache.AcceptChanges();
+                    MessageBox.Show("Đã lưu các thay đổi thành công!");
                     LoadThoiHanDiem();
                 }
                 else
                 {
-                    MessageBox.Show("Không có thay đổi nào để lưu.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("Không có thay đổi nào để lưu.");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi lưu thời hạn: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                LoadThoiHanDiem();
+                MessageBox.Show("Lỗi khi lưu: " + ex.Message);
             }
         }
 
-
-        /// <summary>
-        /// Lọc lưới Thời Hạn Điểm khi thay đổi ComboBox Khối.
-        /// </summary>
         private void cboKhoiFilter_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (allThoiHanDiemCache == null) return;
 
-            string selectedKhoi = cboKhoiFilter.SelectedItem?.ToString();
-            DataView dv = allThoiHanDiemCache.DefaultView;
+            string selected = cboKhoiFilter.SelectedItem?.ToString();
+            string filter = (selected == "Tất cả" || selected == null) ? "" : $"Khoi = '{selected}'";
 
-            if (selectedKhoi == "Tất cả" || selectedKhoi == null)
-            {
-                dv.RowFilter = "";
-            }
-            else
-            {
-                dv.RowFilter = $"Khoi = '{selectedKhoi}'";
-            }
-            dgvThoiHanDiem.Refresh();
+            allThoiHanDiemCache.DefaultView.RowFilter = filter;
         }
-
 
         #endregion
 
-        #region Quản lý Lên Lớp (Quy trình mới)
+        #region 3. Quản lý Lên Lớp (Logic Tự động & Xác nhận Sĩ số)
 
-        /// <summary>
-        /// Lớp nội bộ (private nested class) để lưu trữ thông tin xét lên lớp tạm thời.
-        /// </summary>
         private class StudentPromotionInfo
         {
             public string MaHS { get; set; }
@@ -440,425 +346,565 @@ namespace N6
             public double DiemTB { get; set; }
             public bool PassStatus => DiemTB >= 5.0;
 
-            /// <summary>
-            /// Định dạng chuỗi hiển thị cho ListBox.
-            /// </summary>
             public override string ToString()
             {
                 return $"{HoTen} ({MaHS}) - ĐTB: {DiemTB:F2}";
             }
         }
 
-        /// <summary>
-        /// Tải danh sách lớp học (đang hoạt động) vào ComboBox chọn "Lớp Cũ".
-        /// </summary>
         private void LoadLopCuComboBox()
         {
             try
             {
                 allLopHocCache = DatabaseHelper.GetAllClasses();
 
-                var lopHocList = allLopHocCache.AsEnumerable()
-                                    .Where(row => row["MaLop"] != DBNull.Value)
-                                     .OrderBy(row => row["Khoi"].ToString()).ThenBy(row => row["TenLop"].ToString())
-                                    .CopyToDataTable();
+                DataView dv = new DataView(allLopHocCache);
+                dv.Sort = "Khoi, TenLop";
+                DataTable dt = dv.ToTable();
 
-                DataRow emptyRow = lopHocList.NewRow();
-                emptyRow["MaLop"] = DBNull.Value;
-                emptyRow["TenLop"] = "(Chọn lớp...)";
-                lopHocList.Rows.InsertAt(emptyRow, 0);
+                DataRow dr = dt.NewRow();
+                dr["MaLop"] = DBNull.Value;
+                dr["TenLop"] = "-- Chọn Lớp Cần Xét --";
+                dt.Rows.InsertAt(dr, 0);
 
-                cboLopCu.DataSource = lopHocList;
+                cboLopCu.DataSource = dt;
                 cboLopCu.DisplayMember = "TenLop";
                 cboLopCu.ValueMember = "MaLop";
-                cboLopCu.SelectedIndex = 0;
             }
-            catch (Exception ex)
-            {
-                if (ex is InvalidOperationException && allLopHocCache.Rows.Count == 0)
-                {
-                    DataTable emptyDt = allLopHocCache.Clone();
-                    DataRow emptyRow = emptyDt.NewRow();
-                    emptyRow["MaLop"] = DBNull.Value;
-                    emptyRow["TenLop"] = "(Chưa có lớp nào)";
-                    emptyDt.Rows.Add(emptyRow);
-                    cboLopCu.DataSource = emptyDt;
-                    cboLopCu.DisplayMember = "TenLop";
-                    cboLopCu.ValueMember = "MaLop";
-                    cboLopCu.SelectedIndex = 0;
-                    cboLopCu.Enabled = false;
-                    btnLoadLopData.Enabled = false;
-                }
-                else
-                {
-                    MessageBox.Show("Lỗi khi tải danh sách lớp: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
+            catch { }
         }
 
-
-        /// <summary>
-        /// Đặt lại giao diện tab Lên Lớp về trạng thái ban đầu.
-        /// </summary>
         private void ResetLenLopUI()
         {
-            lstPassingStudents.DataSource = new List<StudentPromotionInfo>();
-            lstFailingStudents.DataSource = new List<StudentPromotionInfo>();
-
-            lblPassingCount.Text = "Đủ Điều Kiện";
-            lblFailingCount.Text = "Không Đủ Điều Kiện";
-
-            cboLopMoi_LenLop.DataSource = null;
-            cboLopMoi_OLaiLop.DataSource = null;
-            cboLopMoi_LenLop.Enabled = false;
-            cboLopMoi_OLaiLop.Enabled = false;
-            lblNextClassPrompt.Text = "Chuyển đến lớp:*";
-            lblRepeatClassPrompt.Text = "Chuyển đến lớp:*";
+            lstPassingStudents.DataSource = null;
+            lstFailingStudents.DataSource = null;
 
             pnlPassingStudents.Visible = false;
             pnlFailingStudents.Visible = false;
 
             btnThucHienLenLop_SingleClass.Enabled = false;
             lblSummary.Text = "";
-
-            currentClassStudents = null;
-            currentMaLopCu = null;
-            currentKhoi = null;
-            currentIsLop5 = false;
-
-            btnLoadLopData.Enabled = (cboLopCu.Items.Count > 0 && cboLopCu.SelectedIndex > 0);
         }
 
-        /// <summary>
-        /// Xử lý khi thay đổi lựa chọn "Lớp Cũ" (tab Lên Lớp).
-        /// </summary>
         private void cboLopCu_SelectedIndexChanged(object sender, EventArgs e)
         {
             ResetLenLopUI();
         }
 
-        /// <summary>
-        /// Xử lý nút "Tải Dữ Liệu Lớp" (tab Lên Lớp).
-        /// </summary>
-        private void btnLoadLopData_Click(object sender, EventArgs e)
+        private string DetermineNextClassName(string currentClassName, string khoiHienTai)
         {
-            if (cboLopCu.SelectedValue == null || cboLopCu.SelectedValue == DBNull.Value)
+            if (string.IsNullOrEmpty(currentClassName)) return null;
+
+            if (khoiHienTai.Equals("Khối 5", StringComparison.OrdinalIgnoreCase))
             {
-                MessageBox.Show("Vui lòng chọn một lớp để xử lý.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                return "Tốt Nghiệp";
             }
 
+            for (int i = 0; i < currentClassName.Length; i++)
+            {
+                if (char.IsDigit(currentClassName[i]))
+                {
+                    int digitVal = int.Parse(currentClassName[i].ToString());
+                    if (digitVal < 5)
+                    {
+                        char nextDigit = (char)('0' + (digitVal + 1));
+                        char[] chars = currentClassName.ToCharArray();
+                        chars[i] = nextDigit;
+                        return new string(chars);
+                    }
+                    break;
+                }
+            }
+            return null;
+        }
+
+        private void btnLoadLopData_Click(object sender, EventArgs e)
+        {
+            if (cboLopCu.SelectedValue == null || cboLopCu.SelectedValue == DBNull.Value) return;
+
             currentMaLopCu = cboLopCu.SelectedValue.ToString();
+            string tenLopCu = cboLopCu.Text;
 
             this.Cursor = Cursors.WaitCursor;
-            lblSummary.Text = "Đang tính toán điểm và tải dữ liệu...";
-            Application.DoEvents();
+            lblSummary.Text = "Đang tính toán điểm và phân loại...";
 
             try
             {
                 DataRow lopCuInfo = DatabaseHelper.GetClassDetails(currentMaLopCu);
-                if (lopCuInfo == null) throw new Exception($"Không tìm thấy thông tin lớp học với mã '{currentMaLopCu}'.");
+                if (lopCuInfo == null) return;
+
                 currentKhoi = lopCuInfo["Khoi"]?.ToString();
-                if (string.IsNullOrEmpty(currentKhoi)) throw new Exception("Không xác định được khối cho lớp.");
                 currentIsLop5 = currentKhoi.Equals("Khối 5", StringComparison.OrdinalIgnoreCase);
 
                 currentClassStudents = CalculateStudentAverages(currentMaLopCu);
-
-                if (currentClassStudents == null)
+                if (currentClassStudents == null || currentClassStudents.Count == 0)
                 {
-                    lblSummary.Text = $"Lớp {cboLopCu.Text} chưa có đủ dữ liệu điểm để xét.";
-                    pnlPassingStudents.Visible = false;
-                    pnlFailingStudents.Visible = false;
-                    btnThucHienLenLop_SingleClass.Enabled = false;
-                    this.Cursor = Cursors.Default;
-                    return;
-                }
-                else if (currentClassStudents.Count == 0)
-                {
-                    lblSummary.Text = $"Lớp {cboLopCu.Text} không có học sinh.";
-                    pnlPassingStudents.Visible = false;
-                    pnlFailingStudents.Visible = false;
-                    btnThucHienLenLop_SingleClass.Enabled = false;
+                    lblSummary.Text = "Lớp chưa có dữ liệu điểm hoặc không có học sinh.";
                     this.Cursor = Cursors.Default;
                     return;
                 }
 
+                var passing = currentClassStudents.Where(s => s.PassStatus).ToList();
+                var failing = currentClassStudents.Where(s => !s.PassStatus).ToList();
 
-                var passingStudents = currentClassStudents.Where(s => s.PassStatus).ToList();
-                var failingStudents = currentClassStudents.Where(s => !s.PassStatus).ToList();
+                _autoTargetClassIdForPassers = null;
+                _autoTargetClassNameForPassers = "";
 
-                lblPassingCount.Text = $"Đủ Điều Kiện ({passingStudents.Count} hs)";
-                lstPassingStudents.DataSource = passingStudents;
-                lstPassingStudents.DisplayMember = "ToString";
-                pnlPassingStudents.Visible = true;
-                lstPassingStudents.Refresh();
-
-                lblFailingCount.Text = $"Không Đủ Điều Kiện ({failingStudents.Count} hs)";
-                lstFailingStudents.DataSource = failingStudents;
-                lstFailingStudents.DisplayMember = "ToString";
-                pnlFailingStudents.Visible = true;
-                lstFailingStudents.Refresh();
-
-                LoadDestinationClassComboBoxes();
-
-                btnThucHienLenLop_SingleClass.Enabled = true;
-                lblSummary.Text = $"Đã tải dữ liệu lớp {cboLopCu.Text}. Vui lòng chọn lớp mới và thực hiện.";
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi khi tải dữ liệu lớp: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                ResetLenLopUI();
-            }
-            finally
-            {
-                this.Cursor = Cursors.Default;
-            }
-        }
-
-
-        /// <summary>
-        /// Tính toán điểm trung bình cả năm cho học sinh của một lớp.
-        /// </summary>
-        /// <param name="maLop">Mã lớp cần tính toán.</param>
-        /// <returns>Danh sách StudentPromotionInfo chứa điểm trung bình.</returns>
-        private List<StudentPromotionInfo> CalculateStudentAverages(string maLop)
-        {
-            DataRow lopInfo = DatabaseHelper.GetClassDetails(maLop);
-            if (lopInfo == null) return null;
-            string khoi = lopInfo["Khoi"]?.ToString();
-            if (string.IsNullOrEmpty(khoi)) return null;
-
-
-            DataTable dtDiemCaNam = DatabaseHelper.GetSemesterScoreboard(maLop, 3);
-            if (dtDiemCaNam == null || dtDiemCaNam.Rows.Count == 0) return new List<StudentPromotionInfo>();
-
-
-            List<StudentPromotionInfo> studentList = new List<StudentPromotionInfo>();
-            foreach (DataRow row in dtDiemCaNam.Rows)
-            {
-                if (row["MaHS"] == DBNull.Value || string.IsNullOrEmpty(row["MaHS"].ToString())) continue;
-
-                double dtb = 0;
-                if (row.Table.Columns.Contains("Trung bình chung") && row["Trung bình chung"] != DBNull.Value)
+                if (currentIsLop5)
                 {
-                    double.TryParse(row["Trung bình chung"].ToString(), out dtb);
-                }
+                    lblNextClassPrompt.Text = "Trạng thái:";
+                    lblPassingCount.Text = $"Đủ điều kiện Tốt Nghiệp ({passing.Count} hs)";
 
-                studentList.Add(new StudentPromotionInfo
-                {
-                    MaHS = row["MaHS"].ToString(),
-                    HoTen = row["HoTen"]?.ToString() ?? "N/A",
-                    DiemTB = Math.Round(dtb, 2)
-                });
-            }
-            studentList = studentList.OrderBy(s => s.HoTen).ToList();
-            return studentList;
-        }
-
-        /// <summary>
-        /// Tải danh sách các lớp đích (Lên lớp, Ở lại lớp) vào ComboBoxes.
-        /// </summary>
-        private void LoadDestinationClassComboBoxes()
-        {
-            if (currentMaLopCu == null || allLopHocCache == null || string.IsNullOrEmpty(currentKhoi)) return;
-
-            cboLopMoi_LenLop.DataSource = null;
-            if (currentIsLop5)
-            {
-                lblNextClassPrompt.Text = "Tốt nghiệp:";
-                var dtGrad = new DataTable();
-                dtGrad.Columns.Add("MaLop", typeof(string));
-                dtGrad.Columns.Add("TenLop", typeof(string));
-                dtGrad.Rows.Add(DBNull.Value, "(Tốt nghiệp)");
-                cboLopMoi_LenLop.DataSource = dtGrad;
-                cboLopMoi_LenLop.DisplayMember = "TenLop";
-                cboLopMoi_LenLop.ValueMember = "MaLop";
-                cboLopMoi_LenLop.SelectedIndex = 0;
-                cboLopMoi_LenLop.Enabled = false;
-            }
-            else
-            {
-                lblNextClassPrompt.Text = "Chuyển đến lớp:*";
-                int currentGradeLevel = 0;
-                int.TryParse(currentKhoi.Replace("Khối ", ""), out currentGradeLevel);
-                int nextGradeLevel = currentGradeLevel + 1;
-                string nextKhoi = $"Khối {nextGradeLevel}";
-
-                DataTable nextGradeClasses = null;
-                try
-                {
-                    nextGradeClasses = allLopHocCache.AsEnumerable()
-                       .Where(row => row["MaLop"] != DBNull.Value && row["Khoi"] != DBNull.Value && row["Khoi"].ToString() == nextKhoi)
-                       .OrderBy(row => row["TenLop"].ToString())
-                       .CopyToDataTable();
-                }
-                catch (InvalidOperationException) { /* No rows */ }
-
-                if (nextGradeClasses == null) nextGradeClasses = allLopHocCache.Clone();
-
-                DataRow emptyRowNext = nextGradeClasses.NewRow();
-                emptyRowNext["MaLop"] = DBNull.Value;
-                emptyRowNext["TenLop"] = "(Chọn lớp...)";
-                nextGradeClasses.Rows.InsertAt(emptyRowNext, 0);
-
-
-                cboLopMoi_LenLop.DataSource = nextGradeClasses;
-                cboLopMoi_LenLop.DisplayMember = "TenLop";
-                cboLopMoi_LenLop.ValueMember = "MaLop";
-                cboLopMoi_LenLop.Enabled = nextGradeClasses.Rows.Count > 1;
-
-                string currentTenLop = allLopHocCache.AsEnumerable()
-                                      .FirstOrDefault(r => r["MaLop"] != DBNull.Value && r["MaLop"].ToString() == currentMaLopCu)?["TenLop"].ToString();
-                if (!string.IsNullOrEmpty(currentTenLop) && currentGradeLevel > 0)
-                {
-                    string suffix = "";
-                    int firstDigitIndex = currentTenLop.IndexOfAny("0123456789".ToCharArray());
-                    if (firstDigitIndex >= 0)
-                    {
-                        int firstLetterAfterDigitIndex = -1;
-                        for (int i = firstDigitIndex + 1; i < currentTenLop.Length; i++)
-                        {
-                            if (char.IsLetter(currentTenLop[i]))
-                            {
-                                firstLetterAfterDigitIndex = i;
-                                break;
-                            }
-                        }
-                        if (firstLetterAfterDigitIndex >= 0)
-                        {
-                            suffix = currentTenLop.Substring(firstLetterAfterDigitIndex);
-                        }
-                    }
-                    string suggestedTenLop = $"Lớp {nextGradeLevel}{suffix}";
-
-                    var suggestedRow = nextGradeClasses.AsEnumerable()
-                                       .FirstOrDefault(r => r["TenLop"].ToString().Equals(suggestedTenLop, StringComparison.OrdinalIgnoreCase));
-                    if (suggestedRow != null)
-                    {
-                        cboLopMoi_LenLop.SelectedValue = suggestedRow["MaLop"];
-                    }
-                    else
-                    {
-                        cboLopMoi_LenLop.SelectedIndex = 0;
-                    }
+                    cboLopMoi_LenLop.DataSource = null;
+                    cboLopMoi_LenLop.Items.Clear();
+                    cboLopMoi_LenLop.Items.Add("Đã Tốt Nghiệp");
+                    cboLopMoi_LenLop.SelectedIndex = 0;
+                    cboLopMoi_LenLop.Enabled = false;
                 }
                 else
                 {
-                    cboLopMoi_LenLop.SelectedIndex = 0;
-                }
-            }
+                    lblNextClassPrompt.Text = "Lên lớp (Tự động):";
+                    string targetName = DetermineNextClassName(tenLopCu, currentKhoi);
 
-            lblRepeatClassPrompt.Text = "Chuyển đến lớp:*";
-            DataTable sameGradeClasses = null;
-            try
-            {
-                sameGradeClasses = allLopHocCache.AsEnumerable()
-                   .Where(row => row["MaLop"] != DBNull.Value && row["Khoi"] != DBNull.Value && row["Khoi"].ToString() == currentKhoi && row["MaLop"].ToString() != currentMaLopCu)
-                   .OrderBy(row => row["TenLop"].ToString())
-                   .CopyToDataTable();
-            }
-            catch (InvalidOperationException) { /* No rows */ }
+                    _autoTargetClassIdForPassers = DatabaseHelper.GetClassIdByName(targetName);
+                    _autoTargetClassNameForPassers = targetName;
 
-            if (sameGradeClasses == null) sameGradeClasses = allLopHocCache.Clone();
-
-            DataRow emptyRowRepeat = sameGradeClasses.NewRow();
-            emptyRowRepeat["MaLop"] = DBNull.Value;
-            emptyRowRepeat["TenLop"] = "(Chọn lớp...)";
-            sameGradeClasses.Rows.InsertAt(emptyRowRepeat, 0);
-
-            cboLopMoi_OLaiLop.DataSource = sameGradeClasses;
-            cboLopMoi_OLaiLop.DisplayMember = "TenLop";
-            cboLopMoi_OLaiLop.ValueMember = "MaLop";
-            cboLopMoi_OLaiLop.SelectedIndex = 0;
-            cboLopMoi_OLaiLop.Enabled = sameGradeClasses.Rows.Count > 1;
-        }
-
-        /// <summary>
-        /// Xử lý nút "THỰC HIỆN XÉT LÊN LỚP" (tab Lên Lớp).
-        /// </summary>
-        private void btnThucHienLenLop_SingleClass_Click(object sender, EventArgs e)
-        {
-            if (currentMaLopCu == null || currentClassStudents == null) return;
-
-            object lenLopObj = cboLopMoi_LenLop.SelectedValue;
-            object oLaiLopObj = cboLopMoi_OLaiLop.SelectedValue;
-
-            string maLopMoi_LenLop = (lenLopObj == DBNull.Value || lenLopObj == null) ? null : lenLopObj.ToString();
-            string maLopMoi_OLaiLop = (oLaiLopObj == DBNull.Value || oLaiLopObj == null) ? null : oLaiLopObj.ToString();
-
-            if (lstFailingStudents.Items.Count > 0 && string.IsNullOrEmpty(maLopMoi_OLaiLop))
-            {
-                MessageBox.Show("Vui lòng chọn lớp mới cho nhóm học sinh 'Không Đủ Điều Kiện'.", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                cboLopMoi_OLaiLop.Focus();
-                return;
-            }
-            if (lstPassingStudents.Items.Count > 0 && string.IsNullOrEmpty(maLopMoi_LenLop) && !currentIsLop5)
-            {
-                MessageBox.Show("Vui lòng chọn lớp mới cho nhóm học sinh 'Đủ Điều Kiện'.", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                cboLopMoi_LenLop.Focus();
-                return;
-            }
-
-
-            string msg = $"Bạn có chắc chắn muốn thực hiện xét lên lớp cho '{cboLopCu.Text}'?\n\n";
-            msg += $"  - {lstPassingStudents.Items.Count} hs đủ điều kiện sẽ chuyển tới '{cboLopMoi_LenLop.Text}'.\n";
-            msg += $"  - {lstFailingStudents.Items.Count} hs không đủ điều kiện sẽ chuyển tới '{cboLopMoi_OLaiLop.Text}'.\n\n";
-            msg += "Hành động này KHÔNG THỂ HOÀN TÁC!";
-
-            DialogResult confirm = MessageBox.Show(msg, "XÁC NHẬN LÊN LỚP", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (confirm == DialogResult.No) return;
-
-            this.Cursor = Cursors.WaitCursor;
-            lblSummary.Text = "Đang thực hiện chuyển lớp...";
-            Application.DoEvents();
-
-            try
-            {
-                int updatedPassing = 0;
-                int updatedFailing = 0;
-                int totalTotNghiep = 0;
-
-                var failingHSList = currentClassStudents.Where(s => !s.PassStatus).Select(s => s.MaHS).ToList();
-                if (failingHSList.Any() && !string.IsNullOrEmpty(maLopMoi_OLaiLop))
-                {
-                    updatedFailing = DatabaseHelper.UpdateStudentClass_Multi(failingHSList, maLopMoi_OLaiLop);
-                }
-
-                var passingHSList = currentClassStudents.Where(s => s.PassStatus).Select(s => s.MaHS).ToList();
-                if (passingHSList.Any())
-                {
-                    if (currentIsLop5)
+                    List<string> displayList = new List<string>();
+                    if (!string.IsNullOrEmpty(_autoTargetClassIdForPassers))
                     {
-                        updatedPassing = DatabaseHelper.UpdateStudentClass_Multi(passingHSList, null);
-                        totalTotNghiep = updatedPassing;
-                        updatedPassing = 0;
+                        displayList.Add($"{targetName} (Tự động)");
                     }
-                    else if (!string.IsNullOrEmpty(maLopMoi_LenLop))
+                    else
                     {
-                        updatedPassing = DatabaseHelper.UpdateStudentClass_Multi(passingHSList, maLopMoi_LenLop);
+                        displayList.Add($"Chưa tạo lớp {targetName}!");
                     }
+
+                    cboLopMoi_LenLop.DataSource = displayList;
+                    cboLopMoi_LenLop.Enabled = false;
+
+                    lblPassingCount.Text = $"Đủ điều kiện Lên Lớp ({passing.Count} hs)";
                 }
 
+                lstPassingStudents.DataSource = passing;
+                pnlPassingStudents.Visible = true;
 
-                string resultMsg = "Đã xử lý xong!\n";
-                resultMsg += $" - Lên Lớp: {updatedPassing} hs\n";
-                resultMsg += $" - Ở Lại Lớp: {updatedFailing} hs\n";
-                resultMsg += $" - Tốt Nghiệp (Khối 5): {totalTotNghiep} hs";
-                lblSummary.Text = resultMsg;
-                MessageBox.Show(resultMsg, "Hoàn thành", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                lblFailingCount.Text = $"Lưu ban ({failing.Count} hs)";
+                lstFailingStudents.DataSource = failing;
+                pnlFailingStudents.Visible = true;
 
-                LoadLopCuComboBox();
-                ResetLenLopUI();
+                LoadFailersDestinationCombo(currentKhoi, currentMaLopCu);
 
+                btnThucHienLenLop_SingleClass.Enabled = true;
+                lblSummary.Text = "Phân tích hoàn tất. Vui lòng kiểm tra và thực hiện.";
             }
             catch (Exception ex)
             {
-                lblSummary.Text = "Xử lý thất bại!";
-                MessageBox.Show("Đã xảy ra lỗi khi thực hiện lên lớp: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi: " + ex.Message);
             }
             finally
             {
                 this.Cursor = Cursors.Default;
+            }
+        }
+
+        private List<StudentPromotionInfo> CalculateStudentAverages(string maLop)
+        {
+            DataTable dt = DatabaseHelper.GetSemesterScoreboard(maLop, 3);
+            var list = new List<StudentPromotionInfo>();
+
+            foreach (DataRow row in dt.Rows)
+            {
+                if (row["MaHS"] == DBNull.Value) continue;
+
+                double.TryParse(row["Trung bình chung"].ToString(), out double dtb);
+
+                list.Add(new StudentPromotionInfo
+                {
+                    MaHS = row["MaHS"].ToString(),
+                    HoTen = row["HoTen"].ToString(),
+                    DiemTB = dtb
+                });
+            }
+            return list;
+        }
+
+        private void LoadFailersDestinationCombo(string currentKhoi, string currentMaLop)
+        {
+            try
+            {
+                DataView dv = new DataView(allLopHocCache);
+                dv.RowFilter = $"Khoi = '{currentKhoi}'";
+
+                cboLopMoi_OLaiLop.DataSource = dv.ToTable();
+                cboLopMoi_OLaiLop.DisplayMember = "TenLop";
+                cboLopMoi_OLaiLop.ValueMember = "MaLop";
+
+                cboLopMoi_OLaiLop.SelectedValue = currentMaLop;
+            }
+            catch { }
+        }
+
+        private void btnThucHienLenLop_SingleClass_Click(object sender, EventArgs e)
+        {
+            if (currentMaLopCu == null) return;
+
+            bool missingTarget = string.IsNullOrEmpty(_autoTargetClassIdForPassers);
+            if (!currentIsLop5 && missingTarget && lstPassingStudents.Items.Count > 0)
+            {
+                string err = $"Chưa có lớp đích '{_autoTargetClassNameForPassers}'. Vui lòng tạo lớp này trước.";
+                MessageBox.Show(err, "Thiếu lớp đích", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string maLopLuuBan = null;
+            string tenLopLuuBan = "";
+            if (lstFailingStudents.Items.Count > 0)
+            {
+                if (cboLopMoi_OLaiLop.SelectedValue == null) return;
+                maLopLuuBan = cboLopMoi_OLaiLop.SelectedValue.ToString();
+                tenLopLuuBan = cboLopMoi_OLaiLop.Text;
+            }
+
+            int countPass = lstPassingStudents.Items.Count;
+            int countFail = lstFailingStudents.Items.Count;
+            int siSoHienTai_Pass = 0;
+
+            if (!currentIsLop5 && !string.IsNullOrEmpty(_autoTargetClassIdForPassers))
+            {
+                siSoHienTai_Pass = DatabaseHelper.GetCurrentClassCount(_autoTargetClassIdForPassers);
+            }
+
+            string msg = $"XÁC NHẬN XÉT LÊN LỚP CHO: {cboLopCu.Text.ToUpper()}\n\n";
+
+            if (countPass > 0)
+            {
+                if (currentIsLop5)
+                {
+                    msg += $"✅ TỐT NGHIỆP: {countPass} HS (Ra trường - Xóa khỏi lớp).\n";
+                }
+                else
+                {
+                    int tongDuKien = siSoHienTai_Pass + countPass;
+                    msg += $"✅ LÊN LỚP: {countPass} HS -> {_autoTargetClassNameForPassers}\n";
+                    msg += $"   (Sĩ số lớp đích: {siSoHienTai_Pass} + {countPass} = {tongDuKien})\n";
+                }
+            }
+
+            if (countFail > 0)
+            {
+                msg += $"⚠️ LƯU BAN: {countFail} HS -> {tenLopLuuBan}.\n";
+            }
+
+            msg += "\nBạn có chắc chắn muốn thực hiện?";
+
+            DialogResult dr = MessageBox.Show(msg, "Xác nhận Sĩ số & Lên lớp",
+                                              MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (dr == DialogResult.Yes)
+            {
+                ExecutePromotion(countPass, countFail, maLopLuuBan);
+            }
+        }
+
+        private void ExecutePromotion(int countPass, int countFail, string maLopLuuBan)
+        {
+            this.Cursor = Cursors.WaitCursor;
+            try
+            {
+                var passList = ((List<StudentPromotionInfo>)lstPassingStudents.DataSource)
+                               .Select(s => s.MaHS).ToList();
+
+                if (passList.Any())
+                {
+                    string target = currentIsLop5 ? null : _autoTargetClassIdForPassers;
+                    DatabaseHelper.UpdateStudentClass_Multi(passList, target);
+                }
+
+                var failList = ((List<StudentPromotionInfo>)lstFailingStudents.DataSource)
+                               .Select(s => s.MaHS).ToList();
+
+                if (failList.Any() && !string.IsNullOrEmpty(maLopLuuBan))
+                {
+                    DatabaseHelper.UpdateStudentClass_Multi(failList, maLopLuuBan);
+                }
+
+                MessageBox.Show("Xử lý hoàn tất! Dữ liệu học sinh đã được cập nhật.");
+                LoadLopCuComboBox();
+                ResetLenLopUI();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi trong quá trình cập nhật: " + ex.Message);
+            }
+            finally
+            {
+                this.Cursor = Cursors.Default;
+            }
+        }
+
+        #endregion
+
+        #region 4. Kho Lưu Trữ (Re-Layout & Optimized)
+
+        private void SetupArchiveTab()
+        {
+            if (tabKhoLuuTru != null) return;
+
+            tabKhoLuuTru = new TabPage("Kho Lưu Trữ");
+            tabKhoLuuTru.BackColor = Color.WhiteSmoke;
+
+            // 1. PANEL BỘ LỌC (TOP)
+            Panel pnlTop = new Panel { Dock = DockStyle.Top, Height = 110, Padding = new Padding(5) };
+            GroupBox grpFilter = new GroupBox { Text = "Bộ Lọc & Tìm Kiếm", Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9.5f, FontStyle.Bold) };
+
+            // --- Các Controls Bộ lọc (Giữ nguyên như cũ) ---
+            Label lblNam = new Label { Text = "Năm Học:", Location = new Point(20, 30), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Regular) };
+            cboArchiveNamHoc = new ComboBox { Location = new Point(95, 27), Width = 130, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 9.5f) };
+            cboArchiveNamHoc.SelectedIndexChanged += (s, e) => LoadArchiveClassesForCombo();
+
+            Label lblKhoi = new Label { Text = "Khối:", Location = new Point(260, 30), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Regular) };
+            cboArchiveKhoi = new ComboBox { Location = new Point(305, 27), Width = 100, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 9.5f) };
+            cboArchiveKhoi.Items.AddRange(new string[] { "Tất cả", "Khối 1", "Khối 2", "Khối 3", "Khối 4", "Khối 5" });
+            cboArchiveKhoi.SelectedIndex = 0;
+            cboArchiveKhoi.SelectedIndexChanged += (s, e) => LoadArchiveClassesForCombo();
+
+            Label lblLop = new Label { Text = "Lớp:", Location = new Point(440, 30), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Regular) };
+            cboArchiveLop = new ComboBox { Location = new Point(480, 27), Width = 150, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 9.5f) };
+            cboArchiveLop.SelectedIndexChanged += CboArchiveLop_SelectedIndexChanged;
+
+            Label lblSearch = new Label { Text = "Tìm HS:", Location = new Point(20, 75), AutoSize = true, Font = new Font("Segoe UI", 9.5f, FontStyle.Regular) };
+            txtSearchStudent = new TextBox { Location = new Point(95, 72), Width = 310, Font = new Font("Segoe UI", 9.5f) };
+            txtSearchStudent.TextChanged += TxtSearchStudent_TextChanged;
+
+            lblArchiveGVCN = new Label { Text = "GVCN: ---", Location = new Point(440, 75), AutoSize = true, Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(0, 123, 255) };
+
+            grpFilter.Controls.AddRange(new Control[] { lblNam, cboArchiveNamHoc, lblKhoi, cboArchiveKhoi, lblLop, cboArchiveLop, lblSearch, txtSearchStudent, lblArchiveGVCN });
+            pnlTop.Controls.Add(grpFilter);
+
+            // 2. PANEL CHÍNH (SPLIT CONTAINER)
+            var splitMain = new SplitContainer
+            {
+                Dock = DockStyle.Fill,
+                Orientation = Orientation.Vertical,
+                FixedPanel = FixedPanel.Panel1 // [QUAN TRỌNG] Cố định panel trái (Học sinh) để nó không bị giãn lung tung
+            };
+
+            // Cột Trái: Danh sách Học sinh
+            GroupBox grpStudents = new GroupBox { Text = "Danh Sách Học Sinh", Dock = DockStyle.Fill };
+            dgvArchiveStudents = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                BackgroundColor = Color.White,
+                RowHeadersVisible = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                BorderStyle = BorderStyle.None
+            };
+            dgvArchiveStudents.DoubleClick += DgvArchiveStudents_DoubleClick;
+            grpStudents.Controls.Add(dgvArchiveStudents);
+
+            // Cột Phải: Phân công Giảng dạy
+            GroupBox grpTeachers = new GroupBox { Text = "Phân Công Giảng Dạy", Dock = DockStyle.Fill };
+            dgvArchiveTeachers = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                BackgroundColor = Color.White,
+                RowHeadersVisible = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                BorderStyle = BorderStyle.None
+            };
+            grpTeachers.Controls.Add(dgvArchiveTeachers);
+
+            splitMain.Panel1.Controls.Add(grpStudents);
+            splitMain.Panel2.Controls.Add(grpTeachers);
+
+            // Thêm vào Tab
+            tabKhoLuuTru.Controls.Add(splitMain);
+            tabKhoLuuTru.Controls.Add(pnlTop);
+            tabControlMain.TabPages.Add(tabKhoLuuTru);
+
+            // [CỰC KỲ QUAN TRỌNG] Set SplitterDistance Ở CUỐI CÙNG
+            // 400 là chiều rộng của bảng Học sinh. Phần còn lại sẽ dành hết cho bảng Giáo viên.
+            // Bạn có thể giảm xuống 350 nếu muốn bảng Giáo viên to hơn nữa.
+            splitMain.SplitterDistance = 600;
+
+            LoadArchiveYears();
+        }
+
+        private void LoadArchiveYears()
+        {
+            try
+            {
+                DataTable dt = DatabaseHelper.GetArchiveYears();
+                cboArchiveNamHoc.DataSource = dt;
+                cboArchiveNamHoc.DisplayMember = "NamHoc";
+                cboArchiveNamHoc.ValueMember = "NamHoc";
+
+                if (dt.Rows.Count == 0)
+                {
+                    cboArchiveNamHoc.Items.Add(DateTime.Now.Year.ToString());
+                    cboArchiveNamHoc.SelectedIndex = 0;
+                }
+            }
+            catch { }
+        }
+
+        private void LoadArchiveClassesForCombo()
+        {
+            if (cboArchiveNamHoc.Text == "") return;
+
+            string nam = cboArchiveNamHoc.SelectedValue?.ToString() ?? cboArchiveNamHoc.Text;
+            string khoi = cboArchiveKhoi.SelectedItem?.ToString();
+
+            try
+            {
+                DataTable dt = DatabaseHelper.GetArchiveClasses(nam, khoi);
+
+                DataRow dr = dt.NewRow();
+                dr["MaLop"] = DBNull.Value;
+                dr["TenLop"] = "-- Chọn Lớp --";
+                dt.Rows.InsertAt(dr, 0);
+
+                cboArchiveLop.DataSource = dt;
+                cboArchiveLop.DisplayMember = "TenLop";
+                cboArchiveLop.ValueMember = "MaLop";
+                cboArchiveLop.SelectedIndex = 0;
+            }
+            catch { }
+        }
+
+        private void CboArchiveLop_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (txtSearchStudent != null) txtSearchStudent.Clear();
+
+            if (cboArchiveLop.SelectedValue == null || cboArchiveLop.SelectedValue == DBNull.Value)
+            {
+                dgvArchiveStudents.DataSource = null;
+                dgvArchiveTeachers.DataSource = null;
+                lblArchiveGVCN.Text = "GVCN: ---";
+                return;
+            }
+
+            string maLop = cboArchiveLop.SelectedValue.ToString();
+
+            DataRowView row = cboArchiveLop.SelectedItem as DataRowView;
+            string maGVCN = row?["MaGVCN"]?.ToString();
+            string tenGVCN = string.IsNullOrEmpty(maGVCN)
+                             ? "Chưa phân công"
+                             : DatabaseHelper.GetTeacherNameById(maGVCN);
+            lblArchiveGVCN.Text = "GVCN: " + tenGVCN;
+
+            LoadArchiveStudents(maLop);
+            LoadArchiveTeachers(maLop);
+        }
+
+        private void LoadArchiveStudents(string maLop)
+        {
+            try
+            {
+                DataTable dtHS = DatabaseHelper.GetStudentsByClass(maLop);
+                dgvArchiveStudents.DataSource = dtHS;
+
+                string[] hide = { "STT", "MaLop", "DiaChi", "DanToc", "SDTPhuHuynh" };
+                foreach (var c in hide)
+                {
+                    if (dgvArchiveStudents.Columns.Contains(c))
+                        dgvArchiveStudents.Columns[c].Visible = false;
+                }
+
+                // Tự động giãn cột, nhưng set FillWeight để tránh thanh trượt
+                dgvArchiveStudents.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+                if (dgvArchiveStudents.Columns.Contains("MaHS"))
+                {
+                    dgvArchiveStudents.Columns["MaHS"].HeaderText = "Mã HS";
+                    dgvArchiveStudents.Columns["MaHS"].FillWeight = 20;
+                }
+
+                if (dgvArchiveStudents.Columns.Contains("HoTen"))
+                {
+                    dgvArchiveStudents.Columns["HoTen"].HeaderText = "Họ và Tên";
+                    dgvArchiveStudents.Columns["HoTen"].FillWeight = 50; // Tên cần rộng nhất
+                }
+
+                if (dgvArchiveStudents.Columns.Contains("NgaySinh"))
+                {
+                    dgvArchiveStudents.Columns["NgaySinh"].HeaderText = "Ngày Sinh";
+                    dgvArchiveStudents.Columns["NgaySinh"].FillWeight = 20;
+                    dgvArchiveStudents.Columns["NgaySinh"].DefaultCellStyle.Format = "dd/MM/yyyy";
+                    dgvArchiveStudents.Columns["NgaySinh"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                }
+
+                if (dgvArchiveStudents.Columns.Contains("GioiTinh"))
+                {
+                    dgvArchiveStudents.Columns["GioiTinh"].HeaderText = "Giới Tính";
+                    dgvArchiveStudents.Columns["GioiTinh"].FillWeight = 10; // Cột nhỏ
+                    dgvArchiveStudents.Columns["GioiTinh"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                }
+
+                dgvArchiveStudents.ClearSelection();
+            }
+            catch { }
+        }
+
+        private void LoadArchiveTeachers(string maLop)
+        {
+            try
+            {
+                DataTable dtGV = DatabaseHelper.GetTeachingAssignmentsByClass(maLop);
+                dgvArchiveTeachers.DataSource = dtGV;
+
+                if (dgvArchiveTeachers.Columns.Contains("MaGV"))
+                    dgvArchiveTeachers.Columns["MaGV"].Visible = false;
+
+                if (dgvArchiveTeachers.Columns.Contains("MaMon"))
+                    dgvArchiveTeachers.Columns["MaMon"].Visible = false;
+
+                dgvArchiveTeachers.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+                // Điều chỉnh tỷ lệ cột: Môn học 45%, Giáo viên 55%
+                if (dgvArchiveTeachers.Columns.Contains("TenMon"))
+                {
+                    dgvArchiveTeachers.Columns["TenMon"].HeaderText = "Môn Học";
+                    dgvArchiveTeachers.Columns["TenMon"].FillWeight = 45; // Tăng lên 45 để hiển thị đủ tên dài
+                }
+
+                if (dgvArchiveTeachers.Columns.Contains("TenGV"))
+                {
+                    dgvArchiveTeachers.Columns["TenGV"].HeaderText = "Giáo Viên";
+                    dgvArchiveTeachers.Columns["TenGV"].FillWeight = 55;
+                    dgvArchiveTeachers.Columns["TenGV"].DefaultCellStyle.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+                }
+
+                dgvArchiveTeachers.ClearSelection();
+            }
+            catch { }
+        }
+
+        private void TxtSearchStudent_TextChanged(object sender, EventArgs e)
+        {
+            if (dgvArchiveStudents.DataSource is DataTable dt)
+            {
+                string keyword = txtSearchStudent.Text.Trim();
+                string filter = string.IsNullOrEmpty(keyword)
+                    ? ""
+                    : $"HoTen LIKE '%{keyword}%' OR MaHS LIKE '%{keyword}%'";
+
+                dt.DefaultView.RowFilter = filter;
+            }
+        }
+
+        private void DgvArchiveStudents_DoubleClick(object sender, EventArgs e)
+        {
+            if (dgvArchiveStudents.CurrentRow != null)
+            {
+                string maHS = dgvArchiveStudents.CurrentRow.Cells["MaHS"].Value.ToString();
+                string tenHS = dgvArchiveStudents.CurrentRow.Cells["HoTen"].Value.ToString();
+
+                FormBangDiem frm = new FormBangDiem(maHS, tenHS);
+                frm.ShowDialog();
             }
         }
 
@@ -866,96 +912,26 @@ namespace N6
 
         #region TabControl Custom Drawing
 
-        /// <summary>
-        /// Vẽ lại giao diện các Tab (OwnerDraw) để có giao diện đẹp hơn.
-        /// </summary>
         private void tabControlMain_DrawItem(object sender, DrawItemEventArgs e)
         {
-            TabControl tabControl = sender as TabControl;
-            if (tabControl == null) return;
-            TabPage tabPage = tabControl.TabPages[e.Index];
-            Rectangle tabRect = tabControl.GetTabRect(e.Index);
+            TabControl tc = sender as TabControl;
+            TabPage page = tc.TabPages[e.Index];
+            Rectangle rect = tc.GetTabRect(e.Index);
 
-            Color selectedBackColor = Color.FromArgb(0, 123, 255);
-            Color unselectedBackColor = Color.FromArgb(240, 245, 250);
-            Color selectedForeColor = Color.White;
-            Color unselectedForeColor = Color.FromArgb(52, 73, 94);
+            bool isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
 
-            // SỬA LỖI LEAK: Sử dụng 'using' cho Font
-            using (Font tabFont = new Font("Segoe UI", 10.2F, FontStyle.Regular))
+            Color backColor = isSelected ? Color.FromArgb(0, 123, 255) : Color.WhiteSmoke;
+            Color foreColor = isSelected ? Color.White : Color.Black;
+
+            using (SolidBrush brush = new SolidBrush(backColor))
             {
-                Font currentFont = tabFont;
-                Font boldFont = null; // Biến tạm để giữ font bold nếu được tạo
-
-                Color currentBackColor;
-                Color currentForeColor;
-
-                if ((e.State & DrawItemState.Selected) == DrawItemState.Selected)
-                {
-                    currentBackColor = selectedBackColor;
-                    currentForeColor = selectedForeColor;
-                    boldFont = new Font(tabFont, FontStyle.Bold); // Tạo font bold
-                    currentFont = boldFont;
-                }
-                else
-                {
-                    currentBackColor = unselectedBackColor;
-                    currentForeColor = unselectedForeColor;
-                }
-
-                using (SolidBrush backBrush = new SolidBrush(currentBackColor))
-                {
-                    // Vẽ bo góc
-                    int cornerRadius = 5;
-                    using (System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath())
-                    {
-                        path.AddArc(tabRect.X, tabRect.Y, cornerRadius * 2, cornerRadius * 2, 180, 90);
-                        path.AddArc(tabRect.Right - cornerRadius * 2, tabRect.Y, cornerRadius * 2, cornerRadius * 2, 270, 90);
-                        path.AddLine(tabRect.Right, tabRect.Y + cornerRadius, tabRect.Right, tabRect.Bottom);
-                        path.AddLine(tabRect.Right, tabRect.Bottom, tabRect.X, tabRect.Bottom);
-                        path.AddLine(tabRect.X, tabRect.Bottom, tabRect.X, tabRect.Y + cornerRadius);
-                        e.Graphics.FillPath(backBrush, path);
-                    } // 'path' được dispose
-
-                    if ((e.State & DrawItemState.Selected) != DrawItemState.Selected)
-                    {
-                        using (Pen borderPen = new Pen(Color.LightGray))
-                        {
-                            e.Graphics.DrawLine(borderPen, tabRect.Left, tabRect.Bottom - 1, tabRect.Right, tabRect.Bottom - 1);
-                        } // 'borderPen' được dispose
-                    }
-                } // 'backBrush' được dispose
-
-                TextRenderer.DrawText(e.Graphics, " " + tabPage.Text.Trim() + " ", currentFont, tabRect, currentForeColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-
-                // SỬA LỖI LEAK: Dispose 'boldFont' nếu nó đã được tạo
-                boldFont?.Dispose();
-
-            } // 'tabFont' được dispose
-        }
-
-        #endregion
-
-        #region Dispose (Dọn dẹp tài nguyên)
-
-        /// <summary> 
-        /// Dọn dẹp các tài nguyên đang sử dụng.
-        /// </summary>
-        /// <param name="disposing">true nếu tài nguyên được quản lý nên được giải phóng; ngược lại là false.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                // Dọn dẹp các tài nguyên IDisposable
-                allLopHocCache?.Dispose();
-                allThoiHanDiemCache?.Dispose();
-
-                if (components != null)
-                {
-                    components.Dispose();
-                }
+                e.Graphics.FillRectangle(brush, rect);
             }
-            base.Dispose(disposing);
+
+            TextRenderer.DrawText(e.Graphics, page.Text,
+                new Font("Segoe UI", 10, isSelected ? FontStyle.Bold : FontStyle.Regular),
+                rect, foreColor,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
 
         #endregion

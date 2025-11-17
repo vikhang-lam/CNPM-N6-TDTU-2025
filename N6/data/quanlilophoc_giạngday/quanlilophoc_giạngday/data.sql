@@ -1019,7 +1019,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_GetBangDiemPivot
+create PROCEDURE sp_GetBangDiemPivot
     @malop VARCHAR(10),
     @ki INT,
     @maMon VARCHAR(10)
@@ -1028,7 +1028,9 @@ BEGIN
     DECLARE @khoi NVARCHAR(20);
     SELECT @khoi = Khoi FROM LopHoc WHERE MaLop = @malop;
 
-    DECLARE @Thang1Loai NVARCHAR(20), @Thang2Loai NVARCHAR(20), @Thang3Loai NVARCHAR(20), @GiuaKiLoai NVARCHAR(20), @CuoiKiLoai NVARCHAR(20);
+    -- Lấy định nghĩa các cột điểm của Khối này trong năm nay
+    DECLARE @Thang1Loai NVARCHAR(20), @Thang2Loai NVARCHAR(20), @Thang3Loai NVARCHAR(20), 
+            @GiuaKiLoai NVARCHAR(20), @CuoiKiLoai NVARCHAR(20);
 
     SELECT @Thang1Loai = MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND HocKy = @ki AND MaCotDiem LIKE 'Thang1%';
     SELECT @Thang2Loai = MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND HocKy = @ki AND MaCotDiem LIKE 'Thang2%';
@@ -1036,6 +1038,7 @@ BEGIN
     SELECT @GiuaKiLoai = MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND HocKy = @ki AND MaCotDiem LIKE 'GiuaKi%';
     SELECT @CuoiKiLoai = MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND HocKy = @ki AND MaCotDiem LIKE 'CuoiKi%';
 
+    -- Fallback nếu null
     SET @Thang1Loai = ISNULL(@Thang1Loai, 'Thang1_Ki' + CAST(@ki AS VARCHAR));
     SET @Thang2Loai = ISNULL(@Thang2Loai, 'Thang2_Ki' + CAST(@ki AS VARCHAR));
     SET @Thang3Loai = ISNULL(@Thang3Loai, 'Thang3_Ki' + CAST(@ki AS VARCHAR));
@@ -1045,6 +1048,8 @@ BEGIN
     DECLARE @loaiFilter NVARCHAR(10) = N'%Ki' + CAST(@ki AS VARCHAR) + N'%';
     DECLARE @sql NVARCHAR(MAX);
 
+    -- [FIX QUAN TRỌNG]: Thêm JOIN với ThoiHanDiem để lọc theo Ngày
+    -- Chỉ lấy điểm mà NgayNhap >= NgayMoDiem của cấu hình hiện tại
     SET @sql = N'
     SELECT 
         hs.MaHS, 
@@ -1059,14 +1064,24 @@ BEGIN
         MAX(CASE WHEN kq.Loai LIKE @loaiFilter THEN kq.GhiChu END) AS GhiChu
     FROM HocSinh hs
     JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+    -- JOIN để lọc điểm hợp lệ theo thời gian
     LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND kq.MaMon = @maMon
+    LEFT JOIN ThoiHanDiem thd ON kq.Loai = thd.MaCotDiem AND lh.Khoi = thd.Khoi AND thd.HocKy = @ki
+    
     WHERE hs.MaLop = @malop
+      -- ĐIỀU KIỆN LỌC: Ngày nhập điểm phải lớn hơn hoặc bằng ngày mở điểm của năm nay
+      -- (Trừ đi 30 ngày cho an toàn trong trường hợp nhập sớm)
+      AND (kq.Diem IS NULL OR kq.NgayNhap >= DATEADD(day, -30, thd.NgayMoDiem))
+      
     GROUP BY hs.MaHS, hs.HoTen, lh.TenLop
     ORDER BY hs.HoTen';
 
     EXEC sp_executesql @sql, 
-        N'@malop VARCHAR(10), @maMon VARCHAR(10), @loaiFilter NVARCHAR(10), @Thang1Loai NVARCHAR(20), @Thang2Loai NVARCHAR(20), @Thang3Loai NVARCHAR(20), @GiuaKiLoai NVARCHAR(20), @CuoiKiLoai NVARCHAR(20)', 
-        @malop, @maMon, @loaiFilter, @Thang1Loai, @Thang2Loai, @Thang3Loai, @GiuaKiLoai, @CuoiKiLoai;
+        N'@malop VARCHAR(10), @ki INT, @maMon VARCHAR(10), @loaiFilter NVARCHAR(10), 
+          @Thang1Loai NVARCHAR(20), @Thang2Loai NVARCHAR(20), @Thang3Loai NVARCHAR(20), 
+          @GiuaKiLoai NVARCHAR(20), @CuoiKiLoai NVARCHAR(20)', 
+        @malop, @ki, @maMon, @loaiFilter, 
+        @Thang1Loai, @Thang2Loai, @Thang3Loai, @GiuaKiLoai, @CuoiKiLoai;
 END;
 GO
 
@@ -1799,87 +1814,66 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_GetBangDiemHocKy
+create PROCEDURE sp_GetBangDiemHocKy
     @maLop VARCHAR(10),
     @hocKy INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @monHocCols NVARCHAR(MAX), 
-            @monHocColsSelect NVARCHAR(MAX), 
-            @tongMon NVARCHAR(MAX),
-            @sql NVARCHAR(MAX);
+    DECLARE @monHocCols NVARCHAR(MAX), @monHocColsSelect NVARCHAR(MAX), @tongMon NVARCHAR(MAX), @sql NVARCHAR(MAX);
     DECLARE @loaiFilter NVARCHAR(10);
     DECLARE @monCount INT;
-
     DECLARE @khoi NVARCHAR(20);
+    
     SELECT @khoi = Khoi FROM LopHoc WHERE MaLop = @maLop;
 
+    -- (Giữ nguyên logic tạo cột động...)
     SELECT @monHocCols = STUFF((SELECT DISTINCT ',' + QUOTENAME(mh.TenMon) 
-                                FROM PhanCongGiangDay pcg
-                                JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
-                                WHERE pcg.MaLop = @maLop
-                                ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
+                                FROM PhanCongGiangDay pcg JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+                                WHERE pcg.MaLop = @maLop ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
     
     SELECT @monHocColsSelect = STUFF((SELECT DISTINCT ',ROUND(ISNULL(' + QUOTENAME(mh.TenMon) + ', 0), 2) AS ' + QUOTENAME(mh.TenMon)
-                                    FROM PhanCongGiangDay pcg
-                                    JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
-                                    WHERE pcg.MaLop = @maLop
-                                    ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
+                                    FROM PhanCongGiangDay pcg JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+                                    WHERE pcg.MaLop = @maLop ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
     
     SELECT @tongMon = STUFF((SELECT DISTINCT ' + ISNULL(' + QUOTENAME(mh.TenMon) + ', 0)'
-                            FROM PhanCongGiangDay pcg
-                            JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
-                            WHERE pcg.MaLop = @maLop
-                            ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,3,'');
+                            FROM PhanCongGiangDay pcg JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
+                            WHERE pcg.MaLop = @maLop ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,3,'');
 
     SELECT @monCount = COUNT(DISTINCT MaMon) FROM PhanCongGiangDay WHERE MaLop = @maLop;
     
-    IF @monCount = 0 OR @monHocCols IS NULL
-    BEGIN
-        SELECT MaHS, HoTen FROM HocSinh WHERE MaLop = @maLop;
-        RETURN;
-    END;
+    IF @monCount = 0 OR @monHocCols IS NULL BEGIN SELECT MaHS, HoTen FROM HocSinh WHERE MaLop = @maLop; RETURN; END;
     
     SET @loaiFilter = CASE WHEN @hocKy = 3 THEN N'%' ELSE CAST(@hocKy AS NVARCHAR) END;
 
     SET @sql = N'
     ;WITH DiemTB AS (
         SELECT 
-            hs.MaHS,
-            hs.HoTen,
-            lh.TenLop,
-            mh.TenMon,
+            hs.MaHS, hs.HoTen, lh.TenLop, mh.TenMon,
             AVG(kq.Diem) AS DiemTB
         FROM HocSinh hs
         INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
         INNER JOIN PhanCongGiangDay pcg ON hs.MaLop = pcg.MaLop
         INNER JOIN MonHoc mh ON pcg.MaMon = mh.MaMon
-        LEFT JOIN KetQuaHocTap kq 
-            ON hs.MaHS = kq.MaHS 
-            AND mh.MaMon = kq.MaMon 
-            AND kq.Loai IN (
-                SELECT MaCotDiem 
-                FROM ThoiHanDiem 
-                WHERE Khoi = @khoi AND CAST(HocKy AS NVARCHAR) LIKE @loaiFilter
-            )
+        LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS AND mh.MaMon = kq.MaMon 
+        LEFT JOIN ThoiHanDiem thd ON kq.Loai = thd.MaCotDiem AND lh.Khoi = thd.Khoi
+        
         WHERE hs.MaLop = @maLop
+          -- [FIX]: Chỉ lấy điểm có mã phù hợp VÀ ngày nhập hợp lệ (năm nay)
+          AND kq.Loai IN (SELECT MaCotDiem FROM ThoiHanDiem WHERE Khoi = @khoi AND CAST(HocKy AS NVARCHAR) LIKE @loaiFilter)
+          AND (kq.Diem IS NULL OR kq.NgayNhap >= DATEADD(day, -60, thd.NgayMoDiem)) -- Lấy lùi 60 ngày để bao quát
+
         GROUP BY hs.MaHS, hs.HoTen, lh.TenLop, mh.TenMon
     ),
     PivotData AS (
         SELECT MaHS, HoTen, TenLop, ' + @monHocCols + N'
         FROM DiemTB
-        PIVOT
-        (
-            AVG(DiemTB)
-            FOR TenMon IN (' + @monHocCols + N')
-        ) AS PivotTable
+        PIVOT (AVG(DiemTB) FOR TenMon IN (' + @monHocCols + N')) AS PivotTable
     )
     SELECT MaHS, HoTen, ' + @monHocColsSelect + N',
            ROUND((' + @tongMon + N') / NULLIF(' + CAST(@monCount AS VARCHAR) + N', 0), 2) AS [Trung bình chung]
-    FROM PivotData
-    ORDER BY HoTen;';
+    FROM PivotData ORDER BY HoTen;';
 
     EXEC sp_executesql @sql, N'@maLop VARCHAR(10), @khoi NVARCHAR(20), @loaiFilter NVARCHAR(10)', @maLop, @khoi, @loaiFilter;
 END;
@@ -1973,13 +1967,16 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_GetBaoCaoThang_ThongKe
+create PROCEDURE sp_GetBaoCaoThang_ThongKe
     @MaLop VARCHAR(10),
     @MaMon VARCHAR(10),
     @LoaiDiem VARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
+    
+    DECLARE @Khoi NVARCHAR(20);
+    SELECT @Khoi = Khoi FROM LopHoc WHERE MaLop = @MaLop;
 
     ;WITH RawData AS (
         SELECT 
@@ -1988,10 +1985,15 @@ BEGIN
             kq.Diem
         FROM KetQuaHocTap kq
         JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+        -- JOIN thêm bảng Thời hạn để lấy ngày mở điểm
+        LEFT JOIN ThoiHanDiem thd ON kq.Loai = thd.MaCotDiem AND thd.Khoi = @Khoi
+        
         WHERE hs.MaLop = @MaLop
           AND kq.MaMon = @MaMon
           AND kq.Loai = @LoaiDiem
           AND kq.Diem IS NOT NULL
+          -- [QUAN TRỌNG] Chỉ lấy điểm nhập sau ngày mở điểm (trừ hao 30 ngày)
+          AND kq.NgayNhap >= DATEADD(day, -30, ISNULL(thd.NgayMoDiem, '2000-01-01'))
     ),
     ClassifiedData AS (
         SELECT
@@ -2005,9 +2007,9 @@ BEGIN
                 ELSE '<5'
             END AS NhomDiem,
             CASE 
-                WHEN Diem >= 7 THEN 'T'
-                WHEN Diem >= 5 THEN 'H'
-                ELSE 'C'
+                WHEN Diem >= 7 THEN 'T' -- Hoàn thành tốt
+                WHEN Diem >= 5 THEN 'H' -- Hoàn thành
+                ELSE 'C'                -- Cần cố gắng
             END AS XepLoai,
             CASE WHEN GioiTinh = N'Nữ' THEN 1 ELSE 0 END AS IsNu,
             CASE WHEN DanToc IS NOT NULL AND DanToc != N'Kinh' THEN 1 ELSE 0 END AS IsDanTocThieuSo,
@@ -2015,31 +2017,19 @@ BEGIN
         FROM RawData
     )
     SELECT 
-        'Diem' AS LoaiThongKe,
-        NhomDiem AS PhanLoai,
-        COUNT(*) AS TS,
-        SUM(IsNu) AS Nu,
-        SUM(IsDanTocThieuSo) AS DanToc,
-        SUM(IsNuDanTocThieuSo) AS NDT
-    FROM ClassifiedData
-    GROUP BY NhomDiem
-
+        'Diem' AS LoaiThongKe, NhomDiem AS PhanLoai, COUNT(*) AS TS,
+        SUM(IsNu) AS Nu, SUM(IsDanTocThieuSo) AS DanToc, SUM(IsNuDanTocThieuSo) AS NDT
+    FROM ClassifiedData GROUP BY NhomDiem
     UNION ALL
-
     SELECT 
-        'XepLoai' AS LoaiThongKe,
-        XepLoai AS PhanLoai,
-        COUNT(*) AS TS,
-        SUM(IsNu) AS Nu,
-        SUM(IsDanTocThieuSo) AS DanToc,
-        SUM(IsNuDanTocThieuSo) AS NDT
-    FROM ClassifiedData
-    GROUP BY XepLoai;
+        'XepLoai' AS LoaiThongKe, XepLoai AS PhanLoai, COUNT(*) AS TS,
+        SUM(IsNu) AS Nu, SUM(IsDanTocThieuSo) AS DanToc, SUM(IsNuDanTocThieuSo) AS NDT
+    FROM ClassifiedData GROUP BY XepLoai;
 END;
 GO
 
 -- 🤖 PHÂN TÍCH AI
-CREATE PROCEDURE sp_GetScoresForAnalysis
+create PROCEDURE sp_GetScoresForAnalysis
     @maGV VARCHAR(10),
     @phamVi NVARCHAR(20),
     @chiTiet NVARCHAR(50),
@@ -2060,7 +2050,9 @@ BEGIN
     JOIN MonHoc mh ON kq.MaMon = mh.MaMon
     JOIN ThoiHanDiem thd ON kq.Loai = thd.MaCotDiem AND lh.Khoi = thd.Khoi
     WHERE kq.Diem IS NOT NULL
-    AND thd.HocKy = @hocKy';
+      AND thd.HocKy = @hocKy
+      -- [FIX]: Lọc ngày nhập điểm theo cấu hình thời hạn năm nay
+      AND kq.NgayNhap >= DATEADD(day, -60, thd.NgayMoDiem)';
 
     IF @phamVi = 'LopGV'
     BEGIN
@@ -2091,16 +2083,28 @@ BEGIN
 
     DECLARE @g1Type VARCHAR(20) = 'GiuaKi1';
     DECLARE @g2Type VARCHAR(20) = 'CuoiKi1';
+    DECLARE @Khoi NVARCHAR(20);
+    SELECT @Khoi = Khoi FROM LopHoc WHERE MaLop = @maLop;
+
+    -- Lấy ngày giới hạn để lọc điểm cũ
+    DECLARE @MinDate DATE;
+    SELECT @MinDate = MIN(NgayMoDiem) FROM ThoiHanDiem WHERE Khoi = @Khoi;
+    
+    -- Nếu chưa cấu hình ngày, lấy mặc định 1/8 năm nay
+    IF @MinDate IS NULL 
+       SET @MinDate = DATEFROMPARTS(YEAR(GETDATE()), 8, 1); 
 
     ;WITH ScoresG1 AS (
         SELECT MaHS, Diem 
         FROM KetQuaHocTap 
-        WHERE Loai = @g1Type AND MaMon = @maMon
+        WHERE Loai = @g1Type AND MaMon = @maMon 
+          AND NgayNhap >= @MinDate -- [FIX]
     ),
     ScoresG2 AS (
         SELECT MaHS, Diem 
         FROM KetQuaHocTap 
         WHERE Loai = @g2Type AND MaMon = @maMon
+          AND NgayNhap >= @MinDate -- [FIX]
     ),
     LowScores AS (
         SELECT 
@@ -2110,20 +2114,21 @@ BEGIN
             AS NumLowScores
         FROM KetQuaHocTap
         WHERE Loai IN (@g1Type, @g2Type) AND MaMon = @maMon
+          AND NgayNhap >= @MinDate -- [FIX]
         GROUP BY MaHS
     ),
     Absences AS (
+        -- Điểm danh đã có logic lọc theo ngày trong SP gốc hoặc mặc định lấy all
+        -- Ở đây ta lọc theo năm học hiện tại cho chắc chắn
         SELECT 
-            MaHS, 
-            COUNT(*) as TotalAbsences
+            MaHS, COUNT(*) as TotalAbsences
         FROM DiemDanh
-        WHERE TrangThai = N'Vắng'
+        WHERE TrangThai = N'Vắng' 
+          AND NgayDD >= @MinDate 
         GROUP BY MaHS
     )
     SELECT 
-        hs.MaHS,
-        hs.HoTen,
-        lh.TenLop,
+        hs.MaHS, hs.HoTen, lh.TenLop,
         ISNULL(g1.Diem, 0) AS G1,
         ISNULL(g2.Diem, 0) AS G2,
         ISNULL(ls.NumLowScores, 0) AS NumLowScores,
@@ -3046,7 +3051,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_Admin_GetBangDiemHocKy
+create PROCEDURE sp_Admin_GetBangDiemHocKy
     @Khoi NVARCHAR(20) = NULL,
     @MaLop VARCHAR(10) = NULL,
     @HocKy INT
@@ -3058,9 +3063,7 @@ BEGIN
     DECLARE @khoiFilter NVARCHAR(20) = @Khoi;
 
     IF @MaLop IS NOT NULL
-    BEGIN
         SELECT @khoiFilter = Khoi FROM LopHoc WHERE MaLop = @MaLop;
-    END
 
     IF @HocKy = 1 SET @loaiFilter = N'%Ki1';
     ELSE IF @HocKy = 2 SET @loaiFilter = N'%Ki2';
@@ -3074,36 +3077,30 @@ BEGIN
         FROM KetQuaHocTap kq
         INNER JOIN HocSinh hs ON kq.MaHS = hs.MaHS
         INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
+        -- JOIN để lấy ngày giới hạn
+        INNER JOIN ThoiHanDiem thd ON kq.Loai = thd.MaCotDiem AND lh.Khoi = thd.Khoi
+        
         WHERE kq.Diem IS NOT NULL
-          AND kq.Loai IN (SELECT MaCotDiem 
-                          FROM ThoiHanDiem thd
-                          WHERE thd.MaCotDiem LIKE @loaiFilter 
-                            AND (@khoiFilter IS NULL OR thd.Khoi = @khoiFilter)) 
+          AND thd.MaCotDiem LIKE @loaiFilter 
+          AND (@khoiFilter IS NULL OR thd.Khoi = @khoiFilter)
           AND (
                 (@MaLop IS NOT NULL AND hs.MaLop = @MaLop)
                 OR (@MaLop IS NULL AND @Khoi IS NOT NULL AND lh.Khoi = @Khoi)
                 OR (@MaLop IS NULL AND @Khoi IS NULL)
               )
+          -- [QUAN TRỌNG] Lọc ngày để loại bỏ điểm năm ngoái
+          AND kq.NgayNhap >= DATEADD(day, -60, thd.NgayMoDiem)
     ),
     AvgMon AS (
-        SELECT
-            MaHS,
-            MaMon,
-            AVG(Diem) AS DiemTBMon
-        FROM RelevantScores
-        GROUP BY MaHS, MaMon
+        SELECT MaHS, MaMon, AVG(Diem) AS DiemTBMon
+        FROM RelevantScores GROUP BY MaHS, MaMon
     ),
     AvgCaNhan AS (
-         SELECT 
-             MaHS,
-             AVG(DiemTBMon) AS DiemTBCaNhan
-         FROM AvgMon
-         GROUP BY MaHS
+         SELECT MaHS, AVG(DiemTBMon) AS DiemTBCaNhan
+         FROM AvgMon GROUP BY MaHS
     )
     SELECT 
-        hs.MaHS, 
-        hs.HoTen, 
-        lh.TenLop,
+        hs.MaHS, hs.HoTen, lh.TenLop,
         ISNULL(acn.DiemTBCaNhan, 0) AS [Trung bình chung]
     FROM HocSinh hs
     INNER JOIN LopHoc lh ON hs.MaLop = lh.MaLop
@@ -3146,24 +3143,24 @@ BEGIN
 END;
 GO
 
-Create PROCEDURE sp_GetThongKeKhoi_Admin
+create PROCEDURE sp_GetThongKeKhoi_Admin
     @khoi NVARCHAR(20) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @khoiFilter NVARCHAR(25) = @khoi;
 
-    DECLARE @loaiList TABLE (Loai NVARCHAR(20));
-    INSERT INTO @loaiList (Loai)
-    SELECT MaCotDiem 
+    -- Lấy danh sách các loại điểm cần tính toán
+    DECLARE @loaiList TABLE (Loai NVARCHAR(20), NgayMo DATE);
+    
+    INSERT INTO @loaiList (Loai, NgayMo)
+    SELECT MaCotDiem, NgayMoDiem
     FROM ThoiHanDiem 
     WHERE (@khoiFilter IS NULL OR Khoi = @khoiFilter);
 
     WITH StudentCounts AS (
         SELECT
-            l.Khoi,
-            l.MaLop,
-            l.TenLop,
+            l.Khoi, l.MaLop, l.TenLop,
             COUNT(hs.MaHS) AS SoHocSinh,
             SUM(CASE WHEN hs.GioiTinh = N'Nam' THEN 1 ELSE 0 END) AS SoNam,
             SUM(CASE WHEN hs.GioiTinh = N'Nữ' THEN 1 ELSE 0 END) AS SoNu
@@ -3179,18 +3176,20 @@ BEGIN
         FROM LopHoc l
         LEFT JOIN HocSinh hs ON l.MaLop = hs.MaLop
         LEFT JOIN KetQuaHocTap kq ON hs.MaHS = kq.MaHS
+        -- [FIX]: JOIN với danh sách loại điểm để lấy Ngày Mở
+        INNER JOIN @loaiList ll ON kq.Loai = ll.Loai
+        
         WHERE (@khoiFilter IS NULL OR l.Khoi = @khoiFilter) 
           AND kq.Diem IS NOT NULL
-          AND kq.Loai IN (SELECT Loai FROM @loaiList)
+          -- [QUAN TRỌNG]: Chỉ lấy điểm nhập trong năm học này (sau ngày mở điểm)
+          AND kq.NgayNhap >= DATEADD(day, -30, ll.NgayMo)
+          
         GROUP BY l.MaLop
     )
     SELECT
-        sc.Khoi,
-        sc.TenLop,
-        sc.SoHocSinh,
+        sc.Khoi, sc.TenLop, sc.SoHocSinh,
         ISNULL(av.DiemTrungBinh, 0) AS DiemTrungBinh,
-        sc.SoNam,
-        sc.SoNu
+        sc.SoNam, sc.SoNu
     FROM StudentCounts sc
     LEFT JOIN AvgScores av ON sc.MaLop = av.MaLop
     ORDER BY sc.Khoi, sc.TenLop;
@@ -3269,7 +3268,58 @@ BEGIN
     SELECT * FROM XepLoaiStats;
 END;
 GO
+--SP Lấy danh sách năm học (Cho tab Lưu trữ)
+CREATE PROCEDURE sp_GetArchiveYears
+AS
+BEGIN
+    SELECT DISTINCT NamHoc FROM LopHoc ORDER BY NamHoc DESC;
+END;
+GO
 
+-- SP Lấy danh sách lớp theo bộ lọc (Cho tab Lưu trữ)
+CREATE PROCEDURE sp_GetArchiveClasses
+    @NamHoc VARCHAR(10),
+    @Khoi NVARCHAR(20)
+AS
+BEGIN
+    SELECT MaLop, TenLop, MaGVCN, Khoi 
+    FROM LopHoc 
+    WHERE NamHoc = @NamHoc 
+      AND (@Khoi IS NULL OR @Khoi = N'Tất cả' OR Khoi = @Khoi)
+    ORDER BY TenLop;
+END;
+GO
+
+-- SP Lấy bảng điểm chi tiết đầy đủ các cột (Cho Popup xem điểm)
+CREATE PROCEDURE sp_GetStudentFullTranscript
+    @MaHS VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        mh.TenMon,
+        -- HỌC KỲ 1
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'Thang1_Ki1%' THEN kq.Diem END) AS T1_K1,
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'Thang2_Ki1%' THEN kq.Diem END) AS T2_K1,
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'Thang3_Ki1%' THEN kq.Diem END) AS T3_K1,
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'GiuaKi1%' THEN kq.Diem END) AS GK1,
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'CuoiKi1%' THEN kq.Diem END) AS CK1,
+        -- HỌC KỲ 2
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'Thang1_Ki2%' THEN kq.Diem END) AS T1_K2,
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'Thang2_Ki2%' THEN kq.Diem END) AS T2_K2,
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'Thang3_Ki2%' THEN kq.Diem END) AS T3_K2,
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'GiuaKi2%' THEN kq.Diem END) AS GK2,
+        MAX(CASE WHEN thd.MaCotDiem LIKE 'CuoiKi2%' THEN kq.Diem END) AS CK2,
+        -- TRUNG BÌNH NĂM
+        CAST(AVG(kq.Diem) AS DECIMAL(10, 2)) AS TB_Nam
+    FROM KetQuaHocTap kq
+    JOIN MonHoc mh ON kq.MaMon = mh.MaMon
+    JOIN ThoiHanDiem thd ON kq.Loai = thd.MaCotDiem
+    WHERE kq.MaHS = @MaHS
+    GROUP BY mh.TenMon
+    ORDER BY mh.TenMon;
+END;
+GO
 -- ================================================================
 -- KHỞI TẠO DỮ LIỆU BAN ĐẦU
 -- ================================================================
