@@ -106,7 +106,7 @@ namespace N6
                 path.AddArc(rect.X, rect.Bottom - (rad * 2), rad * 2, rad * 2, 90, 90);
                 path.CloseFigure();
 
-                // Fill background according to state
+                // Đặt nền theo trạng thái
                 Color fillColor = this.BackColor;
                 if (isPressed)
                 {
@@ -123,11 +123,6 @@ namespace N6
                 }
 
                 // 2. Cắt Region (vùng tương tác) khớp với hình dạng
-                // **Quan trọng:** Ta không gọi base.OnPaint nên ta không cần set Region
-                // trừ khi muốn giới hạn hit-test (mà ở đây không phải mục tiêu chính).
-                // Ta chỉ cần set Region nếu muốn hạn chế việc vẽ chữ tràn ra ngoài, 
-                // nhưng TextRenderer.DrawText đã giúp căn giữa tốt hơn.
-                // Ta giữ lại để đảm bảo vùng click đúng bo tròn.
                 this.Region = new Region(path);
 
                 // 3. Vẽ viền

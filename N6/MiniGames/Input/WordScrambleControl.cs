@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace N6
@@ -337,9 +338,35 @@ namespace N6
             return new WordScrambleItem
             {
                 ImageHintResourceName = TxtImageName.Tag?.ToString() ?? TxtImageName.Text,
-                Question = TxtQuestion.Text,
-                Answer = TxtAnswer.Text.ToUpper()
+                Question = NormalizeTextBoxText(TxtQuestion),
+                Answer = NormalizeTextBoxText(TxtAnswer).ToUpper()
             };
+        }
+
+        /// <summary>
+        /// Cố gắng lấy dữ liệu và validate; trả về false nếu không hợp lệ.
+        /// </summary>
+        /// <param name="item">Item hợp lệ.</param>
+        /// <param name="validationMessage">Thông báo khi không hợp lệ.</param>
+        /// <returns>true nếu hợp lệ.</returns>
+        public bool TryGetData(out WordScrambleItem item, out string validationMessage)
+        {
+            item = GetData();
+
+            if (string.IsNullOrWhiteSpace(item.Question))
+            {
+                validationMessage = "Bạn phải nhập câu hỏi/gợi ý cho mục Ghép chữ.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(item.Answer))
+            {
+                validationMessage = "Bạn phải nhập đáp án cho mục Ghép chữ.";
+                return false;
+            }
+
+            validationMessage = null;
+            return true;
         }
 
         /// <summary>
@@ -386,6 +413,17 @@ namespace N6
             TxtQuestion.ForeColor = Color.Black;
             TxtAnswer.Text = item.Answer;
             TxtAnswer.ForeColor = Color.FromArgb(40, 167, 69);
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private string NormalizeTextBoxText(TextBox tb)
+        {
+            if (tb == null) return string.Empty;
+            if (tb.ForeColor == Color.Gray) return string.Empty; // placeholder
+            return (tb.Text ?? string.Empty).Trim();
         }
 
         #endregion

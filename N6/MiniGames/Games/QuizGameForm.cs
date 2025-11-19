@@ -24,6 +24,13 @@ namespace N6
         private Panel pnlQuestionStatusContainer;
         private Panel pnlProgress;
 
+        private TextBox txtQuestion;
+        private TextBox txtOptionA;
+        private TextBox txtOptionB;
+        private TextBox txtOptionC;
+        private TextBox txtOptionD;
+        private ComboBox cmbCorrectAnswer;
+
         #endregion
 
         #region Constructor & Initialization
