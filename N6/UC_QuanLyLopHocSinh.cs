@@ -63,6 +63,32 @@ namespace N6
             this.btnChuyenLop.Click += new System.EventHandler(this.btnChuyenLop_Click);
             this.btnThemLop.Click += new System.EventHandler(this.btnThemLop_Click);
             this.btnXoaLop.Click += new System.EventHandler(this.btnXoaLop_Click);
+            this.dgvHocSinh.DataError += new DataGridViewDataErrorEventHandler(this.dgvHocSinh_DataError);
+        }
+
+        private void dgvHocSinh_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            // Quan trọng: Dòng này chặn popup lỗi mặc định của .NET
+            e.ThrowException = false;
+
+            string colName = dgvHocSinh.Columns[e.ColumnIndex].Name;
+
+            // Tùy chỉnh thông báo lỗi thân thiện
+            if (colName == "NgaySinh")
+            {
+                MessageBox.Show("❌ Ngày sinh không hợp lệ!\nVui lòng nhập đúng định dạng (dd/MM/yyyy) và không chứa chữ cái.",
+                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else if (colName == "STT")
+            {
+                MessageBox.Show("❌ STT phải là số nguyên.",
+                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else
+            {
+                MessageBox.Show("❌ Dữ liệu nhập vào không đúng định dạng của ô này.",
+                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         private void InitializeChuyenLopPanel()
@@ -151,8 +177,8 @@ namespace N6
             this.pnlChuyenLop.Controls.Add(lblChonHS);
             this.pnlChuyenLop.Controls.Add(lblTitle);
             this.pnlChuyenLop.Controls.Add(pnlButtons);
-            this.pnlChuyenLop.Controls.Add(cboLopMoi_Inline);
             this.pnlChuyenLop.Controls.Add(lblChonLop);
+            this.pnlChuyenLop.Controls.Add(cboLopMoi_Inline);
         }
 
         #region SETUP GIAO DIỆN & DỮ LIỆU
@@ -299,7 +325,6 @@ namespace N6
                     Padding = new Padding(20)
                 })
                 {
-                    // Header
                     var lblHeader = new Label
                     {
                         Text = "📚 Thêm Lớp Học Mới",
@@ -310,7 +335,6 @@ namespace N6
                         TextAlign = ContentAlignment.MiddleLeft
                     };
 
-                    // Main container
                     var pnlMain = new Panel
                     {
                         Dock = DockStyle.Fill,
@@ -318,7 +342,6 @@ namespace N6
                         Padding = new Padding(0, 10, 0, 0)
                     };
 
-                    // Form fields container
                     var pnlFields = new TableLayoutPanel
                     {
                         Dock = DockStyle.Fill,
@@ -331,189 +354,73 @@ namespace N6
 
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70F));
-                    for (int i = 0; i < 4; i++)
-                    {
-                        pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
-                    }
+                    for (int i = 0; i < 4; i++) pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
 
-                    // Mã Lớp
-                    var lblMaLop = new Label
-                    {
-                        Text = "Mã Lớp *",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
+                    var lblMaLop = new Label { Text = "Mã Lớp *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var txtMaLop = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
 
-                    var txtMaLop = new TextBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        BackColor = Color.FromArgb(248, 249, 250),
-                        BorderStyle = BorderStyle.FixedSingle
-                    };
+                    var lblTenLop = new Label { Text = "Tên Lớp", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var txtTenLop = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(233, 236, 239), BorderStyle = BorderStyle.FixedSingle, ReadOnly = true, ForeColor = Color.FromArgb(108, 117, 125) };
 
-                    // Tên Lớp (Read-only, tự động tạo)
-                    var lblTenLop = new Label
-                    {
-                        Text = "Tên Lớp",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
+                    var lblKhoi = new Label { Text = "Khối *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var cboKhoiThem = new ComboBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
 
-                    var txtTenLop = new TextBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        BackColor = Color.FromArgb(233, 236, 239),
-                        BorderStyle = BorderStyle.FixedSingle,
-                        ReadOnly = true,
-                        ForeColor = Color.FromArgb(108, 117, 125)
-                    };
+                    var lblNamHoc = new Label { Text = "Năm Học", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var txtNamHoc = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, Text = DateTime.Now.Year.ToString(), BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
 
-                    // Khối
-                    var lblKhoi = new Label
-                    {
-                        Text = "Khối *",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
-
-                    var cboKhoiThem = new ComboBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        DropDownStyle = ComboBoxStyle.DropDownList,
-                        BackColor = Color.FromArgb(248, 249, 250),
-                        FlatStyle = FlatStyle.Flat
-                    };
-
-                    // Năm Học
-                    var lblNamHoc = new Label
-                    {
-                        Text = "Năm Học",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
-
-                    var txtNamHoc = new TextBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        Text = DateTime.Now.Year.ToString(),
-                        BackColor = Color.FromArgb(233, 236, 239),
-                        BorderStyle = BorderStyle.FixedSingle,
-                        ReadOnly = true,
-                        ForeColor = Color.FromArgb(108, 117, 125)
-                    };
-
-                    // Load danh sách khối
                     try
                     {
                         var khoiList = DatabaseHelper.GetAvailableGrades();
                         cboKhoiThem.Items.AddRange(khoiList.ToArray());
-                        if (cboKhoiThem.Items.Count > 0)
-                            cboKhoiThem.SelectedIndex = 0;
+                        if (cboKhoiThem.Items.Count > 0) cboKhoiThem.SelectedIndex = 0;
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        MessageBox.Show($"Lỗi khi tải danh sách khối: {ex.Message}", "Lỗi",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
+                        cboKhoiThem.Items.Add("Khối 1");
+                        cboKhoiThem.SelectedIndex = 0;
                     }
 
-                    // Auto-generate class name when Mã Lớp changes
-                    txtMaLop.TextChanged += (s, e) =>
+                    txtMaLop.TextChanged += (s, ev) =>
                     {
-                        if (!string.IsNullOrWhiteSpace(txtMaLop.Text))
-                        {
-                            txtTenLop.Text = $"Lớp {txtMaLop.Text.Trim().ToUpper()}";
-                        }
-                        else
-                        {
-                            txtTenLop.Text = string.Empty;
-                        }
+                        txtTenLop.Text = string.IsNullOrWhiteSpace(txtMaLop.Text) ? "" : $"Lớp {txtMaLop.Text.Trim().ToUpper()}";
                     };
 
-                    // Add controls to table
-                    pnlFields.Controls.Add(lblMaLop, 0, 0);
-                    pnlFields.Controls.Add(txtMaLop, 1, 0);
-                    pnlFields.Controls.Add(lblTenLop, 0, 1);
-                    pnlFields.Controls.Add(txtTenLop, 1, 1);
-                    pnlFields.Controls.Add(lblKhoi, 0, 2);
-                    pnlFields.Controls.Add(cboKhoiThem, 1, 2);
-                    pnlFields.Controls.Add(lblNamHoc, 0, 3);
-                    pnlFields.Controls.Add(txtNamHoc, 1, 3);
+                    pnlFields.Controls.Add(lblMaLop, 0, 0); pnlFields.Controls.Add(txtMaLop, 1, 0);
+                    pnlFields.Controls.Add(lblTenLop, 0, 1); pnlFields.Controls.Add(txtTenLop, 1, 1);
+                    pnlFields.Controls.Add(lblKhoi, 0, 2); pnlFields.Controls.Add(cboKhoiThem, 1, 2);
+                    pnlFields.Controls.Add(lblNamHoc, 0, 3); pnlFields.Controls.Add(txtNamHoc, 1, 3);
 
-                    // Button panel
-                    var pnlButtons = new Panel
-                    {
-                        Dock = DockStyle.Bottom,
-                        Height = 70,
-                        BackColor = Color.White,
-                        Padding = new Padding(0, 10, 0, 0)
-                    };
+                    var pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 70, BackColor = Color.White };
 
-                    var btnLuu = new Button
-                    {
-                        Text = "💾 LƯU LỚP HỌC",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        BackColor = Color.FromArgb(40, 167, 69),
-                        ForeColor = Color.White,
-                        FlatStyle = FlatStyle.Flat,
-                        Height = 45,
-                        Width = 150,
-                        Dock = DockStyle.Right,
-                        Margin = new Padding(0, 0, 10, 0)
-                    };
+                    var btnLuu = new Button { Text = "💾 LƯU LỚP HỌC", Font = new Font("Segoe UI", 10F, FontStyle.Bold), BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 45, Width = 150, Dock = DockStyle.Right };
+                    var btnHuy = new Button { Text = "❌ HỦY BỎ", Font = new Font("Segoe UI", 10F, FontStyle.Bold), BackColor = Color.FromArgb(108, 117, 125), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 45, Width = 120, Dock = DockStyle.Right };
 
-                    var btnHuy = new Button
-                    {
-                        Text = "❌ HỦY BỎ",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        BackColor = Color.FromArgb(108, 117, 125),
-                        ForeColor = Color.White,
-                        FlatStyle = FlatStyle.Flat,
-                        Height = 45,
-                        Width = 120,
-                        Dock = DockStyle.Right,
-                        Margin = new Padding(0, 0, 10, 0)
-                    };
-
-                    // Button events
                     btnLuu.Click += (s, ev) =>
                     {
                         if (string.IsNullOrWhiteSpace(txtMaLop.Text))
                         {
-                            MessageBox.Show("Vui lòng nhập Mã Lớp!", "Lỗi nhập liệu",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Vui lòng nhập Mã Lớp!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            txtMaLop.Focus();
+                            return;
+                        }
+
+                        if (!System.Text.RegularExpressions.Regex.IsMatch(txtMaLop.Text, @"^[a-zA-Z0-9]+$"))
+                        {
+                            MessageBox.Show("❌ Mã lớp chỉ được chứa Chữ cái và Số (Không dấu, không khoảng trắng)!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             txtMaLop.Focus();
                             return;
                         }
 
                         if (cboKhoiThem.SelectedItem == null)
                         {
-                            MessageBox.Show("Vui lòng chọn Khối!", "Lỗi nhập liệu",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Vui lòng chọn Khối!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+
+                        if (!int.TryParse(txtNamHoc.Text, out _))
+                        {
+                            MessageBox.Show("❌ Năm học phải là số nguyên (Ví dụ: 2025)!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            txtNamHoc.Focus();
                             return;
                         }
 
@@ -526,14 +433,12 @@ namespace N6
                                 txtNamHoc.Text.Trim()
                             );
 
-                            MessageBox.Show("✅ Thêm lớp học thành công!", "Thành công",
-                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            MessageBox.Show("✅ Thêm lớp học thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             formThemLop.DialogResult = DialogResult.OK;
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"❌ Lỗi khi thêm lớp: {ex.Message}", "Lỗi",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show($"❌ Lỗi khi thêm lớp: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     };
 
@@ -541,26 +446,12 @@ namespace N6
 
                     pnlButtons.Controls.Add(btnLuu);
                     pnlButtons.Controls.Add(btnHuy);
-
-                    // Add panels to main container
                     pnlMain.Controls.Add(pnlFields);
                     pnlMain.Controls.Add(pnlButtons);
-
-                    // Add to form
                     formThemLop.Controls.Add(pnlMain);
                     formThemLop.Controls.Add(lblHeader);
-
-                    // Form events
                     formThemLop.AcceptButton = btnLuu;
                     formThemLop.CancelButton = btnHuy;
-
-                    // Add hover effects
-                    AddHoverEffect(btnLuu, Color.FromArgb(33, 136, 56), Color.FromArgb(40, 167, 69));
-                    AddHoverEffect(btnHuy, Color.FromArgb(90, 98, 104), Color.FromArgb(108, 117, 125));
-
-                    // Add focus effects for textboxes
-                    AddFocusEffect(txtMaLop);
-                    AddFocusEffect(cboKhoiThem);
 
                     if (formThemLop.ShowDialog() == DialogResult.OK)
                     {
@@ -672,8 +563,7 @@ namespace N6
         {
             if (dgvLopHoc.CurrentRow == null)
             {
-                MessageBox.Show("Vui lòng chọn một lớp để thêm học sinh.", "Thông báo",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng chọn một lớp để thêm học sinh.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -691,7 +581,6 @@ namespace N6
                     Padding = new Padding(20)
                 })
                 {
-                    // Header
                     var lblHeader = new Label
                     {
                         Text = "👤 Thêm Học Sinh Mới",
@@ -702,7 +591,6 @@ namespace N6
                         TextAlign = ContentAlignment.MiddleLeft
                     };
 
-                    // Main container
                     var pnlMain = new Panel
                     {
                         Dock = DockStyle.Fill,
@@ -710,7 +598,6 @@ namespace N6
                         Padding = new Padding(0, 10, 0, 0)
                     };
 
-                    // Form fields container
                     var pnlFields = new TableLayoutPanel
                     {
                         Dock = DockStyle.Fill,
@@ -723,313 +610,108 @@ namespace N6
 
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35F));
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65F));
-                    for (int i = 0; i < 7; i++)
-                    {
-                        pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
-                    }
+                    for (int i = 0; i < 7; i++) pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
 
-                    // Mã Học Sinh (Auto-generated)
-                    var lblMaHS = new Label
-                    {
-                        Text = "Mã HS",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
+                    var lblMaHS = new Label { Text = "Mã HS", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var txtMaHS = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(233, 236, 239), BorderStyle = BorderStyle.FixedSingle, ReadOnly = true };
 
-                    var txtMaHS = new TextBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        BackColor = Color.FromArgb(233, 236, 239),
-                        BorderStyle = BorderStyle.FixedSingle,
-                        ReadOnly = true,
-                        ForeColor = Color.FromArgb(108, 117, 125)
-                    };
+                    var lblHoTen = new Label { Text = "Họ và Tên *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var txtHoTen = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
 
-                    // Họ và Tên
-                    var lblHoTen = new Label
-                    {
-                        Text = "Họ và Tên *",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
-
-                    var txtHoTen = new TextBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        BackColor = Color.FromArgb(248, 249, 250),
-                        BorderStyle = BorderStyle.FixedSingle
-                    };
-
-                    // Giới Tính
-                    var lblGioiTinh = new Label
-                    {
-                        Text = "Giới Tính *",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
-
-                    var cboGioiTinh = new ComboBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        DropDownStyle = ComboBoxStyle.DropDownList,
-                        BackColor = Color.FromArgb(248, 249, 250),
-                        FlatStyle = FlatStyle.Flat
-                    };
-
-                    // Ngày Sinh
-                    var lblNgaySinh = new Label
-                    {
-                        Text = "Ngày Sinh *",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
-
-                    var dtpNgaySinh = new DateTimePicker
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        Format = DateTimePickerFormat.Short,
-                        Value = DateTime.Now.AddYears(-6)
-                    };
-
-                    // Địa Chỉ
-                    var lblDiaChi = new Label
-                    {
-                        Text = "Địa Chỉ",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
-
-                    var txtDiaChi = new TextBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        BackColor = Color.FromArgb(248, 249, 250),
-                        BorderStyle = BorderStyle.FixedSingle
-                    };
-
-                    // Dân Tộc
-                    var lblDanToc = new Label
-                    {
-                        Text = "Dân Tộc",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
-
-                    var txtDanToc = new TextBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        BackColor = Color.FromArgb(248, 249, 250),
-                        BorderStyle = BorderStyle.FixedSingle,
-                        Text = "Kinh"
-                    };
-
-                    // SĐT Phụ Huynh
-                    var lblSDT = new Label
-                    {
-                        Text = "SĐT Phụ Huynh",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        ForeColor = Color.FromArgb(73, 80, 87),
-                        Dock = DockStyle.Fill,
-                        TextAlign = ContentAlignment.MiddleLeft,
-                        Margin = new Padding(0, 15, 10, 15)
-                    };
-
-                    var txtSDT = new TextBox
-                    {
-                        Font = new Font("Segoe UI", 10F),
-                        Dock = DockStyle.Fill,
-                        Margin = new Padding(0, 10, 0, 10),
-                        Height = 40,
-                        BackColor = Color.FromArgb(248, 249, 250),
-                        BorderStyle = BorderStyle.FixedSingle
-                    };
-
-                    // Setup combobox
+                    var lblGioiTinh = new Label { Text = "Giới Tính *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var cboGioiTinh = new ComboBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
                     cboGioiTinh.Items.AddRange(new string[] { "Nam", "Nữ" });
                     cboGioiTinh.SelectedIndex = 0;
 
-                    // Auto-generate student code
+                    var lblNgaySinh = new Label { Text = "Ngày Sinh *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var dtpNgaySinh = new DateTimePicker { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, Format = DateTimePickerFormat.Short, Value = DateTime.Now.AddYears(-6) };
+
+                    var lblDiaChi = new Label { Text = "Địa Chỉ", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var txtDiaChi = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
+
+                    var lblDanToc = new Label { Text = "Dân Tộc", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var txtDanToc = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle, Text = "Kinh" };
+
+                    var lblSDT = new Label { Text = "SĐT Phụ Huynh", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var txtSDT = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
+
+                    pnlFields.Controls.Add(lblMaHS, 0, 0); pnlFields.Controls.Add(txtMaHS, 1, 0);
+                    pnlFields.Controls.Add(lblHoTen, 0, 1); pnlFields.Controls.Add(txtHoTen, 1, 1);
+                    pnlFields.Controls.Add(lblGioiTinh, 0, 2); pnlFields.Controls.Add(cboGioiTinh, 1, 2);
+                    pnlFields.Controls.Add(lblNgaySinh, 0, 3); pnlFields.Controls.Add(dtpNgaySinh, 1, 3);
+                    pnlFields.Controls.Add(lblDiaChi, 0, 4); pnlFields.Controls.Add(txtDiaChi, 1, 4);
+                    pnlFields.Controls.Add(lblDanToc, 0, 5); pnlFields.Controls.Add(txtDanToc, 1, 5);
+                    pnlFields.Controls.Add(lblSDT, 0, 6); pnlFields.Controls.Add(txtSDT, 1, 6);
+
+                    var pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 70, BackColor = Color.White };
+                    var btnLuu = new Button { Text = "💾 LƯU HỌC SINH", Font = new Font("Segoe UI", 10F, FontStyle.Bold), BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 45, Width = 150, Dock = DockStyle.Right };
+                    var btnHuy = new Button { Text = "❌ HỦY BỎ", Font = new Font("Segoe UI", 10F, FontStyle.Bold), BackColor = Color.FromArgb(108, 117, 125), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 45, Width = 120, Dock = DockStyle.Right };
+
                     string GenerateStudentCode()
                     {
                         try
                         {
                             DataTable allStudents = DatabaseHelper.GetAllStudents();
-                            if (allStudents.Rows.Count == 0)
-                            {
-                                return "HS001";
-                            }
-
+                            if (allStudents.Rows.Count == 0) return "HS001";
                             var lastMaHS = allStudents.AsEnumerable()
                                 .Select(row => row.Field<string>("MaHS"))
-                                .Where(ma => ma != null && ma.StartsWith("HS"))
-                                .OrderByDescending(ma => ma)
-                                .FirstOrDefault();
-
-                            if (string.IsNullOrEmpty(lastMaHS))
-                            {
-                                return "HS001";
-                            }
-
+                                .Where(ma => !string.IsNullOrEmpty(ma) && ma.StartsWith("HS"))
+                                .OrderByDescending(ma => ma).FirstOrDefault();
+                            if (string.IsNullOrEmpty(lastMaHS)) return "HS001";
                             string numberPart = lastMaHS.Substring(2);
-                            if (int.TryParse(numberPart, out int lastNumber))
-                            {
-                                return $"HS{(lastNumber + 1).ToString("D3")}";
-                            }
-
+                            if (int.TryParse(numberPart, out int lastNumber)) return $"HS{(lastNumber + 1).ToString("D3")}";
                             return "HS001";
                         }
-                        catch (Exception)
-                        {
-                            return "HS001";
-                        }
+                        catch { return "HS001"; }
                     }
 
-                    // Validate Họ và Tên - không chứa ký tự đặc biệt
-                    bool ValidateHoTen(string hoTen)
-                    {
-                        if (string.IsNullOrWhiteSpace(hoTen))
-                            return false;
+                    formThemHS.Load += (s, ev) => { txtMaHS.Text = GenerateStudentCode(); };
 
-                        // Cho phép: chữ cái, dấu cách, dấu tiếng Việt
-                        // Không cho phép: số, ký tự đặc biệt (@, #, $, %, &, *, v.v.)
-                        var regex = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$");
-                        return regex.IsMatch(hoTen);
-                    }
+                    var regexName = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$");
+                    var regexPhone = new System.Text.RegularExpressions.Regex(@"^\d+$");
 
-                    // Validate SĐT - chỉ cho phép số
-                    bool ValidateSDT(string sdt)
-                    {
-                        if (string.IsNullOrWhiteSpace(sdt))
-                            return true; // SĐT không bắt buộc
-
-                        return System.Text.RegularExpressions.Regex.IsMatch(sdt, @"^\d+$");
-                    }
-
-                    // Generate student code when form loads
-                    formThemHS.Load += (s, e) =>
-                    {
-                        txtMaHS.Text = GenerateStudentCode();
-                    };
-
-                    // Add controls to table
-                    pnlFields.Controls.Add(lblMaHS, 0, 0);
-                    pnlFields.Controls.Add(txtMaHS, 1, 0);
-                    pnlFields.Controls.Add(lblHoTen, 0, 1);
-                    pnlFields.Controls.Add(txtHoTen, 1, 1);
-                    pnlFields.Controls.Add(lblGioiTinh, 0, 2);
-                    pnlFields.Controls.Add(cboGioiTinh, 1, 2);
-                    pnlFields.Controls.Add(lblNgaySinh, 0, 3);
-                    pnlFields.Controls.Add(dtpNgaySinh, 1, 3);
-                    pnlFields.Controls.Add(lblDiaChi, 0, 4);
-                    pnlFields.Controls.Add(txtDiaChi, 1, 4);
-                    pnlFields.Controls.Add(lblDanToc, 0, 5);
-                    pnlFields.Controls.Add(txtDanToc, 1, 5);
-                    pnlFields.Controls.Add(lblSDT, 0, 6);
-                    pnlFields.Controls.Add(txtSDT, 1, 6);
-
-                    // Button panel
-                    var pnlButtons = new Panel
-                    {
-                        Dock = DockStyle.Bottom,
-                        Height = 70,
-                        BackColor = Color.White,
-                        Padding = new Padding(0, 10, 0, 0)
-                    };
-
-                    var btnLuu = new Button
-                    {
-                        Text = "💾 LƯU HỌC SINH",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        BackColor = Color.FromArgb(40, 167, 69),
-                        ForeColor = Color.White,
-                        FlatStyle = FlatStyle.Flat,
-                        Height = 45,
-                        Width = 150,
-                        Dock = DockStyle.Right,
-                        Margin = new Padding(0, 0, 10, 0)
-                    };
-
-                    var btnHuy = new Button
-                    {
-                        Text = "❌ HỦY BỎ",
-                        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                        BackColor = Color.FromArgb(108, 117, 125),
-                        ForeColor = Color.White,
-                        FlatStyle = FlatStyle.Flat,
-                        Height = 45,
-                        Width = 120,
-                        Dock = DockStyle.Right,
-                        Margin = new Padding(0, 0, 10, 0)
-                    };
-
-                    // Button events
                     btnLuu.Click += (s, ev) =>
                     {
                         if (string.IsNullOrWhiteSpace(txtHoTen.Text))
                         {
-                            MessageBox.Show("Vui lòng nhập Họ và Tên!", "Lỗi nhập liệu",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Vui lòng nhập Họ và Tên!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             txtHoTen.Focus();
                             return;
                         }
 
-                        if (!ValidateHoTen(txtHoTen.Text))
+                        if (!regexName.IsMatch(txtHoTen.Text))
                         {
-                            MessageBox.Show("Họ và Tên không được chứa số hoặc ký tự đặc biệt!\nChỉ cho phép chữ cái, dấu cách và dấu tiếng Việt.",
-                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("❌ Họ và Tên KHÔNG được chứa số hoặc ký tự đặc biệt!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             txtHoTen.Focus();
                             txtHoTen.SelectAll();
                             return;
                         }
 
-                        if (!ValidateSDT(txtSDT.Text))
+                        if (!string.IsNullOrEmpty(txtSDT.Text) && !regexPhone.IsMatch(txtSDT.Text))
                         {
-                            MessageBox.Show("Số điện thoại chỉ được chứa chữ số!",
-                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("❌ Số điện thoại chỉ được chứa chữ số!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             txtSDT.Focus();
                             txtSDT.SelectAll();
                             return;
                         }
 
+                        if (dtpNgaySinh.Value > DateTime.Now)
+                        {
+                            MessageBox.Show("❌ Ngày sinh không hợp lệ (Tương lai)!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            dtpNgaySinh.Focus();
+                            return;
+                        }
+
+                        if (DateTime.Now.Year - dtpNgaySinh.Value.Year < 5)
+                        {
+                            MessageBox.Show("❌ Học sinh phải từ 5 tuổi trở lên!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            dtpNgaySinh.Focus();
+                            return;
+                        }
+
                         if (cboGioiTinh.SelectedItem == null)
                         {
-                            MessageBox.Show("Vui lòng chọn Giới Tính!", "Lỗi nhập liệu",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Vui lòng chọn Giới Tính!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
 
@@ -1048,44 +730,21 @@ namespace N6
                                 txtDanToc.Text.Trim()
                             );
 
-                            MessageBox.Show("✅ Thêm học sinh thành công!", "Thành công",
-                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            MessageBox.Show("✅ Thêm học sinh thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             formThemHS.DialogResult = DialogResult.OK;
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"❌ Lỗi khi thêm học sinh: {ex.Message}", "Lỗi",
-                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show($"❌ Lỗi hệ thống: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     };
 
                     btnHuy.Click += (s, ev) => formThemHS.Close();
 
-                    pnlButtons.Controls.Add(btnLuu);
-                    pnlButtons.Controls.Add(btnHuy);
-
-                    // Add panels to main container
-                    pnlMain.Controls.Add(pnlFields);
-                    pnlMain.Controls.Add(pnlButtons);
-
-                    // Add to form
-                    formThemHS.Controls.Add(pnlMain);
-                    formThemHS.Controls.Add(lblHeader);
-
-                    // Form events
-                    formThemHS.AcceptButton = btnLuu;
-                    formThemHS.CancelButton = btnHuy;
-
-                    // Add hover effects
-                    AddHoverEffect(btnLuu, Color.FromArgb(33, 136, 56), Color.FromArgb(40, 167, 69));
-                    AddHoverEffect(btnHuy, Color.FromArgb(90, 98, 104), Color.FromArgb(108, 117, 125));
-
-                    // Add focus effects for textboxes
-                    AddFocusEffect(txtHoTen);
-                    AddFocusEffect(txtDiaChi);
-                    AddFocusEffect(txtDanToc);
-                    AddFocusEffect(txtSDT);
-                    AddFocusEffect(cboGioiTinh);
+                    pnlButtons.Controls.Add(btnLuu); pnlButtons.Controls.Add(btnHuy);
+                    pnlMain.Controls.Add(pnlFields); pnlMain.Controls.Add(pnlButtons);
+                    formThemHS.Controls.Add(pnlMain); formThemHS.Controls.Add(lblHeader);
+                    formThemHS.AcceptButton = btnLuu; formThemHS.CancelButton = btnHuy;
 
                     if (formThemHS.ShowDialog() == DialogResult.OK)
                     {
@@ -1151,16 +810,75 @@ namespace N6
                 return;
             }
 
+            // Regex: Chỉ cho phép chữ cái, khoảng trắng và các dấu tiếng Việt. KHÔNG cho phép số.
+            var regexName = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$");
+            // Regex: Chỉ cho phép số
+            var regexPhone = new System.Text.RegularExpressions.Regex(@"^\d+$");
+
             int successCount = 0;
             try
             {
                 foreach (DataRow row in changes.Rows)
                 {
                     string maHS = row["MaHS"].ToString();
-                    string hoTen = row["HoTen"].ToString();
+                    string hoTen = row["HoTen"].ToString().Trim();
+                    string sdtPH = row["SDTPhuHuynh"].ToString().Trim();
+
+                    // --- BẮT ĐẦU KIỂM TRA DỮ LIỆU (VALIDATION) ---
+
+                    // 1. Kiểm tra Tên rỗng
+                    if (string.IsNullOrWhiteSpace(hoTen))
+                    {
+                        MessageBox.Show($"❌ Học sinh mã {maHS}: Tên không được để trống!",
+                            "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        dt.RejectChanges(); // Hoàn tác thay đổi trên lưới
+                        return;
+                    }
+
+                    // 2. Kiểm tra Tên chứa số hoặc ký tự đặc biệt
+                    if (!regexName.IsMatch(hoTen))
+                    {
+                        MessageBox.Show($"❌ Học sinh {hoTen} ({maHS}): Tên không được chứa số hoặc ký tự đặc biệt!",
+                            "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        dt.RejectChanges();
+                        return;
+                    }
+
+                    // 3. Kiểm tra SĐT (nếu có nhập thì phải là số)
+                    if (!string.IsNullOrEmpty(sdtPH) && !regexPhone.IsMatch(sdtPH))
+                    {
+                        MessageBox.Show($"❌ Học sinh {hoTen} ({maHS}): Số điện thoại phụ huynh chỉ được chứa chữ số!",
+                            "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        dt.RejectChanges();
+                        return;
+                    }
+
+                    // 4. Kiểm tra Ngày sinh (Logic tuổi tác)
+                    if (row["NgaySinh"] != DBNull.Value)
+                    {
+                        DateTime ns = Convert.ToDateTime(row["NgaySinh"]);
+                        // Không được sinh trong tương lai
+                        if (ns > DateTime.Now)
+                        {
+                            MessageBox.Show($"❌ Học sinh {hoTen}: Ngày sinh không được lớn hơn ngày hiện tại!",
+                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            dt.RejectChanges();
+                            return;
+                        }
+                        // Phải đủ tuổi đi học (ví dụ > 5 tuổi)
+                        if (DateTime.Now.Year - ns.Year < 5)
+                        {
+                            MessageBox.Show($"❌ Học sinh {hoTen}: Tuổi quá nhỏ (dưới 5 tuổi)!",
+                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            dt.RejectChanges();
+                            return;
+                        }
+                    }
+
+                    // --- KẾT THÚC KIỂM TRA ---
+
                     DateTime ngaySinh = Convert.ToDateTime(row["NgaySinh"]);
                     string gioiTinh = row["GioiTinh"].ToString();
-                    string sdtPH = row["SDTPhuHuynh"].ToString();
                     string diaChi = row["DiaChi"].ToString();
                     string danToc = row["DanToc"].ToString();
 
@@ -1169,12 +887,12 @@ namespace N6
                 }
 
                 dt.AcceptChanges();
-                MessageBox.Show($"Đã lưu thành công {successCount} thay đổi!", "Thành công",
+                MessageBox.Show($"✅ Đã lưu thành công {successCount} hồ sơ!", "Thành công",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi lưu thay đổi: " + ex.Message, "Lỗi",
+                MessageBox.Show("❌ Lỗi hệ thống khi lưu: " + ex.Message, "Lỗi",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 dt.RejectChanges();
             }

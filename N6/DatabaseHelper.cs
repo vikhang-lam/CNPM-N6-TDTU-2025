@@ -1283,7 +1283,7 @@ public static class DatabaseHelper
     public static DataTable GetTeacherAssignments(string maGV)
     {
         var pMaGV = new SqlParameter("@MaGV", maGV);
-        return ExecuteStoredProcedure("sp_GetTeacherAssignments", pMaGV);
+        return ExecuteStoredProcedure("sp_GetMonHocByGiaoVien", pMaGV);
     }
 
     public static void UpdateTeachingAssignment(string maLop, string maMon, string newMaGV)

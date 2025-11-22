@@ -2742,38 +2742,132 @@ BEGIN
 END;
 GO
 
+CREATE FUNCTION [dbo].[fu_TiengVietKhongDau](@strInput NVARCHAR(MAX))
+RETURNS NVARCHAR(MAX)
+AS
+BEGIN
+    IF @strInput IS NULL RETURN @strInput;
+    
+    -- Chuyển thành chữ thường để dễ xử lý
+    SET @strInput = LOWER(@strInput);
+
+    -- Thay thế thủ công các ký tự có dấu
+    SET @strInput = REPLACE(@strInput, N'á', N'a');
+    SET @strInput = REPLACE(@strInput, N'à', N'a');
+    SET @strInput = REPLACE(@strInput, N'ả', N'a');
+    SET @strInput = REPLACE(@strInput, N'ã', N'a');
+    SET @strInput = REPLACE(@strInput, N'ạ', N'a');
+    SET @strInput = REPLACE(@strInput, N'ă', N'a');
+    SET @strInput = REPLACE(@strInput, N'ắ', N'a');
+    SET @strInput = REPLACE(@strInput, N'ằ', N'a');
+    SET @strInput = REPLACE(@strInput, N'ẳ', N'a');
+    SET @strInput = REPLACE(@strInput, N'ẵ', N'a');
+    SET @strInput = REPLACE(@strInput, N'ặ', N'a');
+    SET @strInput = REPLACE(@strInput, N'â', N'a');
+    SET @strInput = REPLACE(@strInput, N'ấ', N'a');
+    SET @strInput = REPLACE(@strInput, N'ầ', N'a');
+    SET @strInput = REPLACE(@strInput, N'ẩ', N'a');
+    SET @strInput = REPLACE(@strInput, N'ẫ', N'a');
+    SET @strInput = REPLACE(@strInput, N'ậ', N'a');
+
+    SET @strInput = REPLACE(@strInput, N'đ', N'd');
+
+    SET @strInput = REPLACE(@strInput, N'é', N'e');
+    SET @strInput = REPLACE(@strInput, N'è', N'e');
+    SET @strInput = REPLACE(@strInput, N'ẻ', N'e');
+    SET @strInput = REPLACE(@strInput, N'ẽ', N'e');
+    SET @strInput = REPLACE(@strInput, N'ẹ', N'e');
+    SET @strInput = REPLACE(@strInput, N'ê', N'e');
+    SET @strInput = REPLACE(@strInput, N'ế', N'e');
+    SET @strInput = REPLACE(@strInput, N'ề', N'e');
+    SET @strInput = REPLACE(@strInput, N'ể', N'e');
+    SET @strInput = REPLACE(@strInput, N'ễ', N'e');
+    SET @strInput = REPLACE(@strInput, N'ệ', N'e'); -- Khắc phục chữ Ệ
+
+    SET @strInput = REPLACE(@strInput, N'í', N'i');
+    SET @strInput = REPLACE(@strInput, N'ì', N'i');
+    SET @strInput = REPLACE(@strInput, N'ỉ', N'i');
+    SET @strInput = REPLACE(@strInput, N'ĩ', N'i');
+    SET @strInput = REPLACE(@strInput, N'ị', N'i');
+
+    SET @strInput = REPLACE(@strInput, N'ó', N'o');
+    SET @strInput = REPLACE(@strInput, N'ò', N'o');
+    SET @strInput = REPLACE(@strInput, N'ỏ', N'o');
+    SET @strInput = REPLACE(@strInput, N'õ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ọ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ô', N'o');
+    SET @strInput = REPLACE(@strInput, N'ố', N'o');
+    SET @strInput = REPLACE(@strInput, N'ồ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ổ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ỗ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ộ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ơ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ớ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ờ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ở', N'o');
+    SET @strInput = REPLACE(@strInput, N'ỡ', N'o');
+    SET @strInput = REPLACE(@strInput, N'ợ', N'o');
+
+    SET @strInput = REPLACE(@strInput, N'ú', N'u');
+    SET @strInput = REPLACE(@strInput, N'ù', N'u');
+    SET @strInput = REPLACE(@strInput, N'ủ', N'u');
+    SET @strInput = REPLACE(@strInput, N'ũ', N'u');
+    SET @strInput = REPLACE(@strInput, N'ụ', N'u');
+    SET @strInput = REPLACE(@strInput, N'ư', N'u');
+    SET @strInput = REPLACE(@strInput, N'ứ', N'u');
+    SET @strInput = REPLACE(@strInput, N'ừ', N'u');
+    SET @strInput = REPLACE(@strInput, N'ử', N'u');
+    SET @strInput = REPLACE(@strInput, N'ữ', N'u');
+    SET @strInput = REPLACE(@strInput, N'ự', N'u'); -- Khắc phục chữ Ự
+
+    SET @strInput = REPLACE(@strInput, N'ý', N'y');
+    SET @strInput = REPLACE(@strInput, N'ỳ', N'y');
+    SET @strInput = REPLACE(@strInput, N'ỷ', N'y');
+    SET @strInput = REPLACE(@strInput, N'ỹ', N'y');
+    SET @strInput = REPLACE(@strInput, N'ỵ', N'y'); -- Khắc phục chữ Ỵ
+
+    RETURN @strInput;
+END;
+GO
+
 create PROCEDURE sp_InsertMonHoc
     @TenMon NVARCHAR(100)
 AS
 BEGIN
     SET NOCOUNT ON;
     
-    DECLARE @CleanedTenMon VARCHAR(100); -- Dùng VARCHAR để loại bỏ dấu
+    DECLARE @CleanedTenMon NVARCHAR(100); 
     DECLARE @NewMaMon VARCHAR(10);
 
-    -- BƯỚC 1: [SỬA LỖI] Chuyển NVARCHAR (tiếng Việt có dấu) sang VARCHAR (không dấu)
-    -- Bằng cách sử dụng Collation 'Latin1_General_CI_AS' để loại bỏ dấu
-    SET @CleanedTenMon = @TenMon COLLATE Latin1_General_CI_AS;
+    -- 1. Dùng hàm vừa tạo để loại bỏ dấu tiếng Việt chuẩn xác (Ự -> u, Ệ -> e)
+    SET @CleanedTenMon = dbo.fu_TiengVietKhongDau(@TenMon);
 
-    -- BƯỚC 2: Loại bỏ các ký tự đặc biệt (giữ lại logic cũ của bạn)
+    -- 2. Loại bỏ khoảng trắng và ký tự đặc biệt
     SET @CleanedTenMon = REPLACE(@CleanedTenMon, ' ', '');
     SET @CleanedTenMon = REPLACE(@CleanedTenMon, '(', '');
     SET @CleanedTenMon = REPLACE(@CleanedTenMon, ')', '');
     SET @CleanedTenMon = REPLACE(@CleanedTenMon, '-', '');
     SET @CleanedTenMon = REPLACE(@CleanedTenMon, '/', '');
-    -- Bạn có thể thêm các lệnh REPLACE khác ở đây nếu cần
+    SET @CleanedTenMon = REPLACE(@CleanedTenMon, ',', '');
+    SET @CleanedTenMon = REPLACE(@CleanedTenMon, '.', '');
 
-    -- BƯỚC 3: Lấy 10 ký tự đầu và viết hoa
+    -- 3. Viết hoa và lấy 10 ký tự đầu
     SET @NewMaMon = UPPER(SUBSTRING(@CleanedTenMon, 1, 10));
 
-    -- BƯỚC 4: Kiểm tra tồn tại (giữ nguyên logic cũ)
+    -- 4. Xử lý trường hợp Mã rỗng (ví dụ nhập toàn ký tự đặc biệt)
+    IF LEN(@NewMaMon) = 0
+    BEGIN
+        SET @NewMaMon = 'MON' + CAST(ABS(CHECKSUM(NEWID())) % 1000 AS VARCHAR);
+    END
+
+    -- 5. Kiểm tra trùng lặp
     IF EXISTS (SELECT 1 FROM MonHoc WHERE MaMon = @NewMaMon OR TenMon = @TenMon)
     BEGIN
         RAISERROR(N'Mã môn hoặc Tên môn này đã tồn tại.', 16, 1);
         RETURN;
     END
 
-    -- BƯỚC 5: Thêm mới
+    -- 6. Thêm mới
     INSERT INTO MonHoc (MaMon, TenMon) VALUES (@NewMaMon, @TenMon);
 END;
 GO
