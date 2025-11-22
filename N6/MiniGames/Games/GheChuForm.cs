@@ -32,6 +32,9 @@ namespace N6
         // UI title
         private Label lblGameTitleTop;
 
+        // New: textual question/hint label
+        private Label lblQuestionText;
+
         #endregion
 
         #region Constructor & Initialization
@@ -132,9 +135,21 @@ namespace N6
             Panel pnlQuestionBg = new Panel
             {
                 Location = new Point(92, 330),
-                Size = new Size(840, 100),
+                Size = new Size(840, 130),
                 BackColor = Color.Transparent,
                 Padding = new Padding(10)
+            };
+
+            lblQuestionText = new Label
+            {
+                Dock = DockStyle.Top,
+                Height = 30,
+                AutoSize = false,
+                Font = new Font("Lexend", 12F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(111, 108, 97),
+                TextAlign = ContentAlignment.MiddleCenter,
+                BackColor = Color.Transparent,
+                Visible = false
             };
 
             pnlAnswer = new FlowLayoutPanel
@@ -150,6 +165,7 @@ namespace N6
             };
 
             pnlQuestionBg.Controls.Add(pnlAnswer);
+            pnlQuestionBg.Controls.Add(lblQuestionText);
 
             Label lblChoicesTitle = new Label
             {
@@ -309,20 +325,17 @@ namespace N6
                 picHint.Image = null;
             }
 
-            // Load image safely: support file path or embedded resources, with fallbacks.
             try
             {
                 if (!string.IsNullOrWhiteSpace(current.ImageHintResourceName))
                 {
                     if (File.Exists(current.ImageHintResourceName))
                     {
-                        using (var fs = new FileStream(current.ImageHintResourceName, FileMode.Open, FileAccess.Read))
+                        using (var fs = new FileStream(current.ImageHintResourceName, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
-                            using (var ms = new MemoryStream())
+                            using (var img = Image.FromStream(fs))
                             {
-                                fs.CopyTo(ms);
-                                ms.Position = 0;
-                                picHint.Image = Image.FromStream(ms);
+                                picHint.Image = new Bitmap(img);
                             }
                         }
                     }
@@ -331,9 +344,9 @@ namespace N6
                         try
                         {
                             var resourceImage = Properties.Resources.ResourceManager.GetObject(current.ImageHintResourceName);
-                            if (resourceImage != null)
+                            if (resourceImage is Image)
                             {
-                                picHint.Image = (Image)resourceImage;
+                                picHint.Image = new Bitmap((Image)resourceImage);
                             }
                             else
                             {
@@ -382,6 +395,25 @@ namespace N6
                 {
                     picHint.Image = null;
                 }
+            }
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(current.Question))
+                {
+                    lblQuestionText.Text = "Gợi ý: " + current.Question;
+                    lblQuestionText.Visible = true;
+                }
+                else
+                {
+                    lblQuestionText.Text = "";
+                    lblQuestionText.Visible = false;
+                }
+            }
+            catch
+            {
+                lblQuestionText.Text = "";
+                lblQuestionText.Visible = false;
             }
 
             // Tách thành các từ (nếu có)

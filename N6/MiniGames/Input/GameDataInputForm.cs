@@ -34,6 +34,15 @@ namespace N6
         private RoundedButton btnPlay;
         private RoundedButton btnLoadExcel;
         private RoundedButton btnReload;
+        private RoundedButton btnDeleteAll;
+
+        // New: filter UI + state (range filter, 1-based indices)
+        private RoundedButton btnFilter;
+        private Label lblFilterSummary;
+        private int? _filterStart = null;
+        private int? _filterEnd = null;
+        private Panel pnlFilterBar;
+        private string _sentenceFullText = null;
 
         #endregion
 
@@ -91,10 +100,7 @@ namespace N6
                 {
                     picGameIcon.Image = Properties.Resources.placeholder;
                 }
-                catch
-                {
-                    // Nếu không có resource placeholder, bỏ qua
-                }
+                catch { }
             }
 
             lblGameName = new Label
@@ -164,12 +170,59 @@ namespace N6
                 CornerRadius = 10
             };
 
+            btnDeleteAll = new RoundedButton
+            {
+                Text = "Xóa tất cả",
+                Size = new Size(120, 48),
+                Location = new Point(270, 16),
+                BackColor = Color.FromArgb(220, 53, 69),
+                ForeColor = Color.White,
+                Font = new Font("Lexend", 11F, FontStyle.Bold),
+                CornerRadius = 10
+            };
+
+            btnFilter = new RoundedButton
+            {
+                Text = "🔍 Bộ lọc",
+                Size = new Size(100, 36),
+                BackColor = Color.FromArgb(90, 90, 90),
+                ForeColor = Color.White,
+                Font = new Font("Lexend", 9F, FontStyle.Bold),
+                CornerRadius = 8,
+                Cursor = Cursors.Hand
+            };
+
+            lblFilterSummary = new Label
+            {
+                Text = "",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F, FontStyle.Italic),
+                ForeColor = Color.Gray
+            };
+
+            pnlFilterBar = new Panel
+            {
+                Width = 720,
+                Height = 48,
+                BackColor = Color.Transparent,
+                Margin = new Padding(5, 0, 5, 10)
+            };
+
+            btnFilter.Location = new Point(10, 6);
+            lblFilterSummary.Location = new Point(124, 12);
+
+            pnlFilterBar.Controls.Add(btnFilter);
+            pnlFilterBar.Controls.Add(lblFilterSummary);
+
             // Thêm từng nút vào toolbar theo thứ tự mong muốn
             pnlToolbar.Controls.Add(btnLoadExcel);
             pnlToolbar.Controls.Add(btnReload);
+            pnlToolbar.Controls.Add(btnDeleteAll);
+            //pnlToolbar.Controls.Add(btnFilter);
+            //pnlToolbar.Controls.Add(lblFilterSummary);
             pnlToolbar.Controls.Add(btnPlay);
             pnlToolbar.Controls.Add(btnSave);
-            
+
 
             pnlInputArea = new FlowLayoutPanel
             {
@@ -191,6 +244,11 @@ namespace N6
             btnPlay.Click += BtnPlay_Click;
             btnReload.Click += (s, e) => BuildInputUI();
             btnLoadExcel.Click += BtnLoadExcel_Click;
+            btnDeleteAll.Click += BtnDeleteAll_Click;
+
+            // Bộ lọc
+            btnFilter.Click += BtnFilter_Click;
+            UpdateFilterLabel();
         }
 
         #endregion
@@ -265,7 +323,7 @@ namespace N6
             {
                 Width = 680,
                 Height = 100,
-                Margin = new Padding(5, 10, 5, 20),
+                Margin = new Padding(5, 10, 5, 5),
                 BackColor = Color.FromArgb(245, 248, 250)
             };
 
@@ -304,8 +362,28 @@ namespace N6
                 AutoSize = true
             };
 
-            pnlHeaderSection.Controls.AddRange(new Control[] { lblHeaderIcon, lblHeaderTitle, lblHeaderDesc, lblSubDesc });
+            pnlHeaderSection.Controls.AddRange(new Control[]
+            { lblHeaderIcon,
+                lblHeaderTitle,
+                lblHeaderDesc,
+                lblSubDesc
+            });
             pnlInputArea.Controls.Add(pnlHeaderSection);
+
+            if (pnlFilterBar.Parent != pnlInputArea)
+            {
+                pnlFilterBar.Parent?.Controls.Remove(pnlFilterBar);
+                pnlInputArea.Controls.Add(pnlFilterBar);
+            }
+
+            var spacer = new Panel
+            {
+                Width = 680,
+                Height = 4,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0, 0, 0, 0)
+            };
+            pnlInputArea.Controls.Add(spacer);
 
             // Load existing questions
             foreach (var q in GameDataManager.GetQuizQuestions(_maMNG))
@@ -330,6 +408,26 @@ namespace N6
             btnAdd.FlatAppearance.BorderSize = 0;
             btnAdd.Click += (s, e) => AddQuizQuestionControl(null);
             pnlInputArea.Controls.Add(btnAdd);
+            RefreshQuizIndices();
+        }
+
+        /// <summary>
+        /// Làm mới đánh số hiển thị (bắt đầu từ 1) cho các câu hỏi.
+        /// </summary>
+        private void RefreshQuizIndices()
+        {
+            try
+            {
+                var quizControls = pnlInputArea.Controls
+                    .OfType<QuizQuestionControl>()
+                    .ToList();
+
+                for (int i = 0; i < quizControls.Count; i++)
+                {
+                    quizControls[i].SetIndex(i + 1);
+                }
+            }
+            catch { }
         }
 
         /// <summary>
@@ -345,7 +443,11 @@ namespace N6
                 qc.SetData(data);
             }
 
-            qc.BtnRemove.Click += (s, e) => pnlInputArea.Controls.Remove(qc);
+            qc.BtnRemove.Click += (s, e) =>
+            {
+                pnlInputArea.Controls.Remove(qc);
+                RefreshQuizIndices();
+            };
 
             // Thêm vào pnl và đặt trước nút "Thêm câu hỏi"
             pnlInputArea.Controls.Add(qc);
@@ -365,6 +467,7 @@ namespace N6
             {
                 pnlInputArea.Controls.SetChildIndex(qc, btnAddIndex);
             }
+            ApplyUiRangeFilter();
         }
 
         #endregion
@@ -429,8 +532,22 @@ namespace N6
                 lblHeaderDesc,
                 lblSubDesc
             });
-
             pnlInputArea.Controls.Add(pnlHeaderSection);
+
+            if (pnlFilterBar.Parent != pnlInputArea)
+            {
+                pnlFilterBar.Parent?.Controls.Remove(pnlFilterBar);
+                pnlInputArea.Controls.Add(pnlFilterBar);
+            }
+
+            var spacer = new Panel
+            {
+                Width = 680,
+                Height = 4,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0, 0, 0, 0)
+            };
+            pnlInputArea.Controls.Add(spacer);
 
             foreach (var item in GameDataManager.GetWordScrambleItems(_maMNG))
             {
@@ -490,6 +607,7 @@ namespace N6
             {
                 pnlInputArea.Controls.SetChildIndex(wc, btnAddIndex);
             }
+            ApplyUiRangeFilter();
         }
 
         #endregion
@@ -546,8 +664,29 @@ namespace N6
                 AutoSize = true
             };
 
-            pnlHeaderSection.Controls.AddRange(new Control[] { lblHeaderIcon, lblHeaderTitle, lblHeaderDesc, lblSubDesc });
+            pnlHeaderSection.Controls.AddRange(new Control[]
+            {
+                lblHeaderIcon,
+                lblHeaderTitle,
+                lblHeaderDesc,
+                lblSubDesc
+            });
             pnlInputArea.Controls.Add(pnlHeaderSection);
+
+            if (pnlFilterBar.Parent != pnlInputArea)
+            {
+                pnlFilterBar.Parent?.Controls.Remove(pnlFilterBar);
+                pnlInputArea.Controls.Add(pnlFilterBar);
+            }
+
+            var spacer = new Panel
+            {
+                Width = 680,
+                Height = 4,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0, 0, 0, 0)
+            };
+            pnlInputArea.Controls.Add(spacer);
 
             var items = GameDataManager.GetFlashcardItems(_maMNG);
 
@@ -573,6 +712,47 @@ namespace N6
             btnAdd.FlatAppearance.BorderSize = 0;
             btnAdd.Click += (s, e) => AddFlashcardCard(null);
             pnlInputArea.Controls.Add(btnAdd);
+            RefreshFlashcardIndices();
+        }
+
+        /// <summary>
+        /// Refresh visible 1-based numbering for flashcard panels.
+        /// </summary>
+        private void RefreshFlashcardIndices()
+        {
+            try
+            {
+                IEnumerable<Control> Descendants(Control root)
+                {
+                    foreach (Control c in root.Controls)
+                    {
+                        yield return c;
+                        foreach (var d in Descendants(c)) yield return d;
+                    }
+                }
+
+                var flashcardPanels = pnlInputArea.Controls
+                    .OfType<Panel>()
+                    .Where(p => p.Tag != null && p.Tag.ToString() == "FLASHCARD_PANEL")
+                    .ToList();
+
+                for (int i = 0; i < flashcardPanels.Count; i++)
+                {
+                    // search all descendants for the title label
+                    var titleLabel = Descendants(flashcardPanels[i])
+                        .OfType<Label>()
+                        .FirstOrDefault(l => l.Tag != null && l.Tag.ToString() == "FLASHCARD_TITLE");
+
+                    if (titleLabel != null)
+                    {
+                        titleLabel.Text = $"Thẻ {i + 1}:";
+                    }
+                }
+            }
+            catch
+            {
+                // silent
+            }
         }
 
         /// <summary>
@@ -623,11 +803,12 @@ namespace N6
 
             Label lblCardTitle = new Label
             {
-                Text = "Thẻ Flashcard",
+                Text = "Thẻ",
                 Font = new Font("Lexend", 10F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(64, 64, 64),
                 Location = new Point(50, 10),
-                AutoSize = true
+                AutoSize = true,
+                Tag = "FLASHCARD_TITLE"
             };
 
             Button btnRemove = new Button
@@ -648,6 +829,7 @@ namespace N6
                 if (MessageBox.Show("Xóa thẻ này?", "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     pnlInputArea.Controls.Remove(cardContainer);
+                    RefreshFlashcardIndices();
                 }
             };
 
@@ -744,6 +926,8 @@ namespace N6
             {
                 pnlInputArea.Controls.Add(cardContainer);
             }
+            RefreshFlashcardIndices();
+            ApplyUiRangeFilter();
         }
 
         private void BuildListUI()
@@ -852,8 +1036,29 @@ namespace N6
                 AutoSize = true
             };
 
-            pnlHeaderSection.Controls.AddRange(new Control[] { lblHeaderIcon, lblHeaderTitle, lblHeaderDesc, lblSubDesc });
+            pnlHeaderSection.Controls.AddRange(new Control[]
+            {
+                lblHeaderIcon,
+                lblHeaderTitle,
+                lblHeaderDesc,
+                lblSubDesc
+            });
             pnlInputArea.Controls.Add(pnlHeaderSection);
+
+            if (pnlFilterBar.Parent != pnlInputArea)
+            {
+                pnlFilterBar.Parent?.Controls.Remove(pnlFilterBar);
+                pnlInputArea.Controls.Add(pnlFilterBar);
+            }
+
+            var spacer = new Panel
+            {
+                Width = 680,
+                Height = 4,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0, 0, 0, 0)
+            };
+            pnlInputArea.Controls.Add(spacer);
 
             var questions = GameDataManager.GetFillBlankQuestions(_maMNG);
 
@@ -886,6 +1091,26 @@ namespace N6
             btnAdd.FlatAppearance.BorderSize = 0;
             btnAdd.Click += (s, e) => AddFillBlankControl(null);
             pnlInputArea.Controls.Add(btnAdd);
+            RefreshFillBlankIndices();
+        }
+
+        private void RefreshFillBlankIndices()
+        {
+            try
+            {
+                var fillControls = pnlInputArea.Controls
+                    .OfType<FillBlankControl>()
+                    .ToList();
+
+                for (int i = 0; i < fillControls.Count; i++)
+                {
+                    fillControls[i].SetIndex(i + 1);
+                }
+            }
+            catch
+            {
+                // silent
+            }
         }
 
         /// <summary>
@@ -901,9 +1126,14 @@ namespace N6
                 fbc.SetData(data);
             }
 
-            fbc.BtnRemove.Click += (s, e) => pnlInputArea.Controls.Remove(fbc);
+            fbc.BtnRemove.Click += (s, e) =>
+            {
+                pnlInputArea.Controls.Remove(fbc);
+                RefreshFillBlankIndices();
+            };
 
             pnlInputArea.Controls.Add(fbc);
+            
 
             int btnAddIndex = -1;
 
@@ -920,6 +1150,8 @@ namespace N6
             {
                 pnlInputArea.Controls.SetChildIndex(fbc, btnAddIndex);
             }
+            RefreshFillBlankIndices();
+            ApplyUiRangeFilter();
         }
 
         #endregion
@@ -977,11 +1209,32 @@ namespace N6
                 AutoSize = true
             };
 
-            pnlHeader.Controls.AddRange(new Control[] { lblIcon, lblTitle, lblCount });
+            pnlHeader.Controls.AddRange(new Control[]
+            {
+                lblIcon,
+                lblTitle,
+                lblCount
+            });
             pnlInputArea.Controls.Add(pnlHeader);
+
+            if (pnlFilterBar.Parent != pnlInputArea)
+            {
+                pnlFilterBar.Parent?.Controls.Remove(pnlFilterBar);
+                pnlInputArea.Controls.Add(pnlFilterBar);
+            }
+
+            var spacer = new Panel
+            {
+                Width = 680,
+                Height = 4,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0, 0, 0, 0)
+            };
+            pnlInputArea.Controls.Add(spacer);
 
             var items = GameDataManager.GetSentenceScrambleItems(_maMNG);
             var existingText = string.Join("\n", items.Select((item, index) => $"{index + 1}. {item.CorrectSentence}"));
+            _sentenceFullText = existingText;
 
             var txtSentences = new RichTextBox
             {
@@ -1126,6 +1379,7 @@ namespace N6
 
             pnlInputCard.Controls.AddRange(new Control[] { lblListTitle, txtSentences, lblCharCount });
             pnlInputArea.Controls.Add(pnlInputCard);
+            ApplyUiRangeFilter();
         }
 
         #endregion
@@ -1139,35 +1393,115 @@ namespace N6
         {
             try
             {
+                bool anySaved = false;
                 switch (_maMNG.ToUpper())
                 {
                     case "MNG01":
-                        GameDataManager.SaveQuizQuestions(_maMNG, pnlInputArea.Controls.OfType<QuizQuestionControl>().Select(qc => qc.GetData()).ToList());
-                        break;
+                        var allQuizControls = pnlInputArea.Controls.OfType<QuizQuestionControl>().ToList();
+                        var validQuizQuestions = new List<QuizQuestion>();
+
+                        // 1. Lặp qua TẤT CẢ các câu hỏi để kiểm tra tính đầy đủ
+                        foreach (var qc in allQuizControls)
+                        {
+                            var data = qc.GetData();
+
+                            // Kiểm tra Câu hỏi (nếu trống/placeholder)
+                            if (string.IsNullOrWhiteSpace(data.QuestionText))
+                            {
+                                MessageBox.Show("Câu hỏi không được để trống! Vui lòng nhập đầy đủ nội dung cho tất cả các mục Quiz.", "Lỗi nhập liệu Quiz", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                return; // Dừng và ngăn lưu
+                            }
+
+                            // Kiểm tra 4 Đáp án (A, B, C, D)
+                            if (data.Options == null || data.Options.Count < 4 || data.Options.Any(o => string.IsNullOrWhiteSpace(o)))
+                            {
+                                MessageBox.Show($"Các đáp án (A, B, C, D) không được để trống! Vui lòng nhập đầy đủ nội dung cho tất cả các mục Quiz.", "Lỗi nhập liệu Quiz", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                return;
+                            }
+
+                            validQuizQuestions.Add(data);
+                        }
+
+                        // 2. Nếu không có lỗi, tiến hành lưu và THÔNG BÁO THÀNH CÔNG
+                        GameDataManager.SaveQuizQuestions(_maMNG, validQuizQuestions);
+                        break; ;
 
                     case "MNG04":
-                        GameDataManager.SaveWordScrambleItems(_maMNG, pnlInputArea.Controls.OfType<WordScrambleControl>().Select(wc => wc.GetData()).ToList());
+                        var wsControls = pnlInputArea.Controls.OfType<WordScrambleControl>().ToList();
+
+                        var wsList = new List<WordScrambleItem>();
+
+                        for (int i = 0; i < wsControls.Count; i++)
+                        {
+                            var wc = wsControls[i];
+
+                            if (!wc.TryGetData(out var wsItem, out var wsMsg))
+                            {
+                                MessageBox.Show($"Mục #{i + 1}: {wsMsg}", "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                                // focus offending field
+                                if (string.IsNullOrWhiteSpace(wsItem?.Question))
+                                {
+                                    wc.TxtQuestion.Focus();
+                                }
+                                else
+                                {
+                                    wc.TxtAnswer.Focus();
+                                }
+
+                                return; // abort save
+                            }
+
+                            wsList.Add(wsItem);
+                        }
+
+                        GameDataManager.SaveWordScrambleItems(_maMNG, wsList);
+                        anySaved = true;
                         break;
 
                     case "MNG03":
-                        var flashcardData = pnlInputArea.Controls
+                        // Validate flashcard panels before saving.
+                        var flashcardPanels = pnlInputArea.Controls
                             .OfType<Panel>()
                             .Where(p => p.Tag != null && p.Tag.ToString() == "FLASHCARD_PANEL")
-                            .Select(panel =>
-                            {
-                                var txtTerm = panel.Controls.OfType<TextBox>().FirstOrDefault(t => t.Tag?.ToString() == "TERM");
-                                var txtDef = panel.Controls.OfType<TextBox>().FirstOrDefault(t => t.Tag?.ToString() == "DEFINITION");
-
-                                return new FlashcardItem
-                                {
-                                    Term = txtTerm?.Text ?? "",
-                                    Definition = txtDef?.Text ?? ""
-                                };
-                            })
-                            .Where(f => !string.IsNullOrWhiteSpace(f.Term) && !string.IsNullOrWhiteSpace(f.Definition))
                             .ToList();
 
-                        GameDataManager.SaveFlashcardItems(_maMNG, flashcardData);
+                        var flashcardsToSave = new List<FlashcardItem>();
+
+                        for (int i = 0; i < flashcardPanels.Count; i++)
+                        {
+                            var panel = flashcardPanels[i];
+                            var txtTerm = panel.Controls.OfType<TextBox>().FirstOrDefault(t => t.Tag?.ToString() == "TERM");
+                            var txtDef = panel.Controls.OfType<TextBox>().FirstOrDefault(t => t.Tag?.ToString() == "DEFINITION");
+
+                            // Treat placeholder/gray text as empty (PlaceholderProvider uses Gray)
+                            string term = txtTerm == null ? string.Empty : (txtTerm.ForeColor == Color.Gray ? string.Empty : txtTerm.Text?.Trim() ?? string.Empty);
+                            string def = txtDef == null ? string.Empty : (txtDef.ForeColor == Color.Gray ? string.Empty : txtDef.Text?.Trim() ?? string.Empty);
+
+                            if (string.IsNullOrWhiteSpace(term) || string.IsNullOrWhiteSpace(def))
+                            {
+                                MessageBox.Show($"Thẻ #{i + 1} chưa nhập đầy đủ. Vui lòng nhập cả \"Thuật ngữ\" và \"Định nghĩa\".", "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                                if (string.IsNullOrWhiteSpace(term) && txtTerm != null)
+                                {
+                                    txtTerm.Focus();
+                                }
+                                else if (string.IsNullOrWhiteSpace(def) && txtDef != null)
+                                {
+                                    txtDef.Focus();
+                                }
+
+                                return;
+                            }
+
+                            flashcardsToSave.Add(new FlashcardItem
+                            {
+                                Term = term,
+                                Definition = def
+                            });
+                        }
+
+                        GameDataManager.SaveFlashcardItems(_maMNG, flashcardsToSave);
                         break;
 
                     case "MNG02":
@@ -1193,7 +1527,9 @@ namespace N6
                             return;
                         }
 
-                        var sentenceText = txtSentences.Text ?? "";
+                        var sentenceText = (_filterStart.HasValue && _filterEnd.HasValue && !string.IsNullOrEmpty(_sentenceFullText))
+                            ? _sentenceFullText
+                            : txtSentences.Text ?? "";
                         var sentences = sentenceText.Split('\n')
                                                     .Where(line => !string.IsNullOrWhiteSpace(line)
                                                                 && !line.Trim().StartsWith("Ví dụ:")
@@ -1222,15 +1558,30 @@ namespace N6
                         break;
 
                     case "MNG07":
-                        var fillBlankQuestions = pnlInputArea.Controls.OfType<FillBlankControl>()
-                            .Select(fbc => fbc.GetData())
-                            .Where(q => !string.IsNullOrWhiteSpace(q.QuestionText))
-                            .ToList();
+                        var fillControls = pnlInputArea.Controls.OfType<FillBlankControl>().ToList();
 
-                        GameDataManager.SaveFillBlankQuestions(_maMNG, fillBlankQuestions);
+                        var fillList = new List<FillBlankQuestion>();
+
+                        for (int i = 0; i < fillControls.Count; i++)
+                        {
+                            var fbc = fillControls[i];
+                            if (!fbc.TryGetData(out var fItem, out var fMsg))
+                            {
+                                MessageBox.Show($"Câu #{i + 1}: {fMsg}", "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                                if (string.IsNullOrWhiteSpace(fItem?.QuestionText)) fbc.TxtQuestion.Focus();
+                                else fbc.TxtAnswer.Focus();
+
+                                return; // abort save
+                            }
+
+                            fillList.Add(fItem);
+                        }
+
+                        GameDataManager.SaveFillBlankQuestions(_maMNG, fillList);
+                        anySaved = true;
                         break;
                 }
-
                 MessageBox.Show("Lưu dữ liệu thành công!", "Thành công");
             }
             catch (Exception ex)
@@ -1241,6 +1592,7 @@ namespace N6
 
         /// <summary>
         /// Mở màn chơi tương ứng với dữ liệu đã lưu.
+        /// Áp dụng bộ lọc (nếu có) là Range [start..end] (1-based).
         /// </summary>
         private void BtnPlay_Click(object sender, EventArgs e)
         {
@@ -1253,9 +1605,10 @@ namespace N6
                 {
                     case "MNG01":
                         var quiz = GameDataManager.GetQuizQuestions(_maMNG);
+                        quiz = ApplyRangeFilter(quiz);
                         if (!quiz.Any())
                         {
-                            MessageBox.Show("Chưa có dữ liệu cho game này. Vui lòng nhập dữ liệu trước khi chơi.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show("Không có câu nào được chọn để chơi. Kiểm tra bộ lọc hoặc nhập dữ liệu.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                         gameForm = new QuizGameForm(quiz);
@@ -1264,9 +1617,10 @@ namespace N6
 
                     case "MNG02":
                         var list02 = GameDataManager.GetListFromString(_maMNG);
+                        list02 = ApplyRangeFilter(list02);
                         if (!list02.Any())
                         {
-                            MessageBox.Show("Chưa có dữ liệu cho game này. Vui lòng nhập dữ liệu trước khi chơi.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show("Không có mục nào được chọn để chơi. Kiểm tra bộ lọc hoặc nhập dữ liệu.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                         gameForm = new LuckyWheelForm(list02);
@@ -1275,9 +1629,10 @@ namespace N6
 
                     case "MNG03":
                         var flash = GameDataManager.GetFlashcardItems(_maMNG);
+                        flash = ApplyRangeFilter(flash);
                         if (!flash.Any())
                         {
-                            MessageBox.Show("Chưa có dữ liệu cho game này. Vui lòng nhập dữ liệu trước khi chơi.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show("Không có thẻ nào được chọn để chơi. Kiểm tra bộ lọc hoặc nhập dữ liệu.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                         gameForm = new FlashcardForm(flash);
@@ -1286,9 +1641,10 @@ namespace N6
 
                     case "MNG04":
                         var ws = GameDataManager.GetWordScrambleItems(_maMNG);
+                        ws = ApplyRangeFilter(ws);
                         if (!ws.Any())
                         {
-                            MessageBox.Show("Chưa có dữ liệu cho game này. Vui lòng nhập dữ liệu trước khi chơi.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show("Không có mục nào được chọn để chơi. Kiểm tra bộ lọc hoặc nhập dữ liệu.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                         gameForm = new GheChuForm(ws);
@@ -1308,9 +1664,10 @@ namespace N6
 
                     case "MNG06":
                         var sc = GameDataManager.GetSentenceScrambleItems(_maMNG);
+                        sc = ApplyRangeFilter(sc);
                         if (!sc.Any())
                         {
-                            MessageBox.Show("Chưa có dữ liệu cho game này. Vui lòng nhập dữ liệu trước khi chơi.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show("Không có câu nào được chọn để chơi. Kiểm tra bộ lọc hoặc nhập dữ liệu.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                         gameForm = new SapXepCauForm(sc);
@@ -1319,9 +1676,10 @@ namespace N6
 
                     case "MNG07":
                         var fill = GameDataManager.GetFillBlankQuestions(_maMNG);
+                        fill = ApplyRangeFilter(fill);
                         if (!fill.Any())
                         {
-                            MessageBox.Show("Chưa có dữ liệu cho game này. Vui lòng nhập dữ liệu trước khi chơi.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show("Không có câu nào được chọn để chơi. Kiểm tra bộ lọc hoặc nhập dữ liệu.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                         gameForm = new DienTuForm(fill);
@@ -1330,9 +1688,10 @@ namespace N6
 
                     case "MNG08":
                         var list08 = GameDataManager.GetListFromString(_maMNG);
+                        list08 = ApplyRangeFilter(list08);
                         if (!list08.Any())
                         {
-                            MessageBox.Show("Chưa có dữ liệu cho game này. Vui lòng nhập dữ liệu trước khi chơi.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show("Không có mục nào được chọn để chơi. Kiểm tra bộ lọc hoặc nhập dữ liệu.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                         gameForm = new LatTheForm(list08);
@@ -1341,9 +1700,10 @@ namespace N6
 
                     case "MNG09":
                         var list09 = GameDataManager.GetListFromString(_maMNG);
+                        list09 = ApplyRangeFilter(list09);
                         if (!list09.Any())
                         {
-                            MessageBox.Show("Chưa có dữ liệu cho game này. Vui lòng nhập dữ liệu trước khi chơi.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show("Không có mục nào được chọn để chơi. Kiểm tra bộ lọc hoặc nhập dữ liệu.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                         gameForm = new RandomSoForm(list09);
@@ -1352,9 +1712,10 @@ namespace N6
 
                     case "MNG10":
                         var quizForPassBall = GameDataManager.GetQuizQuestions(_maMNG);
+                        quizForPassBall = ApplyRangeFilter(quizForPassBall);
                         if (!quizForPassBall.Any())
                         {
-                            MessageBox.Show("Chưa có dữ liệu cho game này. Vui lòng nhập dữ liệu trước khi chơi.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            MessageBox.Show("Không có câu nào được chọn để chơi. Kiểm tra bộ lọc hoặc nhập dữ liệu.", "Chưa có dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                             return;
                         }
                         gameForm = new PassBallForm(quizForPassBall);
@@ -1384,11 +1745,228 @@ namespace N6
             }
         }
 
+        #endregion
+
+        #region Filter: range dialog + helpers
+
+        private List<T> ApplyRangeFilter<T>(List<T> items)
+        {
+            if (items == null || items.Count == 0) return new List<T>();
+            if (!_filterStart.HasValue || !_filterEnd.HasValue) return new List<T>(items);
+
+            int start = Math.Max(1, _filterStart.Value);
+            int end = Math.Min(_filterEnd.Value, items.Count);
+            if (start > end) return new List<T>();
+
+            return items.Skip(start - 1).Take(end - start + 1).ToList();
+        }
+
+        private List<string> ApplyRangeFilter(List<string> items) => ApplyRangeFilter<string>(items);
+        private List<QuizQuestion> ApplyRangeFilter(List<QuizQuestion> items) => ApplyRangeFilter<QuizQuestion>(items);
+        private List<FlashcardItem> ApplyRangeFilter(List<FlashcardItem> items) => ApplyRangeFilter<FlashcardItem>(items);
+        private List<WordScrambleItem> ApplyRangeFilter(List<WordScrambleItem> items) => ApplyRangeFilter<WordScrambleItem>(items);
+        private List<SentenceScrambleItem> ApplyRangeFilter(List<SentenceScrambleItem> items) => ApplyRangeFilter<SentenceScrambleItem>(items);
+        private List<FillBlankQuestion> ApplyRangeFilter(List<FillBlankQuestion> items) => ApplyRangeFilter<FillBlankQuestion>(items);
+
+        private void UpdateFilterLabel()
+        {
+            if (_filterStart.HasValue && _filterEnd.HasValue)
+            {
+                lblFilterSummary.Text = $"Đã lọc: Bắt đầu chơi từ Câu {_filterStart.Value} → Câu {_filterEnd.Value}";
+            }
+            else
+            {
+                lblFilterSummary.Text = "";
+            }
+        }
+
+        private void BtnFilter_Click(object sender, EventArgs e)
+        {
+            int total = 0;
+            try
+            {
+                switch (_maMNG.ToUpper())
+                {
+                    case "MNG01":
+                        total = GameDataManager.GetQuizQuestions(_maMNG).Count;
+                        break;
+                    case "MNG02":
+                    case "MNG08":
+                    case "MNG09":
+                        total = GameDataManager.GetListFromString(_maMNG).Count;
+                        break;
+                    case "MNG03":
+                        total = GameDataManager.GetFlashcardItems(_maMNG).Count;
+                        break;
+                    case "MNG04":
+                        total = GameDataManager.GetWordScrambleItems(_maMNG).Count;
+                        break;
+                    case "MNG06":
+                        total = GameDataManager.GetSentenceScrambleItems(_maMNG).Count;
+                        break;
+                    case "MNG07":
+                        total = GameDataManager.GetFillBlankQuestions(_maMNG).Count;
+                        break;
+                    default:
+                        total = 0;
+                        break;
+                }
+            }
+            catch
+            {
+                total = 0;
+            }
+
+            using (var dlg = new FilterRangeForm(total, _filterStart, _filterEnd))
+            {
+                var res = dlg.ShowDialog(this);
+                if (res == DialogResult.OK)
+                {
+                    _filterStart = dlg.StartIndex;
+                    _filterEnd = dlg.EndIndex;
+                }
+                else if (res == DialogResult.Abort) // Clear filter
+                {
+                    _filterStart = null;
+                    _filterEnd = null;
+                }
+                UpdateFilterLabel();
+                ApplyUiRangeFilter();
+            }
+        }
+
+        /// <summary>
+        /// Chọn chỉ mục bắt đầu/kết thúc (bắt đầu từ 1)
+        /// </summary>
+        private class FilterRangeForm : Form
+        {
+            public int? StartIndex { get; private set; }
+            public int? EndIndex { get; private set; }
+
+            private NumericUpDown numStart;
+            private NumericUpDown numEnd;
+            private Button btnOk;
+            private Button btnCancel;
+            private Button btnClear;
+            private int _total;
+
+            public FilterRangeForm(int totalItems, int? currentStart, int? currentEnd)
+            {
+                _total = totalItems;
+                this.Text = "Bộ lọc (Chọn khoảng câu)";
+                this.Size = new Size(360, 180);
+                this.StartPosition = FormStartPosition.CenterParent;
+                this.FormBorderStyle = FormBorderStyle.FixedDialog;
+                this.MaximizeBox = false;
+                this.MinimizeBox = false;
+
+                Label lblInfo = new Label
+                {
+                    Text = totalItems > 0 ? $"Tổng: {totalItems} câu. Chọn khoảng 1..{totalItems}" : "Chưa có dữ liệu để lọc.",
+                    Location = new Point(12, 8),
+                    AutoSize = true
+                };
+
+                numStart = new NumericUpDown
+                {
+                    Minimum = 1,
+                    Maximum = Math.Max(1, totalItems),
+                    Value = currentStart.HasValue ? Math.Min(Math.Max(1, currentStart.Value), Math.Max(1, totalItems)) : 1,
+                    Location = new Point(12, 36),
+                    Width = 140
+                };
+
+                numEnd = new NumericUpDown
+                {
+                    Minimum = 1,
+                    Maximum = Math.Max(1, totalItems),
+                    Value = currentEnd.HasValue ? Math.Min(Math.Max(1, currentEnd.Value), Math.Max(1, totalItems)) : Math.Max(1, totalItems),
+                    Location = new Point(180, 36),
+                    Width = 140
+                };
+
+                Label lblDash = new Label
+                {
+                    Text = "→",
+                    Location = new Point(158, 40),
+                    AutoSize = true
+                };
+
+                btnOk = new Button
+                {
+                    Text = "Áp dụng",
+                    Location = new Point(12, 80),
+                    Width = 100,
+                    Enabled = totalItems > 0
+                };
+
+                btnCancel = new Button
+                {
+                    Text = "Hủy",
+                    Location = new Point(128, 80),
+                    Width = 80
+                };
+
+                btnClear = new Button
+                {
+                    Text = "Xóa bộ lọc",
+                    Location = new Point(220, 80),
+                    Width = 100,
+                    Enabled = currentStart.HasValue || currentEnd.HasValue
+                };
+
+                btnOk.Click += (s, e) =>
+                {
+                    int sIdx = (int)numStart.Value;
+                    int eIdx = (int)numEnd.Value;
+                    if (sIdx > eIdx)
+                    {
+                        MessageBox.Show("Khoảng lọc không hợp lệ. Start phải <= End.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    StartIndex = sIdx;
+                    EndIndex = eIdx;
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                };
+
+                btnCancel.Click += (s, e) =>
+                {
+                    this.DialogResult = DialogResult.Cancel;
+                    this.Close();
+                };
+
+                btnClear.Click += (s, e) =>
+                {
+                    StartIndex = null;
+                    EndIndex = null;
+                    this.DialogResult = DialogResult.Abort; // indicate clear
+                    this.Close();
+                };
+
+                this.Controls.AddRange(new Control[] { lblInfo, numStart, numEnd, lblDash, btnOk, btnCancel, btnClear });
+            }
+        }
+
+        #endregion
+
+        #region Load from Excel (unchanged)
+
         /// <summary>
         /// (Placeholder) Khi người dùng muốn tải từ Excel.
         /// </summary>
         private void BtnLoadExcel_Click(object sender, EventArgs e)
         {
+            using (var fmt = new ExcelFormatForm(_maMNG))
+            {
+                var dlgRes = fmt.ShowDialog(this);
+                if (dlgRes != DialogResult.OK)
+                {
+                    return;
+                }
+            }
+
             // BƯỚC 1: Chọn file Excel
             using (OpenFileDialog ofd = new OpenFileDialog())
             {
@@ -1413,13 +1991,14 @@ namespace N6
                     {
                         case "MNG01": // QUIZ (Cần 6 cột)
                             {
-                                var quizQuestions = new List<QuizQuestion>();
-                                foreach (System.Data.DataRow row in dataTable.Rows)
+                                var existing = GameDataManager.GetQuizQuestions(_maMNG) ?? new List<QuizQuestion>();
+                                var newItems = new List<QuizQuestion>();
+
+                                foreach (DataRow row in dataTable.Rows)
                                 {
-                                    // Kiểm tra đủ 6 cột dữ liệu (0-5)
                                     if (dataTable.Columns.Count >= 6 && !string.IsNullOrWhiteSpace(row[0]?.ToString()))
                                     {
-                                        quizQuestions.Add(new QuizQuestion
+                                        newItems.Add(new QuizQuestion
                                         {
                                             QuestionText = row[0].ToString().Trim(),
                                             Options = new List<string> {
@@ -1432,37 +2011,41 @@ namespace N6
                                         });
                                     }
                                 }
-                                GameDataManager.SaveQuizQuestions(_maMNG, quizQuestions);
-                                itemsCount = quizQuestions.Count;
+
+                                existing.AddRange(newItems);
+                                GameDataManager.SaveQuizQuestions(_maMNG, existing);
+                                itemsCount = newItems.Count;
                                 break;
                             }
-                        case "MNG03": // FLASHCARD (Cần 2 cột)
+                        case "MNG03": // FLASHCARD (2 cột)
                             {
-                                var flashcards = new List<FlashcardItem>();
-                                foreach (System.Data.DataRow row in dataTable.Rows)
+                                var existing = GameDataManager.GetFlashcardItems(_maMNG) ?? new List<FlashcardItem>();
+                                var newItems = new List<FlashcardItem>();
+                                foreach (DataRow row in dataTable.Rows)
                                 {
                                     if (dataTable.Columns.Count >= 2 && !string.IsNullOrWhiteSpace(row[0]?.ToString()) && !string.IsNullOrWhiteSpace(row[1]?.ToString()))
                                     {
-                                        flashcards.Add(new FlashcardItem
+                                        newItems.Add(new FlashcardItem
                                         {
                                             Term = row[0].ToString().Trim(),
                                             Definition = row[1].ToString().Trim()
                                         });
                                     }
                                 }
-                                GameDataManager.SaveFlashcardItems(_maMNG, flashcards);
-                                itemsCount = flashcards.Count;
+                                existing.AddRange(newItems);
+                                GameDataManager.SaveFlashcardItems(_maMNG, existing);
+                                itemsCount = newItems.Count;
                                 break;
                             }
                         case "MNG04": // GHÉP CHỮ (Word Scramble - Cần 3 cột)
                             {
-                                var items = new List<WordScrambleItem>();
-                                foreach (System.Data.DataRow row in dataTable.Rows)
+                                var existing = GameDataManager.GetWordScrambleItems(_maMNG) ?? new List<WordScrambleItem>();
+                                var newItems = new List<WordScrambleItem>();
+                                foreach (DataRow row in dataTable.Rows)
                                 {
-                                    // Cột 0: Tên ảnh (có thể rỗng), Cột 1: Gợi ý, Cột 2: Đáp án (BẮT BUỘC)
                                     if (dataTable.Columns.Count >= 3 && !string.IsNullOrWhiteSpace(row[2]?.ToString()))
                                     {
-                                        items.Add(new WordScrambleItem
+                                        newItems.Add(new WordScrambleItem
                                         {
                                             ImageHintResourceName = row[0]?.ToString().Trim() ?? string.Empty,
                                             Question = row[1]?.ToString().Trim() ?? string.Empty,
@@ -1470,56 +2053,55 @@ namespace N6
                                         });
                                     }
                                 }
-                                GameDataManager.SaveWordScrambleItems(_maMNG, items);
-                                itemsCount = items.Count;
+                                existing.AddRange(newItems);
+                                GameDataManager.SaveWordScrambleItems(_maMNG, existing);
+                                itemsCount = newItems.Count;
                                 break;
                             }
                         case "MNG06": // SẮP XẾP CÂU (Sentence Scramble - Cần 1 cột)
                             {
-                                var sentences = new List<SentenceScrambleItem>();
-                                foreach (System.Data.DataRow row in dataTable.Rows)
+                                var existing = GameDataManager.GetSentenceScrambleItems(_maMNG) ?? new List<SentenceScrambleItem>();
+                                var newItems = new List<SentenceScrambleItem>();
+                                foreach (DataRow row in dataTable.Rows)
                                 {
-                                    // Cột 0: Câu hoàn chỉnh
                                     if (dataTable.Columns.Count >= 1 && !string.IsNullOrWhiteSpace(row[0]?.ToString()))
                                     {
-                                        // Loại bỏ số thứ tự hoặc dấu đầu dòng nếu có
-                                        string cleanedSentence = Regex.Replace(row[0].ToString().Trim(), @"^\d+\.\s*", "");
-                                        sentences.Add(new SentenceScrambleItem
-                                        {
-                                            CorrectSentence = cleanedSentence
-                                        });
+                                        string cleaned = Regex.Replace(row[0].ToString().Trim(), @"^\d+\.\s*", "");
+                                        newItems.Add(new SentenceScrambleItem { CorrectSentence = cleaned });
                                     }
                                 }
-                                GameDataManager.SaveSentenceScrambleItems(_maMNG, sentences);
-                                itemsCount = sentences.Count;
+                                existing.AddRange(newItems);
+                                GameDataManager.SaveSentenceScrambleItems(_maMNG, existing);
+                                itemsCount = newItems.Count;
                                 break;
                             }
                         case "MNG07": // ĐIỀN TỪ (Fill in the Blank - Cần 2 cột)
                             {
-                                var fillBlankQuestions = new List<FillBlankQuestion>();
-                                foreach (System.Data.DataRow row in dataTable.Rows)
+                                var existing = GameDataManager.GetFillBlankQuestions(_maMNG) ?? new List<FillBlankQuestion>();
+                                var newItems = new List<FillBlankQuestion>();
+                                foreach (DataRow row in dataTable.Rows)
                                 {
-                                    // Cột 0: Câu hỏi (chứa ___), Cột 1: Đáp án
                                     if (dataTable.Columns.Count >= 2 && !string.IsNullOrWhiteSpace(row[0]?.ToString()) && !string.IsNullOrWhiteSpace(row[1]?.ToString()))
                                     {
-                                        fillBlankQuestions.Add(new FillBlankQuestion
+                                        newItems.Add(new FillBlankQuestion
                                         {
                                             QuestionText = row[0].ToString().Trim(),
                                             Answer = row[1].ToString().Trim()
                                         });
                                     }
                                 }
-                                GameDataManager.SaveFillBlankQuestions(_maMNG, fillBlankQuestions);
-                                itemsCount = fillBlankQuestions.Count;
+                                existing.AddRange(newItems);
+                                GameDataManager.SaveFillBlankQuestions(_maMNG, existing);
+                                itemsCount = newItems.Count;
                                 break;
                             }
                         default:
-                            MessageBox.Show($"Mã game {_maMNG} chưa được hỗ trợ nhập liệu Excel.", "Lỗi");
+                            MessageBox.Show($"Game chưa được hỗ trợ nhập liệu Excel.", "Lỗi");
                             return;
                     }
 
                     // BƯỚC 3: Hiển thị kết quả
-                    MessageBox.Show($"Đã nhập thành công **{itemsCount}** bản ghi cho game.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show($"Đã nhập **{itemsCount}** bản ghi cho game.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     BuildInputUI();
                 }
@@ -1531,6 +2113,83 @@ namespace N6
                 {
                     MessageBox.Show($"Lỗi không xác định trong quá trình xử lý: {ex.Message}", "Lỗi Hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            }
+        }
+
+        #endregion
+
+        #region Delete All (unchanged)
+
+        /// <summary>
+        /// Xóa tất cả dữ liệu đã lưu cho các mini-game đã chọn
+        /// </summary>
+        private void BtnDeleteAll_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                bool hasData = false;
+
+                switch (_maMNG.ToUpper())
+                {
+                    case "MNG01": // Quiz
+                        var quiz = GameDataManager.GetQuizQuestions(_maMNG);
+                        hasData = quiz != null && quiz.Any();
+                        break;
+                    case "MNG03": // Flashcard
+                        var flash = GameDataManager.GetFlashcardItems(_maMNG);
+                        hasData = flash != null && flash.Any();
+                        break;
+                    case "MNG04": // Ghép chữ
+                        var ws = GameDataManager.GetWordScrambleItems(_maMNG);
+                        hasData = ws != null && ws.Any();
+                        break;
+                    case "MNG06": // Sắp xếp câu
+                        var sc = GameDataManager.GetSentenceScrambleItems(_maMNG);
+                        hasData = sc != null && sc.Any();
+                        break;
+                    case "MNG07": // Điền từ
+                        var fill = GameDataManager.GetFillBlankQuestions(_maMNG);
+                        hasData = fill != null && fill.Any();
+                        break;
+                    default:
+                        MessageBox.Show("Chức năng Xóa tất cả hiện chưa hỗ trợ game này.", "Không hỗ trợ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        return;
+                }
+
+                if (!hasData)
+                {
+                    MessageBox.Show("Không có dữ liệu để xóa", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                var confirm = MessageBox.Show($"Bạn có chắc muốn xóa toàn bộ dữ liệu cũ của game \"{_tenMNG}\"? Hành động này không thể hoàn tác.", "Xác nhận xóa tất cả", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (confirm != DialogResult.Yes) return;
+
+                switch (_maMNG.ToUpper())
+                {
+                    case "MNG01": // Quiz
+                        GameDataManager.SaveQuizQuestions(_maMNG, new List<QuizQuestion>());
+                        break;
+                    case "MNG03": // Flashcard
+                        GameDataManager.SaveFlashcardItems(_maMNG, new List<FlashcardItem>());
+                        break;
+                    case "MNG04": // Ghép chữ
+                        GameDataManager.SaveWordScrambleItems(_maMNG, new List<WordScrambleItem>());
+                        break;
+                    case "MNG06": // Sắp xếp câu
+                        GameDataManager.SaveSentenceScrambleItems(_maMNG, new List<SentenceScrambleItem>());
+                        break;
+                    case "MNG07": // Điền từ
+                        GameDataManager.SaveFillBlankQuestions(_maMNG, new List<FillBlankQuestion>());
+                        break;
+                }
+
+                MessageBox.Show("Đã xóa toàn bộ dữ liệu cũ.", "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                BuildInputUI();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi xóa dữ liệu: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -1561,6 +2220,123 @@ namespace N6
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Áp dụng phạm vi hiện tại (bắt đầu từ 1) cho giao diện nhập liệu.
+        /// </summary>
+        private void ApplyUiRangeFilter()
+        {
+            if (pnlInputArea == null) return;
+
+            try
+            {
+                if (!_filterStart.HasValue || !_filterEnd.HasValue)
+                {
+                    switch (_maMNG.ToUpper())
+                    {
+                        case "MNG01":
+                            pnlInputArea.Controls.OfType<QuizQuestionControl>().ToList().ForEach(c => c.Visible = true);
+                            break;
+                        case "MNG03":
+                            pnlInputArea.Controls.OfType<Panel>().Where(p => p.Tag != null && p.Tag.ToString() == "FLASHCARD_PANEL").ToList().ForEach(p => p.Visible = true);
+                            break;
+                        case "MNG04":
+                            pnlInputArea.Controls.OfType<WordScrambleControl>().ToList().ForEach(c => c.Visible = true);
+                            break;
+                        case "MNG07":
+                            pnlInputArea.Controls.OfType<FillBlankControl>().ToList().ForEach(c => c.Visible = true);
+                            break;
+                        default:
+                            break;
+                    }
+                    return;
+                }
+
+                int start = Math.Max(1, _filterStart.Value);
+                int end = Math.Max(start, _filterEnd.Value);
+
+                switch (_maMNG.ToUpper())
+                {
+                    case "MNG01":
+                        var quizControls = pnlInputArea.Controls.OfType<QuizQuestionControl>().ToList();
+                        for (int i = 0; i < quizControls.Count; i++)
+                        {
+                            int oneBased = i + 1;
+                            quizControls[i].Visible = oneBased >= start && oneBased <= end;
+                        }
+                        break;
+
+                    case "MNG03":
+                        var flashPanels = pnlInputArea.Controls.OfType<Panel>().Where(p => p.Tag != null && p.Tag.ToString() == "FLASHCARD_PANEL").ToList();
+                        for (int i = 0; i < flashPanels.Count; i++)
+                        {
+                            int oneBased = i + 1;
+                            flashPanels[i].Visible = oneBased >= start && oneBased <= end;
+                        }
+                        break;
+
+                    case "MNG04":
+                        var wsControls = pnlInputArea.Controls.OfType<WordScrambleControl>().ToList();
+                        for (int i = 0; i < wsControls.Count; i++)
+                        {
+                            int oneBased = i + 1;
+                            wsControls[i].Visible = oneBased >= start && oneBased <= end;
+                        }
+                        break;
+                    case "MNG06":
+                        var txt = FindControlByName(pnlInputArea, "SENTENCES_INPUT") as RichTextBox;
+
+                        if (txt == null) break;
+                        if (string.IsNullOrEmpty(_sentenceFullText))
+                        {
+                            _sentenceFullText = txt.Text ?? "";
+                        }
+
+                        if (!_filterStart.HasValue || !_filterEnd.HasValue)
+                       {
+                            txt.Text = _sentenceFullText;
+                        }
+                        else
+                        {
+                            start = Math.Max(1, _filterStart.Value);
+                            end = Math.Max(start, _filterEnd.Value);
+                            var allLines = _sentenceFullText
+                                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(line => Regex.Replace(line.Trim(), @"^\d+\.\s*", ""))
+                                .ToList();
+
+                            end = Math.Min(end, allLines.Count);
+                            if (start > end)
+                            {
+                                txt.Text = "";
+                            }
+                            else
+                            {
+                                var filtered = allLines.Skip(start - 1).Take(end - start + 1)
+                                    .Select((line, idx) => $"{start + idx}. {line}");
+                                txt.Text = string.Join(Environment.NewLine, filtered);
+                            }
+                        }
+                        break;
+                    case "MNG07":
+                        var fillControls = pnlInputArea.Controls.OfType<FillBlankControl>().ToList();
+                        for (int i = 0; i < fillControls.Count; i++)
+                        {
+                            int oneBased = i + 1;
+                            fillControls[i].Visible = oneBased >= start && oneBased <= end;
+                        }
+                        break;
+
+                    default:
+                        // other types (single control editors) don't have per-item UI to hide
+                        break;
+                }
+            }
+            catch
+            {
+                // silently fail — do not break user flow
+            }
         }
 
         #endregion

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace N6
@@ -20,6 +21,7 @@ namespace N6
 
         // Nút xóa control này khỏi danh sách.
         public Button BtnRemove { get; private set; }
+        private Label lblCardTitle;
 
         #endregion
 
@@ -86,16 +88,16 @@ namespace N6
             {
                 Text = "📝",
                 Font = new Font("Segoe UI Emoji", 14F),
-                Location = new Point(14, 6),
+                Location = new Point(10, 5),
                 AutoSize = true
             };
 
-            Label lblCardTitle = new Label
+            lblCardTitle = new Label
             {
-                Text = "Câu hỏi Điền từ",
-                Font = new Font("Lexend", 9F, FontStyle.Bold),
+                Text = "Câu hỏi",
+                Font = new Font("Lexend", 10F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(64, 64, 64),
-                Location = new Point(50, 8),
+                Location = new Point(55, 8),
                 AutoSize = true
             };
 
@@ -138,7 +140,7 @@ namespace N6
                 ForeColor = Color.FromArgb(64, 64, 64)
             };
 
-            PlaceholderProvider.SetPlaceholder(TxtQuestion, "Ví dụ: Con ___ là loài vật quý hiếm");
+            PlaceholderProvider.SetPlaceholder(TxtQuestion, "Ví dụ: Con g__ tr__ là loài vật quý hiếm");
 
             // ===== CỘT PHẢI - ĐÁP ÁN =====
             Label lblAnswerLabel = new Label
@@ -216,9 +218,35 @@ namespace N6
         {
             return new FillBlankQuestion
             {
-                QuestionText = TxtQuestion.Text,
-                Answer = TxtAnswer.Text
+                QuestionText = NormalizeTextBoxText(TxtQuestion),
+                Answer = NormalizeTextBoxText(TxtAnswer)
             };
+        }
+
+        /// <summary>
+        /// Thử lấy dữ liệu và validate; trả về false nếu thiếu/không hợp lệ.
+        /// </summary>
+        /// <param name="q">Kết quả nếu hợp lệ.</param>
+        /// <param name="validationMessage">Thông báo lỗi khi không hợp lệ.</param>
+        /// <returns>true nếu hợp lệ.</returns>
+        public bool TryGetData(out FillBlankQuestion q, out string validationMessage)
+        {
+            q = GetData();
+
+            if (string.IsNullOrWhiteSpace(q.QuestionText))
+            {
+                validationMessage = "Bạn phải nhập nội dung câu hỏi (có chỗ trống ___).";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(q.Answer))
+            {
+                validationMessage = "Bạn phải nhập đáp án cho câu điền từ.";
+                return false;
+            }
+
+            validationMessage = null;
+            return true;
         }
 
         /// <summary>
@@ -227,10 +255,28 @@ namespace N6
         /// <param name="q">Dữ liệu câu hỏi cần gán.</param>
         public void SetData(FillBlankQuestion q)
         {
+            if (q == null) return;
+
             TxtQuestion.Text = q.QuestionText;
-            TxtQuestion.ForeColor = Color.FromArgb(64, 64, 64);
+            TxtQuestion.ForeColor = Color.Black;
             TxtAnswer.Text = q.Answer;
             TxtAnswer.ForeColor = Color.FromArgb(40, 167, 69);
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private string NormalizeTextBoxText(TextBox tb)
+        {
+            if (tb == null) return string.Empty;
+            if (tb.ForeColor == Color.Gray) return string.Empty; // placeholder
+            return (tb.Text ?? string.Empty).Trim();
+        }
+        public void SetIndex(int index)
+        {
+            if (lblCardTitle == null) return;
+            lblCardTitle.Text = index > 0 ? $"Câu hỏi {index}:" : "Câu hỏi:";
         }
 
         #endregion
