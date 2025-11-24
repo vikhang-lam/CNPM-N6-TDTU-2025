@@ -867,6 +867,32 @@ public static class DatabaseHelper
         ExecuteNonQueryStoredProcedure("sp_UpdateHocSinh", pMaHS, pHoTen, pNgaySinh, pGioiTinh, pSdt, pDiaChi, pDanToc);
     }
 
+    private static int GetCurrentMaxStudentId()
+    {
+        try
+        {
+            // Lấy mã lớn nhất từ DB
+            object result = ExecuteScalarStoredProcedure("sp_GetMaxStudentId");
+            // (Hoặc dùng câu lệnh text nếu bạn lười tạo SP: "SELECT MAX(MaHS) FROM HocSinh WHERE MaHS LIKE 'HS%'")
+            // Ở đây tôi dùng ExecuteQuery cho nhanh gọn đúng ý bạn muốn xử lý ở C#
+            DataTable dt = ExecuteQuery("SELECT MAX(MaHS) FROM HocSinh WHERE MaHS LIKE 'HS%' AND ISNUMERIC(SUBSTRING(MaHS, 3, 10)) = 1");
+
+            if (dt.Rows.Count > 0 && dt.Rows[0][0] != DBNull.Value)
+            {
+                string maxId = dt.Rows[0][0].ToString(); // VD: HS099
+                if (maxId.Length > 2)
+                {
+                    string numberPart = maxId.Substring(2);
+                    if (int.TryParse(numberPart, out int max))
+                    {
+                        return max;
+                    }
+                }
+            }
+        }
+        catch { }
+        return 0; // Nếu chưa có ai, bắt đầu từ 0 (để cộng 1 thành HS001)
+    }
 
     public static void DeleteStudent(string maHS)
     {
@@ -880,7 +906,8 @@ public static class DatabaseHelper
         public int Failed;
     }
 
-    public static ImportResult ImportStudentsFromDataTable(DataTable dt)
+
+    public static ImportResult ImportStudentsFromDataTable(DataTable dtSource)
     {
         DataTable tvpTable = new DataTable();
         tvpTable.Columns.Add("MaHS", typeof(string));
@@ -892,29 +919,17 @@ public static class DatabaseHelper
         tvpTable.Columns.Add("DiaChi", typeof(string));
         tvpTable.Columns.Add("DanToc", typeof(string));
 
-        int failed = 0;
-
-        foreach (DataRow row in dt.Rows)
+        foreach (DataRow row in dtSource.Rows)
         {
-            DateTime ngaySinh;
-            if (!DateTime.TryParse(row["NgaySinh"]?.ToString().Trim(), out ngaySinh))
-            {
-                if (!DateTime.TryParseExact(row["NgaySinh"]?.ToString().Trim(), "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out ngaySinh))
-                {
-                    failed++;
-                    continue; // Bỏ qua nếu ngày sinh không hợp lệ
-                }
-            }
-
             tvpTable.Rows.Add(
-                row["MaHS"]?.ToString().Trim(),
-                row["MaLop"]?.ToString().Trim(),
-                row["HoTen"]?.ToString().Trim(),
-                ngaySinh,
-                row["GioiTinh"]?.ToString().Trim(),
-                row["SDTPhuHuynh"]?.ToString().Trim(),
-                row["DiaChi"]?.ToString().Trim(),
-                row["DanToc"]?.ToString().Trim()
+                Guid.NewGuid().ToString().Substring(0, 10), // Mã tạm
+                row["MaLop"],
+                row["HoTen"],
+                row["NgaySinh"],
+                row["GioiTinh"],
+                row["SDTPhuHuynh"],
+                row["DiaChi"],
+                row["DanToc"]
             );
         }
 
@@ -932,12 +947,11 @@ public static class DatabaseHelper
             result.Success = (int)resultDt.Rows[0]["Success"];
             result.Skipped = (int)resultDt.Rows[0]["Skipped"];
         }
-        result.Failed = dt.Rows.Count - result.Success - result.Skipped;
-
+        result.Failed = dtSource.Rows.Count - result.Success - result.Skipped;
         return result;
     }
 
-    public static ImportResult ImportStudentsToClass(DataTable dt, string maLopTarget)
+    public static ImportResult ImportStudentsToClass(DataTable dtSource, string maLopTarget)
     {
         DataTable tvpTable = new DataTable();
         tvpTable.Columns.Add("MaHS", typeof(string));
@@ -949,34 +963,18 @@ public static class DatabaseHelper
         tvpTable.Columns.Add("DiaChi", typeof(string));
         tvpTable.Columns.Add("DanToc", typeof(string));
 
-        int failed = 0;
-
-        foreach (DataRow row in dt.Rows)
+        // Sử dụng Guid để đảm bảo KHÔNG BAO GIỜ TRÙNG trong danh sách tạm gửi đi
+        foreach (DataRow row in dtSource.Rows)
         {
-            DateTime ngaySinh;
-            if (!DateTime.TryParse(row["NgaySinh"]?.ToString().Trim(), out ngaySinh))
-            {
-                if (!DateTime.TryParseExact(row["NgaySinh"]?.ToString().Trim(), "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out ngaySinh))
-                {
-                    failed++;
-                    continue; 
-                }
-            }
-            if (string.IsNullOrWhiteSpace(row["MaHS"]?.ToString().Trim()))
-            {
-                failed++;
-                continue;
-            }
-
             tvpTable.Rows.Add(
-                row["MaHS"]?.ToString().Trim(),
-                null, // MaLop sẽ được gán từ @MaLopTarget
-                row["HoTen"]?.ToString().Trim(),
-                ngaySinh,
-                row["GioiTinh"]?.ToString().Trim(),
-                row["SDTPhuHuynh"]?.ToString().Trim(),
-                row["DiaChi"]?.ToString().Trim(),
-                row["DanToc"]?.ToString().Trim()
+                Guid.NewGuid().ToString().Substring(0, 10), // Mã tạm (SQL sẽ bỏ qua cái này)
+                null,
+                row["HoTen"],
+                row["NgaySinh"],
+                row["GioiTinh"],
+                row["SDTPhuHuynh"],
+                row["DiaChi"],
+                row["DanToc"]
             );
         }
 
@@ -995,8 +993,8 @@ public static class DatabaseHelper
             result.Success = (int)resultDt.Rows[0]["Success"];
             result.Skipped = (int)resultDt.Rows[0]["Skipped"];
         }
-        result.Failed = dt.Rows.Count - result.Success - result.Skipped;
-
+        // Tính failed dựa trên số dòng gửi đi trừ thành công và bỏ qua
+        result.Failed = dtSource.Rows.Count - result.Success - result.Skipped;
         return result;
     }
 

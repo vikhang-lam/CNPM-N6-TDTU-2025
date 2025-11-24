@@ -21,19 +21,10 @@ namespace N6
         {
             InitializeComponent();
 
-            // Gán sự kiện (sẽ được gỡ trong Dispose)
             this.tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
             this.tabControl1.DrawItem += new DrawItemEventHandler(this.tabControl1_DrawItem);
 
-            //this.tabControl1.SelectedIndexChanged += new System.EventHandler(this.tabControl1_SelectedIndexChanged);
-            //this.dgvGV.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgvGV_CellClick);
-            //this.btnLamMoi.Click += new System.EventHandler(this.btnLamMoi_Click);
-            //this.btnXacNhan.Click += new System.EventHandler(this.btnXacNhan_Click);
-            //this.btnHuy.Click += new System.EventHandler(this.btnHuy_Click);
-            //this.btnSua.Click += new System.EventHandler(this.btnSua_Click);
-            //this.btnXoa.Click += new System.EventHandler(this.btnXoa_Click);
-
-            LoadAllMonHoc(); // Tải cache môn họcs
+            LoadAllMonHoc();
             LoadDataForCurrentTab();
             UpdatePanelVisibility();
         }
@@ -41,8 +32,41 @@ namespace N6
         #region Data Loading & UI Setup (Tải dữ liệu & Cài đặt UI)
 
         /// <summary>
-        /// Tải tất cả các môn học từ CSDL vào CheckedListBox (clbMonHoc).
+        /// Xử lý logic lọc dữ liệu khi nhập text.
+        /// Sự kiện này đã được gán trong file Designer.
         /// </summary>
+        private void TxtTimKiem_TextChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                DataTable dt = dgvGV.DataSource as DataTable;
+                if (dt != null)
+                {
+                    string keyword = txtTimKiem.Text.Trim();
+                    // Xử lý ký tự đặc biệt
+                    keyword = keyword.Replace("'", "''").Replace("[", "\\[").Replace("]", "\\]");
+
+                    if (string.IsNullOrEmpty(keyword))
+                    {
+                        dt.DefaultView.RowFilter = "";
+                    }
+                    else
+                    {
+                        // Lọc theo Tên HOẶC Mã HOẶC Email
+                        // Vì cả 3 tab đều có các cột này nên bộ lọc hoạt động tốt cho tất cả
+                        dt.DefaultView.RowFilter = string.Format(
+                            "Ten LIKE '%{0}%' OR MaGV LIKE '%{0}%' OR Email LIKE '%{0}%'",
+                            keyword
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Lỗi tìm kiếm: " + ex.Message);
+            }
+        }
+
         private void LoadAllMonHoc()
         {
             try
@@ -58,29 +82,21 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Cập nhật trạng thái (check/uncheck) của clbMonHoc dựa trên các môn GV đang dạy.
-        /// </summary>
-        /// <param name="maGV">Mã giáo viên đang được chọn.</param>
         private void LoadMonHocForGiaoVien(string maGV)
         {
             try
             {
                 DataTable dtTeacherSubjects = DatabaseHelper.GetSubjectsByTeacher(maGV);
-
-                // Dùng HashSet để tra cứu nhanh (O(1))
                 var teacherMaMonList = new HashSet<string>(
                     dtTeacherSubjects.AsEnumerable().Select(r => r.Field<string>("MaMon"))
                 );
 
-                clbMonHoc.Enabled = false; // Tắt tạm thời để tránh giật
+                clbMonHoc.Enabled = false;
 
-                // Lặp qua tất cả các item trong CheckedListBox
                 for (int i = 0; i < clbMonHoc.Items.Count; i++)
                 {
                     DataRowView drv = (DataRowView)clbMonHoc.Items[i];
                     string maMon = drv["MaMon"].ToString();
-
                     clbMonHoc.SetItemChecked(i, teacherMaMonList.Contains(maMon));
                 }
             }
@@ -90,13 +106,10 @@ namespace N6
             }
             finally
             {
-                clbMonHoc.Enabled = true; // Bật lại control
+                clbMonHoc.Enabled = true;
             }
         }
 
-        /// <summary>
-        /// Tải dữ liệu DataGridView dựa trên Tab đang được chọn.
-        /// </summary>
         private void LoadDataForCurrentTab()
         {
             DataTable dt = null;
@@ -123,9 +136,6 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Tùy chỉnh tiêu đề và style cho các cột của DataGridView.
-        /// </summary>
         private void CustomizeGrid()
         {
             dgvGV.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
@@ -158,15 +168,17 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Cập nhật hiển thị của các panel (panel Duyệt) và nút bấm (Sửa/Xóa).
-        /// </summary>
         private void UpdatePanelVisibility()
         {
             bool isChoDuyetTab = (tabControl1.SelectedTab == tabChoDuyet);
+
             pnlDuyet.Visible = isChoDuyetTab;
-            btnSua.Visible = true; // Nút Sửa luôn hiển thị
-            btnXoa.Visible = !isChoDuyetTab; // Nút Xóa chỉ ẩn ở tab Chờ Duyệt
+            btnSua.Visible = true;
+            btnXoa.Visible = !isChoDuyetTab;
+
+            // Đã xóa phần ẩn thanh tìm kiếm. 
+            // Bây giờ txtTimKiem và lblTimKiem luôn hiển thị (Visible = true mặc định từ Designer)
+            // nên ta không cần code can thiệp vào Visible của nó ở đây nữa.
 
             if (dgvGV.CurrentRow == null)
             {
@@ -174,9 +186,6 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Xóa sạch các ô nhập liệu và reset CheckedListBox.
-        /// </summary>
         private void ClearInputs()
         {
             txtTen.Clear();
@@ -185,7 +194,6 @@ namespace N6
             lblSelectedGV.Text = "Chưa chọn giáo viên";
             dgvGV.ClearSelection();
 
-            // Uncheck tất cả các môn học
             clbMonHoc.Enabled = false;
             for (int i = 0; i < clbMonHoc.Items.Count; i++)
             {
@@ -194,9 +202,6 @@ namespace N6
             clbMonHoc.Enabled = true;
         }
 
-        /// <summary>
-        /// Chọn một dòng trong DataGridView dựa trên MaGV.
-        /// </summary>
         private void SelectRowByMaGV(string maGV)
         {
             foreach (DataGridViewRow row in dgvGV.Rows)
@@ -204,7 +209,7 @@ namespace N6
                 if (row.Cells["MaGV"].Value?.ToString() == maGV)
                 {
                     row.Selected = true;
-                    dgvGV.CurrentCell = row.Cells[0]; // Focus vào dòng đó
+                    dgvGV.CurrentCell = row.Cells[0];
                     dgvGV.FirstDisplayedScrollingRowIndex = row.Index;
                     break;
                 }
@@ -215,9 +220,6 @@ namespace N6
 
         #region Event Handlers (Xử lý sự kiện)
 
-        /// <summary>
-        /// Tùy chỉnh việc vẽ TabPage (tô đỏ tab "Chờ duyệt").
-        /// </summary>
         private void tabControl1_DrawItem(object sender, DrawItemEventArgs e)
         {
             TabPage currentPage = tabControl1.TabPages[e.Index];
@@ -226,16 +228,15 @@ namespace N6
 
             if ((e.State & DrawItemState.Selected) == DrawItemState.Selected)
             {
-                backgroundBrush = Brushes.White; // Màu nền khi tab được chọn
+                backgroundBrush = Brushes.White;
             }
             else
             {
-                backgroundBrush = SystemBrushes.Control; // Màu nền mặc định
+                backgroundBrush = SystemBrushes.Control;
             }
             e.Graphics.FillRectangle(backgroundBrush, tabBounds);
 
             Brush textBrush;
-            // Tô đỏ chữ tab "Chờ duyệt"
             if (currentPage == tabChoDuyet)
             {
                 textBrush = Brushes.Red;
@@ -253,19 +254,16 @@ namespace N6
             e.Graphics.DrawString(currentPage.Text, e.Font, textBrush, tabBounds, stringFlags);
         }
 
-        /// <summary>
-        /// Xử lý khi chuyển tab (tải lại dữ liệu, xóa input).
-        /// </summary>
         private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
         {
+            // Reset ô tìm kiếm mỗi khi chuyển tab để tránh nhầm lẫn dữ liệu giữa các tab
+            txtTimKiem.Clear();
+
             LoadDataForCurrentTab();
             ClearInputs();
             UpdatePanelVisibility();
         }
 
-        /// <summary>
-        /// Xử lý khi click vào một ô trong DataGridView (hiển thị thông tin lên các TextBox).
-        /// </summary>
         private void dgvGV_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0)
@@ -282,18 +280,14 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Xử lý nút "Làm mới" (tải lại dữ liệu tab hiện tại).
-        /// </summary>
         private void btnLamMoi_Click(object sender, EventArgs e)
         {
             LoadDataForCurrentTab();
             ClearInputs();
+            // Reset tìm kiếm khi bấm làm mới
+            txtTimKiem.Clear();
         }
 
-        /// <summary>
-        /// Xử lý nút "Xác nhận" (duyệt tài khoản).
-        /// </summary>
         private void btnXacNhan_Click(object sender, EventArgs e)
         {
             if (dgvGV.CurrentRow == null)
@@ -306,18 +300,14 @@ namespace N6
 
             try
             {
-                // 1. Cập nhật trạng thái và lấy email, tên
                 var result = DatabaseHelper.UpdateTeacherStatus(maGV, "Đã xác nhận");
                 string email = result.Item1;
                 string tenGV = result.Item2;
 
-                // 2. Lấy email Admin
                 string adminEmail = DatabaseHelper.GetAdminEmail("AD001");
 
-                // 3. Gửi email thông báo
                 if (!string.IsNullOrEmpty(email))
                 {
-                    // Lớp UI gọi EmailHelper (đúng quy tắc)
                     bool emailSent = EmailHelper.SendAccountStatusEmail(email, tenGV, isApproved: true, adminEmail);
                     if (emailSent)
                     {
@@ -338,14 +328,10 @@ namespace N6
             }
             catch (Exception ex)
             {
-                // Bắt lỗi nếu EmailHelper ném ra
                 MessageBox.Show("Lỗi: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        /// <summary>
-        /// Xử lý nút "Hủy" (từ chối/xóa yêu cầu).
-        /// </summary>
         private void btnHuy_Click(object sender, EventArgs e)
         {
             if (dgvGV.CurrentRow == null)
@@ -356,21 +342,63 @@ namespace N6
 
             string maGV = dgvGV.CurrentRow.Cells["MaGV"].Value.ToString();
             string tenGV = dgvGV.CurrentRow.Cells["Ten"].Value.ToString();
+            string email = dgvGV.CurrentRow.Cells["Email"].Value?.ToString();
 
-            if (MessageBox.Show($"Bạn có chắc muốn hủy yêu cầu tạo tài khoản của '{tenGV}' không?", "Xác nhận hủy", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            Form inputBox = new Form();
+            inputBox.FormBorderStyle = FormBorderStyle.FixedDialog;
+            inputBox.ClientSize = new Size(400, 220);
+            inputBox.Text = "Xác nhận từ chối yêu cầu";
+            inputBox.StartPosition = FormStartPosition.CenterParent;
+            inputBox.MaximizeBox = false;
+            inputBox.MinimizeBox = false;
+
+            Label lblMessage = new Label();
+            lblMessage.Text = $"Bạn đang từ chối giáo viên: {tenGV}\nNhập lý do từ chối (để trống nếu không cần):";
+            lblMessage.AutoSize = false;
+            lblMessage.Size = new Size(380, 40);
+            lblMessage.Location = new Point(10, 10);
+            inputBox.Controls.Add(lblMessage);
+
+            TextBox txtLyDo = new TextBox();
+            txtLyDo.Multiline = true;
+            txtLyDo.ScrollBars = ScrollBars.Vertical;
+            txtLyDo.Size = new Size(360, 100);
+            txtLyDo.Location = new Point(20, 50);
+            inputBox.Controls.Add(txtLyDo);
+
+            Button btnOK = new Button();
+            btnOK.Text = "Xác nhận Hủy";
+            btnOK.BackColor = Color.FromArgb(220, 80, 80);
+            btnOK.ForeColor = Color.White;
+            btnOK.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+            btnOK.DialogResult = DialogResult.OK;
+            btnOK.Size = new Size(100, 35);
+            btnOK.Location = new Point(180, 165);
+            inputBox.Controls.Add(btnOK);
+
+            Button btnCancel = new Button();
+            btnCancel.Text = "Thoát";
+            btnCancel.DialogResult = DialogResult.Cancel;
+            btnCancel.Size = new Size(80, 35);
+            btnCancel.Location = new Point(300, 165);
+            inputBox.Controls.Add(btnCancel);
+
+            inputBox.AcceptButton = btnOK;
+            inputBox.CancelButton = btnCancel;
+
+            if (inputBox.ShowDialog() == DialogResult.OK)
             {
+                string lyDo = txtLyDo.Text.Trim();
+
                 try
                 {
-                    string email = dgvGV.CurrentRow.Cells["Email"].Value?.ToString();
                     string adminEmail = DatabaseHelper.GetAdminEmail("AD001");
 
-                    // Xóa giáo viên (yêu cầu)
                     DatabaseHelper.DeleteTeacher(maGV);
 
-                    // Gửi email thông báo từ chối
                     if (!string.IsNullOrEmpty(email))
                     {
-                        bool emailSent = EmailHelper.SendAccountStatusEmail(email, tenGV, isApproved: false, adminEmail);
+                        bool emailSent = EmailHelper.SendAccountStatusEmail(email, tenGV, isApproved: false, adminEmail, rejectionReason: lyDo);
                         if (emailSent)
                         {
                             MessageBox.Show($"Đã hủy yêu cầu thành công.\nEmail thông báo đã được gửi đến: {email}", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -393,14 +421,11 @@ namespace N6
                     MessageBox.Show("Lỗi: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+            inputBox.Dispose();
         }
 
-        /// <summary>
-        /// Xử lý nút "Sửa" (cập nhật thông tin GV và môn học).
-        /// </summary>
         private void btnSua_Click(object sender, EventArgs e)
         {
-            // Lấy MaGV từ dòng đang chọn
             string maGV = dgvGV.CurrentRow?.Cells["MaGV"].Value?.ToString();
 
             if (string.IsNullOrEmpty(maGV))
@@ -409,12 +434,10 @@ namespace N6
                 return;
             }
 
-            // Lấy thông tin từ giao diện
             string ten = txtTen.Text.Trim();
             string email = txtEmail.Text.Trim();
             string sdt = txtSDT.Text.Trim();
 
-            // --- BẮT ĐẦU KIỂM TRA DỮ LIỆU NHẬP ---
             if (string.IsNullOrWhiteSpace(ten))
             {
                 MessageBox.Show("Tên giáo viên không được để trống.", "Thiếu dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -444,14 +467,11 @@ namespace N6
                 MessageBox.Show("Số điện thoại phải có đúng 10 chữ số và chỉ bao gồm số.", "Sai định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            // --- KẾT THÚC KIỂM TRA DỮ LIỆU NHẬP ---
 
             try
             {
-                // 1. Cập nhật thông tin cơ bản
                 DatabaseHelper.UpdateTeacher(maGV, ten, email, sdt);
 
-                // 2. Chuẩn bị danh sách mã môn học mới
                 DataTable dtMaMonList = new DataTable();
                 dtMaMonList.Columns.Add("MaMon", typeof(string));
 
@@ -463,7 +483,6 @@ namespace N6
                     }
                 }
 
-                // 3. KIỂM TRA: Giáo viên có đang dạy lớp nào với môn bị bỏ chọn không?
                 DataTable dtPhanCong = DatabaseHelper.GetTeacherAssignments(maGV);
 
                 var dsMonDangDay = dtPhanCong.AsEnumerable()
@@ -493,12 +512,10 @@ namespace N6
                     return;
                 }
 
-                // 4. Gọi SP cập nhật môn học
                 DatabaseHelper.UpdateTeacher_Subjects(maGV, dtMaMonList);
 
                 MessageBox.Show("Cập nhật thông tin giáo viên thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // 5. Tải lại dữ liệu và chọn lại dòng đã sửa
                 LoadDataForCurrentTab();
                 SelectRowByMaGV(maGV);
             }
@@ -508,10 +525,6 @@ namespace N6
             }
         }
 
-
-        /// <summary>
-        /// Xử lý nút "Xóa" (xóa vĩnh viễn GV đã xác nhận).
-        /// </summary>
         private void btnXoa_Click(object sender, EventArgs e)
         {
             if (dgvGV.CurrentRow == null)
@@ -542,14 +555,10 @@ namespace N6
 
         #region Dispose
 
-        /// <summary>
-        /// Dọn dẹp tài nguyên và gỡ bỏ các trình xử lý sự kiện.
-        /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                // Gỡ bỏ các sự kiện đã gán thủ công
                 if (this.tabControl1 != null)
                 {
                     this.tabControl1.DrawItem -= new DrawItemEventHandler(this.tabControl1_DrawItem);
@@ -558,6 +567,10 @@ namespace N6
                 if (this.dgvGV != null)
                 {
                     this.dgvGV.CellClick -= new System.Windows.Forms.DataGridViewCellEventHandler(this.dgvGV_CellClick);
+                }
+                if (this.txtTimKiem != null)
+                {
+                    this.txtTimKiem.TextChanged -= TxtTimKiem_TextChanged;
                 }
                 if (this.btnLamMoi != null) this.btnLamMoi.Click -= new System.EventHandler(this.btnLamMoi_Click);
                 if (this.btnXacNhan != null) this.btnXacNhan.Click -= new System.EventHandler(this.btnXacNhan_Click);

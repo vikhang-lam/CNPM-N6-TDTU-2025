@@ -28,8 +28,8 @@ public partial class frmGhiChuTKB : frmDraggableRoundedPopup
 
         var tietPanel = new Panel { Dock = DockStyle.Top, Height = 35, Margin = new Padding(0, 0, 0, 10) };
         var lblTiet = new Label { Text = "Chọn tiết:", Dock = DockStyle.Left, Font = new Font("Segoe UI", 10F), AutoSize = true, Padding = new Padding(0, 5, 0, 0) };
-        numTiet = new NumericUpDown { Dock = DockStyle.Left, Font = new Font("Segoe UI", 10F), Minimum = 0, Maximum = 10, Width = 60 };
-        var lblGhiChuTiet0 = new Label { Text = "(Tiết 0 là ghi chú chung cho cả ngày)", Dock = DockStyle.Fill, Font = new Font("Segoe UI", 8F, FontStyle.Italic), ForeColor = Color.Gray, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(10, 5, 0, 0) };
+        numTiet = new NumericUpDown { Dock = DockStyle.Left, Font = new Font("Segoe UI", 10F), Minimum = 1, Maximum = 10, Width = 60 };
+        var lblGhiChuTiet0 = new Label { Text = "(Tiết 1 là ghi chú cho tiết đầu tiên)", Dock = DockStyle.Fill, Font = new Font("Segoe UI", 8F, FontStyle.Italic), ForeColor = Color.Gray, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(10, 5, 0, 0) };
         tietPanel.Controls.Add(lblGhiChuTiet0);
         tietPanel.Controls.Add(numTiet);
         tietPanel.Controls.Add(lblTiet);

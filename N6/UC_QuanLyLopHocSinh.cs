@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace N6
 {
@@ -41,6 +43,10 @@ namespace N6
         private DataGridViewCellEventHandler dgvCellValueChangedHandler;
         private DataGridViewDataErrorEventHandler dgvDataErrorHandler;
 
+        // Regex validation patterns
+        private readonly Regex regexName = new Regex(@"^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$");
+        private readonly Regex regexPhone = new Regex(@"^0\d{9}$");
+
         public UC_QuanLyLopHocSinh()
         {
             InitializeComponent();
@@ -68,12 +74,9 @@ namespace N6
 
         private void dgvHocSinh_DataError(object sender, DataGridViewDataErrorEventArgs e)
         {
-            // Quan trọng: Dòng này chặn popup lỗi mặc định của .NET
             e.ThrowException = false;
-
             string colName = dgvHocSinh.Columns[e.ColumnIndex].Name;
 
-            // Tùy chỉnh thông báo lỗi thân thiện
             if (colName == "NgaySinh")
             {
                 MessageBox.Show("❌ Ngày sinh không hợp lệ!\nVui lòng nhập đúng định dạng (dd/MM/yyyy) và không chứa chữ cái.",
@@ -86,7 +89,7 @@ namespace N6
             }
             else
             {
-                MessageBox.Show("❌ Dữ liệu nhập vào không đúng định dạng của ô này.",
+                MessageBox.Show("❌ Dữ liệu nhập vào không đúng định dạng.",
                                 "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
@@ -356,17 +359,20 @@ namespace N6
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70F));
                     for (int i = 0; i < 4; i++) pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
 
+                    // Margin để căn giữa ô nhập liệu với Label theo chiều dọc (Dòng 60px)
+                    Padding inputMargin = new Padding(0, 16, 0, 0);
+
                     var lblMaLop = new Label { Text = "Mã Lớp *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var txtMaLop = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
+                    var txtMaLop = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
 
                     var lblTenLop = new Label { Text = "Tên Lớp", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var txtTenLop = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(233, 236, 239), BorderStyle = BorderStyle.FixedSingle, ReadOnly = true, ForeColor = Color.FromArgb(108, 117, 125) };
+                    var txtTenLop = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, BackColor = Color.FromArgb(233, 236, 239), BorderStyle = BorderStyle.FixedSingle, ReadOnly = true, ForeColor = Color.FromArgb(108, 117, 125) };
 
                     var lblKhoi = new Label { Text = "Khối *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var cboKhoiThem = new ComboBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
+                    var cboKhoiThem = new ComboBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
 
                     var lblNamHoc = new Label { Text = "Năm Học", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var txtNamHoc = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, Text = DateTime.Now.Year.ToString(), BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
+                    var txtNamHoc = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, Text = DateTime.Now.Year.ToString(), BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
 
                     try
                     {
@@ -404,7 +410,7 @@ namespace N6
                             return;
                         }
 
-                        if (!System.Text.RegularExpressions.Regex.IsMatch(txtMaLop.Text, @"^[a-zA-Z0-9]+$"))
+                        if (!Regex.IsMatch(txtMaLop.Text, @"^[a-zA-Z0-9]+$"))
                         {
                             MessageBox.Show("❌ Mã lớp chỉ được chứa Chữ cái và Số (Không dấu, không khoảng trắng)!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             txtMaLop.Focus();
@@ -463,28 +469,6 @@ namespace N6
             {
                 MessageBox.Show($"❌ Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-        // Helper methods for modern effects
-        private void AddHoverEffect(Button btn, Color hoverColor, Color normalColor)
-        {
-            btn.MouseEnter += (s, e) => btn.BackColor = hoverColor;
-            btn.MouseLeave += (s, e) => btn.BackColor = normalColor;
-        }
-
-        private void AddFocusEffect(Control control)
-        {
-            control.Enter += (s, e) =>
-            {
-                control.BackColor = Color.FromArgb(230, 240, 255);
-                if (control is TextBox txt) txt.BorderStyle = BorderStyle.FixedSingle;
-            };
-
-            control.Leave += (s, e) =>
-            {
-                control.BackColor = Color.FromArgb(248, 249, 250);
-                if (control is TextBox txt) txt.BorderStyle = BorderStyle.FixedSingle;
-            };
         }
 
         private void btnXoaLop_Click(object sender, EventArgs e)
@@ -559,6 +543,7 @@ namespace N6
         #endregion
 
         #region HỌC SINH: THÊM, SỬA, XÓA, IMPORT, CHUYỂN LỚP
+
         private void btnThemHS_Click(object sender, EventArgs e)
         {
             if (dgvLopHoc.CurrentRow == null)
@@ -612,28 +597,35 @@ namespace N6
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65F));
                     for (int i = 0; i < 7; i++) pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
 
+                    // ============================================
+                    // [FIX LỖI ALIGNMENT] 
+                    // Thay vì Dock.Fill (khiến control dính lên trên), ta dùng Anchor và Margin-Top để đẩy xuống giữa dòng
+                    // Dòng cao 60px, Control cao ~26px => Margin Top khoảng 16px sẽ cân đối.
+                    // ============================================
+                    Padding inputMargin = new Padding(0, 16, 0, 0);
+
                     var lblMaHS = new Label { Text = "Mã HS", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var txtMaHS = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(233, 236, 239), BorderStyle = BorderStyle.FixedSingle, ReadOnly = true };
+                    var txtMaHS = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, BackColor = Color.FromArgb(233, 236, 239), BorderStyle = BorderStyle.FixedSingle, ReadOnly = true };
 
                     var lblHoTen = new Label { Text = "Họ và Tên *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var txtHoTen = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
+                    var txtHoTen = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
 
                     var lblGioiTinh = new Label { Text = "Giới Tính *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var cboGioiTinh = new ComboBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
+                    var cboGioiTinh = new ComboBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
                     cboGioiTinh.Items.AddRange(new string[] { "Nam", "Nữ" });
                     cboGioiTinh.SelectedIndex = 0;
 
                     var lblNgaySinh = new Label { Text = "Ngày Sinh *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var dtpNgaySinh = new DateTimePicker { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, Format = DateTimePickerFormat.Short, Value = DateTime.Now.AddYears(-6) };
+                    var dtpNgaySinh = new DateTimePicker { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, Format = DateTimePickerFormat.Short, Value = DateTime.Now.AddYears(-6) };
 
                     var lblDiaChi = new Label { Text = "Địa Chỉ", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var txtDiaChi = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
+                    var txtDiaChi = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
 
                     var lblDanToc = new Label { Text = "Dân Tộc", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var txtDanToc = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle, Text = "Kinh" };
+                    var txtDanToc = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle, Text = "Kinh" };
 
                     var lblSDT = new Label { Text = "SĐT Phụ Huynh", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var txtSDT = new TextBox { Font = new Font("Segoe UI", 10F), Dock = DockStyle.Fill, Height = 40, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
+                    var txtSDT = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
 
                     pnlFields.Controls.Add(lblMaHS, 0, 0); pnlFields.Controls.Add(txtMaHS, 1, 0);
                     pnlFields.Controls.Add(lblHoTen, 0, 1); pnlFields.Controls.Add(txtHoTen, 1, 1);
@@ -667,11 +659,9 @@ namespace N6
 
                     formThemHS.Load += (s, ev) => { txtMaHS.Text = GenerateStudentCode(); };
 
-                    var regexName = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$");
-                    var regexPhone = new System.Text.RegularExpressions.Regex(@"^\d+$");
-
                     btnLuu.Click += (s, ev) =>
                     {
+                        // 1. Check Name
                         if (string.IsNullOrWhiteSpace(txtHoTen.Text))
                         {
                             MessageBox.Show("Vui lòng nhập Họ và Tên!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -687,32 +677,48 @@ namespace N6
                             return;
                         }
 
-                        if (!string.IsNullOrEmpty(txtSDT.Text) && !regexPhone.IsMatch(txtSDT.Text))
+                        // 2. Check Gender
+                        if (cboGioiTinh.SelectedItem == null)
                         {
-                            MessageBox.Show("❌ Số điện thoại chỉ được chứa chữ số!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            txtSDT.Focus();
-                            txtSDT.SelectAll();
+                            MessageBox.Show("Vui lòng chọn Giới Tính!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                        string gt = cboGioiTinh.SelectedItem.ToString();
+                        if (gt != "Nam" && gt != "Nữ")
+                        {
+                            MessageBox.Show("❌ Giới tính không hợp lệ (Phải là Nam hoặc Nữ)!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
 
-                        if (dtpNgaySinh.Value > DateTime.Now)
+                        // 3. Check Date of Birth
+                        if (dtpNgaySinh.Value.Date > DateTime.Now.Date)
                         {
                             MessageBox.Show("❌ Ngày sinh không hợp lệ (Tương lai)!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             dtpNgaySinh.Focus();
                             return;
                         }
 
-                        if (DateTime.Now.Year - dtpNgaySinh.Value.Year < 5)
+                        int age = DateTime.Now.Year - dtpNgaySinh.Value.Year;
+                        if (dtpNgaySinh.Value.Date > DateTime.Now.AddYears(-age)) age--;
+
+                        if (age < 6)
                         {
-                            MessageBox.Show("❌ Học sinh phải từ 5 tuổi trở lên!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show($"❌ Học sinh chưa đủ tuổi đi học (Hiện tại: {age} tuổi). Phải từ 6 tuổi trở lên!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             dtpNgaySinh.Focus();
                             return;
                         }
 
-                        if (cboGioiTinh.SelectedItem == null)
+                        // 4. Check Phone
+                        string phone = txtSDT.Text.Trim();
+                        if (!string.IsNullOrEmpty(phone))
                         {
-                            MessageBox.Show("Vui lòng chọn Giới Tính!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
+                            if (!regexPhone.IsMatch(phone))
+                            {
+                                MessageBox.Show("❌ Số điện thoại không hợp lệ!\nPhải bắt đầu bằng số 0 và có đúng 10 chữ số.", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                txtSDT.Focus();
+                                txtSDT.SelectAll();
+                                return;
+                            }
                         }
 
                         try
@@ -758,6 +764,7 @@ namespace N6
                 MessageBox.Show($"❌ Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void btnXoaHS_Click(object sender, EventArgs e)
         {
             if (dgvHocSinh.CurrentRow == null)
@@ -810,11 +817,6 @@ namespace N6
                 return;
             }
 
-            // Regex: Chỉ cho phép chữ cái, khoảng trắng và các dấu tiếng Việt. KHÔNG cho phép số.
-            var regexName = new System.Text.RegularExpressions.Regex(@"^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]+$");
-            // Regex: Chỉ cho phép số
-            var regexPhone = new System.Text.RegularExpressions.Regex(@"^\d+$");
-
             int successCount = 0;
             try
             {
@@ -823,19 +825,17 @@ namespace N6
                     string maHS = row["MaHS"].ToString();
                     string hoTen = row["HoTen"].ToString().Trim();
                     string sdtPH = row["SDTPhuHuynh"].ToString().Trim();
+                    string gioiTinh = row["GioiTinh"].ToString().Trim();
 
-                    // --- BẮT ĐẦU KIỂM TRA DỮ LIỆU (VALIDATION) ---
-
-                    // 1. Kiểm tra Tên rỗng
+                    // 1. Validation Name
                     if (string.IsNullOrWhiteSpace(hoTen))
                     {
                         MessageBox.Show($"❌ Học sinh mã {maHS}: Tên không được để trống!",
                             "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        dt.RejectChanges(); // Hoàn tác thay đổi trên lưới
+                        dt.RejectChanges();
                         return;
                     }
 
-                    // 2. Kiểm tra Tên chứa số hoặc ký tự đặc biệt
                     if (!regexName.IsMatch(hoTen))
                     {
                         MessageBox.Show($"❌ Học sinh {hoTen} ({maHS}): Tên không được chứa số hoặc ký tự đặc biệt!",
@@ -844,41 +844,51 @@ namespace N6
                         return;
                     }
 
-                    // 3. Kiểm tra SĐT (nếu có nhập thì phải là số)
+                    // 2. Validation Gender
+                    gioiTinh = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(gioiTinh.ToLower());
+                    if (gioiTinh != "Nam" && gioiTinh != "Nữ")
+                    {
+                        MessageBox.Show($"❌ Học sinh {hoTen} ({maHS}): Giới tính phải là 'Nam' hoặc 'Nữ'!",
+                            "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        dt.RejectChanges();
+                        return;
+                    }
+                    row["GioiTinh"] = gioiTinh;
+
+                    // 3. Validation Phone
                     if (!string.IsNullOrEmpty(sdtPH) && !regexPhone.IsMatch(sdtPH))
                     {
-                        MessageBox.Show($"❌ Học sinh {hoTen} ({maHS}): Số điện thoại phụ huynh chỉ được chứa chữ số!",
+                        MessageBox.Show($"❌ Học sinh {hoTen} ({maHS}): Số điện thoại không hợp lệ! (Phải gồm 10 số và bắt đầu bằng 0)",
                             "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         dt.RejectChanges();
                         return;
                     }
 
-                    // 4. Kiểm tra Ngày sinh (Logic tuổi tác)
+                    // 4. Validation Date of Birth
                     if (row["NgaySinh"] != DBNull.Value)
                     {
                         DateTime ns = Convert.ToDateTime(row["NgaySinh"]);
-                        // Không được sinh trong tương lai
-                        if (ns > DateTime.Now)
+                        if (ns.Date > DateTime.Now.Date)
                         {
                             MessageBox.Show($"❌ Học sinh {hoTen}: Ngày sinh không được lớn hơn ngày hiện tại!",
                                 "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             dt.RejectChanges();
                             return;
                         }
-                        // Phải đủ tuổi đi học (ví dụ > 5 tuổi)
-                        if (DateTime.Now.Year - ns.Year < 5)
+
+                        int age = DateTime.Now.Year - ns.Year;
+                        if (ns.Date > DateTime.Now.AddYears(-age)) age--;
+
+                        if (age < 6)
                         {
-                            MessageBox.Show($"❌ Học sinh {hoTen}: Tuổi quá nhỏ (dưới 5 tuổi)!",
+                            MessageBox.Show($"❌ Học sinh {hoTen}: Tuổi quá nhỏ ({age} tuổi). Phải từ 6 tuổi trở lên!",
                                 "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             dt.RejectChanges();
                             return;
                         }
                     }
 
-                    // --- KẾT THÚC KIỂM TRA ---
-
                     DateTime ngaySinh = Convert.ToDateTime(row["NgaySinh"]);
-                    string gioiTinh = row["GioiTinh"].ToString();
                     string diaChi = row["DiaChi"].ToString();
                     string danToc = row["DanToc"].ToString();
 
@@ -1340,7 +1350,7 @@ namespace N6
 
             if (allGiaoVien == null)
             {
-                return; 
+                return;
             }
 
             if (dgvPhanCong.Columns.Contains("AssignTeacherColumn"))

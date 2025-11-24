@@ -2580,30 +2580,42 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
+    -- Tìm số thứ tự lớn nhất hiện tại (Chỉ lấy phần số của các mã bắt đầu bằng HS)
+    DECLARE @MaxID INT;
+    SELECT @MaxID = ISNULL(MAX(CAST(SUBSTRING(MaHS, 3, 10) AS INT)), 0) 
+    FROM HocSinh 
+    WHERE MaHS LIKE 'HS%' AND ISNUMERIC(SUBSTRING(MaHS, 3, 10)) = 1;
+
     SELECT * INTO #TempHocSinh FROM @HocSinhData;
 
+    -- Kiểm tra trùng lặp (Dựa vào Tên + Ngày sinh)
     DECLARE @Skipped INT;
-    SELECT @Skipped = COUNT(t.MaHS) 
+    SELECT @Skipped = COUNT(t.HoTen) 
     FROM #TempHocSinh t
-    INNER JOIN HocSinh hs ON t.MaHS = hs.MaHS;
+    INNER JOIN HocSinh hs ON t.HoTen = hs.HoTen AND t.NgaySinh = hs.NgaySinh;
 
+    -- Insert và Tự động sinh mã (HS + MaxID + RowNumber)
     INSERT INTO HocSinh (MaHS, MaLop, HoTen, NgaySinh, GioiTinh, SDTPhuHuynh, DiaChi, DanToc)
     SELECT 
-        t.MaHS, t.MaLop, t.HoTen, t.NgaySinh, t.GioiTinh, t.SDTPhuHuynh, t.DiaChi, t.DanToc
+        'HS' + RIGHT('000' + CAST((@MaxID + ROW_NUMBER() OVER (ORDER BY (SELECT NULL))) AS VARCHAR), 3),
+        t.MaLop, 
+        t.HoTen, 
+        t.NgaySinh, 
+        t.GioiTinh, 
+        t.SDTPhuHuynh, 
+        t.DiaChi, 
+        t.DanToc
     FROM #TempHocSinh t
     WHERE NOT EXISTS (
         SELECT 1 FROM HocSinh hs 
-        WHERE hs.MaHS = t.MaHS
+        WHERE hs.HoTen = t.HoTen AND hs.NgaySinh = t.NgaySinh
     );
 
-    DECLARE @Success INT;
-    SET @Success = @@ROWCOUNT;
-
+    DECLARE @Success INT = @@ROWCOUNT;
     SELECT @Success AS [Success], @Skipped AS [Skipped];
     DROP TABLE #TempHocSinh;
 END;
 GO
-
 CREATE PROCEDURE sp_ImportHocSinhToLop
     @MaLopTarget VARCHAR(10),
     @HocSinhData ut_HocSinhImport READONLY
@@ -2611,27 +2623,37 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    SELECT * INTO #TempHocSinh FROM @HocSinhData;
+    DECLARE @MaxID INT;
+    SELECT @MaxID = ISNULL(MAX(CAST(SUBSTRING(MaHS, 3, 10) AS INT)), 0) 
+    FROM HocSinh 
+    WHERE MaHS LIKE 'HS%' AND ISNUMERIC(SUBSTRING(MaHS, 3, 10)) = 1;
+
+    SELECT * INTO #TempHocSinh2 FROM @HocSinhData;
 
     DECLARE @Skipped INT;
-    SELECT @Skipped = COUNT(t.MaHS) 
-    FROM #TempHocSinh t
-    INNER JOIN HocSinh hs ON t.MaHS = hs.MaHS;
+    SELECT @Skipped = COUNT(t.HoTen) 
+    FROM #TempHocSinh2 t
+    INNER JOIN HocSinh hs ON t.HoTen = hs.HoTen AND t.NgaySinh = hs.NgaySinh;
 
     INSERT INTO HocSinh (MaHS, MaLop, HoTen, NgaySinh, GioiTinh, SDTPhuHuynh, DiaChi, DanToc)
     SELECT 
-        t.MaHS, @MaLopTarget, t.HoTen, t.NgaySinh, t.GioiTinh, t.SDTPhuHuynh, t.DiaChi, t.DanToc
-    FROM #TempHocSinh t
+        'HS' + RIGHT('000' + CAST((@MaxID + ROW_NUMBER() OVER (ORDER BY (SELECT NULL))) AS VARCHAR), 3),
+        @MaLopTarget, 
+        t.HoTen, 
+        t.NgaySinh, 
+        t.GioiTinh, 
+        t.SDTPhuHuynh, 
+        t.DiaChi, 
+        t.DanToc
+    FROM #TempHocSinh2 t
     WHERE NOT EXISTS (
         SELECT 1 FROM HocSinh hs 
-        WHERE hs.MaHS = t.MaHS
+        WHERE hs.HoTen = t.HoTen AND hs.NgaySinh = t.NgaySinh
     );
 
-    DECLARE @Success INT;
-    SET @Success = @@ROWCOUNT;
-
+    DECLARE @Success INT = @@ROWCOUNT;
     SELECT @Success AS [Success], @Skipped AS [Skipped];
-    DROP TABLE #TempHocSinh;
+    DROP TABLE #TempHocSinh2;
 END;
 GO
 

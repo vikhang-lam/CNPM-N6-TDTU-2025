@@ -226,5 +226,76 @@ namespace N6
                 throw new Exception(errorMsg, ex);
             }
         }
+        /// <summary>
+        /// Gửi email thông báo trạng thái tài khoản cho giáo viên (được duyệt hoặc từ chối).
+        /// Cập nhật: Thêm tham số rejectionReason (tùy chọn).
+        /// </summary>
+        public static bool SendAccountStatusEmail(string recipientEmail, string teacherName, bool isApproved, string adminEmail, string rejectionReason = "")
+        {
+            try
+            {
+                string subject = isApproved
+                    ? "✅ Tài khoản của bạn đã được kích hoạt"
+                    : "❌ Yêu cầu tạo tài khoản bị từ chối";
+
+                // Xử lý phần hiển thị lý do nếu có
+                string reasonHtml = "";
+                if (!isApproved && !string.IsNullOrWhiteSpace(rejectionReason))
+                {
+                    reasonHtml = $@"
+                        <div style='background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; margin-top: 10px; border-radius: 5px;'>
+                            <strong>Lý do từ chối:</strong><br/>
+                            {rejectionReason}
+                        </div>";
+                }
+
+                string body = isApproved
+                    ? $@"
+                        <html>
+                        <body style='font-family: Arial, sans-serif;'>
+                            <h2 style='color: #28a745;'>Chào mừng {teacherName}!</h2>
+                            <p>Tài khoản giáo viên của bạn đã được <b>kích hoạt thành công</b>.</p>
+                            <p>Bạn có thể đăng nhập vào hệ thống ngay bây giờ.</p>
+                            <hr/>
+                            <small>Email này được gửi tự động từ Hệ Thống Quản Lý Trường Học</small>
+                        </body>
+                        </html>"
+                    : $@"
+                        <html>
+                        <body style='font-family: Arial, sans-serif;'>
+                            <h2 style='color: #dc3545;'>Thông báo từ Hệ Thống</h2>
+                            <p>Kính gửi {teacherName},</p>
+                            <p>Yêu cầu tạo tài khoản giáo viên của bạn <b>đã bị từ chối</b>.</p>
+                            {reasonHtml} 
+                            <p>Nếu có câu hỏi gì, hãy liên hệ với quản trị viên qua email: <b>{adminEmail}</b></p>
+                            <hr/>
+                            <small>Email này được gửi tự động từ Hệ Thống Quản Lý Trường Học</small>
+                        </body>
+                        </html>";
+
+                using (MailMessage mail = new MailMessage())
+                {
+                    mail.From = new MailAddress(SenderEmail, SenderName);
+                    mail.To.Add(recipientEmail);
+                    mail.Subject = subject;
+                    mail.Body = body;
+                    mail.IsBodyHtml = true;
+
+                    using (SmtpClient smtp = new SmtpClient(SmtpServer, SmtpPort))
+                    {
+                        smtp.Credentials = new NetworkCredential(SenderEmail, SenderPassword);
+                        smtp.EnableSsl = true;
+                        smtp.Send(mail);
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                string errorMsg = $"Lỗi gửi email: {ex.Message}";
+                Debug.WriteLine(errorMsg);
+                throw new Exception(errorMsg, ex);
+            }
+        }
     }
 }

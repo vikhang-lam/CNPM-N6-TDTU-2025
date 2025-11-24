@@ -25,6 +25,9 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.CheckedListBox clbMonHoc;
 
+        // Thêm controls tìm kiếm vào Designer
+        private System.Windows.Forms.Label lblTimKiem;
+        private System.Windows.Forms.TextBox txtTimKiem;
 
 
         private void InitializeComponent()
@@ -49,6 +52,8 @@
             this.lblSelectedGV = new System.Windows.Forms.Label();
             this.pnlDuyet = new System.Windows.Forms.FlowLayoutPanel();
             this.btnLamMoi = new System.Windows.Forms.Button();
+            this.lblTimKiem = new System.Windows.Forms.Label();
+            this.txtTimKiem = new System.Windows.Forms.TextBox();
             this.tabDaXacNhan = new System.Windows.Forms.TabPage();
             this.tabChoDuyet = new System.Windows.Forms.TabPage();
             this.tabTatCa = new System.Windows.Forms.TabPage();
@@ -230,6 +235,8 @@
             this.pnlEdit.Controls.Add(this.txtSDT);
             this.pnlEdit.Controls.Add(this.btnSua);
             this.pnlEdit.Controls.Add(this.btnXoa);
+            this.pnlEdit.Controls.Add(this.lblTimKiem);
+            this.pnlEdit.Controls.Add(this.txtTimKiem);
             this.pnlEdit.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.pnlEdit.Location = new System.Drawing.Point(0, 310);
             this.pnlEdit.Name = "pnlEdit";
@@ -289,6 +296,28 @@
             this.btnLamMoi.Text = "🔄 Tải Lại DS";
             this.btnLamMoi.UseVisualStyleBackColor = false;
             this.btnLamMoi.Click += new System.EventHandler(this.btnLamMoi_Click);
+            // 
+            // lblTimKiem
+            // 
+            this.lblTimKiem.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblTimKiem.AutoSize = true;
+            this.lblTimKiem.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.lblTimKiem.ForeColor = System.Drawing.Color.DarkGray;
+            this.lblTimKiem.Location = new System.Drawing.Point(502, 18);
+            this.lblTimKiem.Name = "lblTimKiem";
+            this.lblTimKiem.Size = new System.Drawing.Size(125, 25);
+            this.lblTimKiem.TabIndex = 15;
+            this.lblTimKiem.Text = "🔍 Tìm kiếm:";
+            // 
+            // txtTimKiem
+            // 
+            this.txtTimKiem.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtTimKiem.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.txtTimKiem.Location = new System.Drawing.Point(663, 13);
+            this.txtTimKiem.Name = "txtTimKiem";
+            this.txtTimKiem.Size = new System.Drawing.Size(256, 30);
+            this.txtTimKiem.TabIndex = 16;
+            this.txtTimKiem.TextChanged += new System.EventHandler(this.TxtTimKiem_TextChanged);
             // 
             // tabDaXacNhan
             // 

@@ -41,18 +41,18 @@ namespace N6
 
             SetCurrentWeek(DateTime.Today);
 
-            // Gán các sự kiện (sẽ được gỡ trong Dispose)
-            dgvTKB.CellPainting += DgvTKB_CellPainting;
-            dgvTKB.CellMouseDown += dgvTKB_CellMouseDown;
+            //// Gán các sự kiện (sẽ được gỡ trong Dispose)
+            //dgvTKB.CellPainting += DgvTKB_CellPainting;
+            //dgvTKB.CellMouseDown += dgvTKB_CellMouseDown;
 
-            // Giả định các control này tồn tại trong file Designer
-            btnPrevWeek.Click += btnPrevWeek_Click;
-            btnNextWeek.Click += btnNextWeek_Click;
-            btnImportTKB.Click += btnImportTKB_Click;
-            btnXoaTKB.Click += btnXoaTKB_Click;
-            doiMauMenuItem.Click += doiMauMenuItem_Click;
-            xoaGhiChuMenuItem.Click += xoaGhiChuMenuItem_Click;
-            xoaTKBMenuItem.Click += xoaTKBMenuItem_Click;
+            //// Giả định các control này tồn tại trong file Designer
+            //btnPrevWeek.Click += btnPrevWeek_Click;
+            //btnNextWeek.Click += btnNextWeek_Click;
+            //btnImportTKB.Click += btnImportTKB_Click;
+            //btnXoaTKB.Click += btnXoaTKB_Click;
+            //doiMauMenuItem.Click += doiMauMenuItem_Click;
+            //xoaGhiChuMenuItem.Click += xoaGhiChuMenuItem_Click;
+            //xoaTKBMenuItem.Click += xoaTKBMenuItem_Click;
 
             // Đăng ký nhận thông báo nếu TKB thay đổi ở nơi khác
             DatabaseHelper.TimetableChanged += OnThoiKhoaBieuChanged;

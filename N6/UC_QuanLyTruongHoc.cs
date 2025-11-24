@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
+using System.Globalization;
 
 namespace N6
 {
@@ -203,7 +204,7 @@ namespace N6
 
         #endregion
 
-        #region 2. Quản lý Thời Hạn Điểm
+        #region 2. Quản lý Thời Hạn Điểm (Đã sửa: Bỏ màu xám)
 
         private void LoadThoiHanDiem()
         {
@@ -211,6 +212,13 @@ namespace N6
             {
                 _allThoiHanDiemCache = DatabaseHelper.GetScoreDeadlines();
                 dgvThoiHanDiem.DataSource = _allThoiHanDiemCache;
+
+                // Đăng ký sự kiện kiểm tra lỗi (Chỉ đăng ký 1 lần)
+                dgvThoiHanDiem.DataError -= dgvThoiHanDiem_DataError;
+                dgvThoiHanDiem.DataError += dgvThoiHanDiem_DataError;
+
+                dgvThoiHanDiem.CellValidating -= dgvThoiHanDiem_CellValidating;
+                dgvThoiHanDiem.CellValidating += dgvThoiHanDiem_CellValidating;
 
                 cboKhoiFilter_SelectedIndexChanged(null, null);
                 CustomizeThoiHanGrid();
@@ -225,6 +233,7 @@ namespace N6
         {
             dgvThoiHanDiem.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
+            // Cập nhật tên cột
             var colSettings = new Dictionary<string, (string Header, int Weight)>
             {
                 { "MaCotDiem", ("Mã", 15) },
@@ -233,8 +242,8 @@ namespace N6
                 { "HocKy", ("HK", 10) },
                 { "NgayMoDiem", ("Ngày Mở", 15) },
                 { "NgayKhoaDiem", ("Ngày Khóa", 15) },
-                { "KhoaThuCong", ("Khóa Tay", 10) },
-                { "DaKhoa", ("Trạng Thái", 10) }
+                { "KhoaThuCong", ("Khóa (Thủ công)", 10) },
+                { "DaKhoa", ("Khóa (Tự động)", 10) }
             };
 
             foreach (var col in colSettings)
@@ -246,6 +255,20 @@ namespace N6
                 }
             }
 
+            // ==========================================================
+            // [UPDATE] KHÓA CỘT (ReadOnly) NHƯNG KHÔNG ĐỔI MÀU NỀN
+            // ==========================================================
+            string[] lockedColumns = { "MaCotDiem", "TenHienThi", "Khoi", "HocKy" };
+            foreach (string colName in lockedColumns)
+            {
+                if (dgvThoiHanDiem.Columns.Contains(colName))
+                {
+                    dgvThoiHanDiem.Columns[colName].ReadOnly = true;
+                    // Đã loại bỏ dòng set màu BackgroundColor = Color.WhiteSmoke theo yêu cầu
+                }
+            }
+
+            // Định dạng ngày tháng
             if (dgvThoiHanDiem.Columns.Contains("NgayMoDiem"))
             {
                 dgvThoiHanDiem.Columns["NgayMoDiem"].DefaultCellStyle.Format = "dd/MM/yyyy";
@@ -281,6 +304,52 @@ namespace N6
                 };
 
                 dgv.Columns.Insert(idx, chk);
+            }
+        }
+
+        // Xử lý sự kiện khi có lỗi dữ liệu
+        private void dgvThoiHanDiem_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            e.ThrowException = false;
+
+            string columnName = dgvThoiHanDiem.Columns[e.ColumnIndex].Name;
+            if (columnName == "NgayMoDiem" || columnName == "NgayKhoaDiem")
+            {
+                MessageBox.Show("❌ Lỗi định dạng ngày tháng!\nVui lòng không nhập chữ cái và tuân thủ định dạng dd/MM/yyyy.",
+                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else
+            {
+                MessageBox.Show("❌ Dữ liệu nhập vào không hợp lệ với kiểu dữ liệu của cột.",
+                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        // Kiểm tra tính hợp lệ của ngày tháng
+        private void dgvThoiHanDiem_CellValidating(object sender, DataGridViewCellValidatingEventArgs e)
+        {
+            string columnName = dgvThoiHanDiem.Columns[e.ColumnIndex].Name;
+
+            if (columnName == "NgayMoDiem" || columnName == "NgayKhoaDiem")
+            {
+                string input = e.FormattedValue.ToString().Trim();
+                if (string.IsNullOrEmpty(input)) return;
+
+                DateTime dt;
+                bool isValid = DateTime.TryParseExact(input, "dd/MM/yyyy",
+                                                      CultureInfo.InvariantCulture,
+                                                      DateTimeStyles.None,
+                                                      out dt);
+
+                if (!isValid)
+                {
+                    e.Cancel = true;
+                    MessageBox.Show($"❌ Ngày tháng '{input}' không hợp lệ!\n" +
+                                    "- Phải đúng định dạng: ngày/tháng/năm (dd/MM/yyyy)\n" +
+                                    "- Không chứa chữ cái.\n" +
+                                    "- Không được sai logic (ví dụ: 32/12, 30/02...)",
+                                    "Lỗi nhập ngày tháng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             }
         }
 
@@ -347,7 +416,7 @@ namespace N6
 
         #endregion
 
-        #region 3. Quản lý Lên Lớp (Logic Tự động & Xác nhận Sĩ số)
+        #region 3. Quản lý Lên Lớp
 
         public class StudentPromotionInfo
         {
@@ -377,7 +446,6 @@ namespace N6
                 dv.Sort = "Khoi, TenLop";
                 DataTable dt = dv.ToTable();
 
-                // Thêm dòng chọn mặc định
                 DataRow dr = dt.NewRow();
                 dr["MaLop"] = DBNull.Value;
                 dr["TenLop"] = "-- Chọn Lớp Cần Xét --";
@@ -447,14 +515,8 @@ namespace N6
             return null;
         }
 
-        /// <summary>
-        /// Xử lý sự kiện khi nhấn nút "Tải Dữ Liệu Lớp" trên tab Lên Lớp
-        /// </summary>
-        /// <param name="sender">Đối tượng gửi sự kiện</param>
-        /// <param name="e">Tham số sự kiện</param>
         private void btnLoadLopData_Click(object sender, EventArgs e)
         {
-            // Kiểm tra dữ liệu đầu vào
             if (cboLopCu.SelectedValue == null || cboLopCu.SelectedValue == DBNull.Value)
             {
                 MessageBox.Show("Vui lòng chọn một lớp để xử lý.", "Thông báo",
@@ -465,20 +527,17 @@ namespace N6
             _currentMaLopCu = cboLopCu.SelectedValue.ToString();
             string tenLopCu = cboLopCu.Text;
 
-            // Hiển thị trạng thái đang tải
             this.Cursor = Cursors.WaitCursor;
             lblSummary.Text = "Đang tính toán điểm và phân loại...";
-            Application.DoEvents(); // Cập nhật UI ngay lập tức
+            Application.DoEvents();
 
             try
             {
-                // Tải lại cache nếu null
                 if (_allLopHocCache == null)
                 {
                     _allLopHocCache = DatabaseHelper.GetAllClasses();
                 }
 
-                // Lấy thông tin lớp cũ (để biết Khối)
                 DataRow lopCuInfo = DatabaseHelper.GetClassDetails(_currentMaLopCu);
                 if (lopCuInfo == null)
                 {
@@ -490,7 +549,6 @@ namespace N6
                 _currentKhoi = lopCuInfo["Khoi"]?.ToString();
                 _currentIsLop5 = _currentKhoi?.Equals("Khối 5", StringComparison.OrdinalIgnoreCase) ?? false;
 
-                // Tính toán danh sách học sinh
                 _currentClassStudents = CalculateStudentAverages(_currentMaLopCu);
 
                 if (_currentClassStudents == null)
@@ -509,14 +567,12 @@ namespace N6
                     return;
                 }
 
-                // Phân loại Đậu / Rớt
                 var passing = _currentClassStudents.Where(s => s.PassStatus).ToList();
                 var failing = _currentClassStudents.Where(s => !s.PassStatus).ToList();
 
                 _autoTargetClassIdForPassers = null;
                 _autoTargetClassNameForPassers = "";
 
-                // Xử lý giao diện tùy theo Khối 5 hay Khối thường
                 if (_currentIsLop5)
                 {
                     lblNextClassPrompt.Text = "Trạng thái:";
@@ -552,21 +608,18 @@ namespace N6
                     lblPassingCount.Text = $"Đủ điều kiện Lên Lớp ({passing.Count} hs)";
                 }
 
-                // ĐẢM BẢO PANEL HIỂN THỊ - SỬA LỖI Ở ĐÂY
                 pnlPassingStudents.Visible = true;
                 pnlPassingStudents.BringToFront();
 
                 pnlFailingStudents.Visible = true;
                 pnlFailingStudents.BringToFront();
 
-                // Hiển thị danh sách học sinh đủ điều kiện lên lớp - PHƯƠNG PHÁP ĐƠN GIẢN
                 lstPassingStudents.Items.Clear();
                 foreach (var student in passing)
                 {
                     lstPassingStudents.Items.Add(student);
                 }
 
-                // Hiển thị danh sách học sinh lưu ban
                 lstFailingStudents.Items.Clear();
                 foreach (var student in failing)
                 {
@@ -575,13 +628,11 @@ namespace N6
 
                 lblFailingCount.Text = $"Lưu ban ({failing.Count} hs)";
 
-                // Tải danh sách lớp lưu ban (combobox bên phải)
                 LoadFailersDestinationCombo(_currentKhoi, _currentMaLopCu);
 
                 btnThucHienLenLop_SingleClass.Enabled = true;
                 lblSummary.Text = "Phân tích hoàn tất. Vui lòng kiểm tra và thực hiện.";
 
-                // FORCE REFRESH UI
                 pnlPassingStudents.Refresh();
                 pnlFailingStudents.Refresh();
                 this.Refresh();
@@ -620,7 +671,6 @@ namespace N6
                     string hoTen = row["HoTen"]?.ToString() ?? "Không rõ";
                     double diemTB = 0;
 
-                    // 🔧 THÊM: Kiểm tra cột điểm tồn tại
                     if (dt.Columns.Contains("Trung bình chung") &&
                         row["Trung bình chung"] != DBNull.Value)
                     {
@@ -769,7 +819,7 @@ namespace N6
 
         #endregion
 
-        #region 4. Kho Lưu Trữ (Re-Layout & Optimized)
+        #region 4. Kho Lưu Trữ (Đã sửa: Thêm dòng hướng dẫn)
 
         private void SetupArchiveTab()
         {
@@ -794,7 +844,6 @@ namespace N6
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
             };
 
-            // --- Các Controls Bộ lọc ---
             Label lblNam = new Label
             {
                 Text = "Năm Học:",
@@ -873,9 +922,9 @@ namespace N6
             };
 
             grpFilter.Controls.AddRange(new Control[] {
-        lblNam, _cboArchiveNamHoc, lblKhoi, _cboArchiveKhoi,
-        lblLop, _cboArchiveLop, lblSearch, _txtSearchStudent, _lblArchiveGVCN
-    });
+                lblNam, _cboArchiveNamHoc, lblKhoi, _cboArchiveKhoi,
+                lblLop, _cboArchiveLop, lblSearch, _txtSearchStudent, _lblArchiveGVCN
+            });
             pnlTop.Controls.Add(grpFilter);
 
             // 2. PANEL CHÍNH (SPLIT CONTAINER)
@@ -893,6 +942,18 @@ namespace N6
                 Dock = DockStyle.Fill
             };
 
+            // [NEW] Dòng chữ hướng dẫn
+            Label lblInstruction = new Label
+            {
+                Text = "(* Nhấn đúp vào tên học sinh để mở bảng điểm)",
+                Dock = DockStyle.Bottom,
+                Height = 25,
+                ForeColor = Color.Blue,
+                Font = new Font("Segoe UI", 9, FontStyle.Italic),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(5, 0, 0, 0)
+            };
+
             _dgvArchiveStudents = new DataGridView
             {
                 Dock = DockStyle.Fill,
@@ -904,7 +965,10 @@ namespace N6
                 BorderStyle = BorderStyle.None
             };
             _dgvArchiveStudents.DoubleClick += DgvArchiveStudents_DoubleClick;
+
+            // Thêm label hướng dẫn trước, rồi mới thêm Grid (để Grid fill phần còn lại)
             grpStudents.Controls.Add(_dgvArchiveStudents);
+            grpStudents.Controls.Add(lblInstruction);
 
             // Cột Phải: Phân công Giảng dạy
             GroupBox grpTeachers = new GroupBox
@@ -933,10 +997,8 @@ namespace N6
             _tabKhoLuuTru.Controls.Add(pnlTop);
             tabControlMain.TabPages.Add(_tabKhoLuuTru);
 
-            // Set SplitterDistance
             splitMain.SplitterDistance = 600;
 
-            // Gán sự kiện SAU KHI đã tạo controls
             _cboArchiveNamHoc.SelectedIndexChanged += LoadArchiveClassesForCombo;
             _cboArchiveKhoi.SelectedIndexChanged += LoadArchiveClassesForCombo;
             _cboArchiveLop.SelectedIndexChanged += CboArchiveLop_SelectedIndexChanged;
@@ -951,7 +1013,6 @@ namespace N6
             {
                 DataTable dt = DatabaseHelper.GetArchiveYears();
 
-                // Tạm ngắt sự kiện để tránh gọi đệ quy
                 _cboArchiveNamHoc.SelectedIndexChanged -= LoadArchiveClassesForCombo;
 
                 _cboArchiveNamHoc.DataSource = dt;
@@ -964,7 +1025,6 @@ namespace N6
                     _cboArchiveNamHoc.SelectedIndex = 0;
                 }
 
-                // Khôi phục sự kiện
                 _cboArchiveNamHoc.SelectedIndexChanged += LoadArchiveClassesForCombo;
             }
             catch (Exception ex)
@@ -985,7 +1045,6 @@ namespace N6
             {
                 DataTable dt = DatabaseHelper.GetArchiveClasses(nam, khoi);
 
-                // Tạm ngắt sự kiện để tránh gọi đệ quy
                 _cboArchiveLop.SelectedIndexChanged -= CboArchiveLop_SelectedIndexChanged;
 
                 DataRow dr = dt.NewRow();
@@ -998,7 +1057,6 @@ namespace N6
                 _cboArchiveLop.ValueMember = "MaLop";
                 _cboArchiveLop.SelectedIndex = 0;
 
-                // Khôi phục sự kiện
                 _cboArchiveLop.SelectedIndexChanged += CboArchiveLop_SelectedIndexChanged;
             }
             catch (Exception ex)
@@ -1026,7 +1084,6 @@ namespace N6
 
                 string maLop = _cboArchiveLop.SelectedValue.ToString();
 
-                // Kiểm tra xem item có phải là DataRowView không
                 if (_cboArchiveLop.SelectedItem is DataRowView row)
                 {
                     string maGVCN = row["MaGVCN"]?.ToString();
@@ -1063,7 +1120,6 @@ namespace N6
                         _dgvArchiveStudents.Columns[c].Visible = false;
                 }
 
-                // Tự động giãn cột, nhưng set FillWeight để tránh thanh trượt
                 _dgvArchiveStudents.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
                 if (_dgvArchiveStudents.Columns.Contains("MaHS"))
@@ -1118,7 +1174,6 @@ namespace N6
 
                 _dgvArchiveTeachers.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
-                // Điều chỉnh tỷ lệ cột: Môn học 45%, Giáo viên 55%
                 if (_dgvArchiveTeachers.Columns.Contains("TenMon"))
                 {
                     _dgvArchiveTeachers.Columns["TenMon"].HeaderText = "Môn Học";
