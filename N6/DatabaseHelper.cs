@@ -1687,4 +1687,56 @@ public static class DatabaseHelper
         }
     }
     #endregion
+    // ==============================================================
+    // BỔ SUNG CÁC HÀM MỚI CHO QUẢN LÝ NĂM HỌC & LƯU TRỮ
+    // ==============================================================
+
+    /// <summary>
+    /// Lấy danh sách tất cả năm học để đổ vào ComboBox.
+    /// </summary>
+    public static DataTable GetAllSchoolYears()
+    {
+        return ExecuteStoredProcedure("sp_GetAllNamHoc");
+    }
+
+    /// <summary>
+    /// Thực hiện quy trình "Kết thúc năm học" (V2):
+    /// 1. Tính điểm trung bình tất cả các môn.
+    /// 2. Lưu trữ hồ sơ tổng và chi tiết từng con điểm.
+    /// 3. Chuyển học sinh sang lớp mới.
+    /// </summary>
+    public static void ProcessStudentPromotion_V2(string maLopCu, string maLopMoi_LenLop, string maLopMoi_OLaiLop, bool isLop5, string maNamHoc)
+    {
+        var pMaLopCu = new SqlParameter("@MaLopCu", maLopCu);
+        // Nếu là tốt nghiệp (isLop5=true) thì MaLopMoi_LenLop sẽ là NULL
+        var pMaLopLen = new SqlParameter("@MaLopMoi_LenLop", string.IsNullOrEmpty(maLopMoi_LenLop) ? (object)DBNull.Value : maLopMoi_LenLop);
+        var pMaLopLai = new SqlParameter("@MaLopMoi_OLaiLop", string.IsNullOrEmpty(maLopMoi_OLaiLop) ? (object)DBNull.Value : maLopMoi_OLaiLop);
+        var pIsLop5 = new SqlParameter("@IsLop5_TotNghiep", isLop5);
+        var pNamHoc = new SqlParameter("@MaNamHocHienTai", maNamHoc);
+
+        ExecuteNonQueryStoredProcedure("sp_ProcessStudentPromotion_V2", pMaLopCu, pMaLopLen, pMaLopLai, pIsLop5, pNamHoc);
+    }
+
+    /// <summary>
+    /// Lấy bảng điểm chi tiết đã lưu trữ (dùng cho Popup xem lại lịch sử).
+    /// </summary>
+    public static DataTable GetArchivedTranscript(string maHoSo)
+    {
+        var pMaHoSo = new SqlParameter("@MaHoSo", maHoSo);
+        return ExecuteStoredProcedure("sp_GetArchivedTranscript", pMaHoSo);
+    }
+
+    public static DataTable GetArchiveStudentList(string maNamHoc, string maLop)
+    {
+        var pNam = new SqlParameter("@MaNamHoc", maNamHoc);
+        var pLop = new SqlParameter("@MaLop", string.IsNullOrEmpty(maLop) ? (object)DBNull.Value : maLop);
+        return ExecuteStoredProcedure("sp_GetArchiveStudentList", pNam, pLop);
+    }
+    public static void CreateNewSchoolYear(string maNam, string tenNam)
+    {
+        var pMa = new SqlParameter("@MaNamMoi", maNam);
+        var pTen = new SqlParameter("@TenNamMoi", tenNam);
+
+        ExecuteNonQueryStoredProcedure("sp_CreateNewSchoolYear", pMa, pTen);
+    }
 }
