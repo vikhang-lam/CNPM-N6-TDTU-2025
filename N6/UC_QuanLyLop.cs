@@ -72,17 +72,19 @@ namespace N6
         public UC_QuanLyLop(string username)
         {
             InitializeComponent();
-            this.flowLayoutPanelLop.WrapContents = true;
 
-            // CHUẨN HÓA: Sử dụng this. để gán cho field
+            this.flowLayoutPanelLop.WrapContents = true;
+            this.flowLayoutPanelLop.AutoScroll = false;
+            this.flowLayoutPanelLop.HorizontalScroll.Maximum = 0;
+            this.flowLayoutPanelLop.AutoScroll = true;
+
             this.username = username ?? string.Empty;
             this.maGV = DatabaseHelper.GetTeacherIdByUsername(this.username);
 
             InitializeDynamicControls();
 
-            lockStatusCache = new Dictionary<string, bool>(); // CHUẨN HÓA: Đã xóa '_'
+            lockStatusCache = new Dictionary<string, bool>();
 
-            // Gán sự kiện cho các control designer
             btnQuayLaiChonLop.Click += btnQuayLaiChonLop_Click;
             rbDiemDanh.CheckedChanged += TabButton_CheckedChanged;
             rbQR.CheckedChanged += TabButton_CheckedChanged;
@@ -163,75 +165,153 @@ namespace N6
         /// </summary>
         private void PopulateClassSelectionScreen()
         {
-            // Dọn dẹp các control cũ và gỡ sự kiện
-            foreach (Button btn in flowLayoutPanelLop.Controls.OfType<Button>().ToList())
+            // 1. Dọn dẹp sạch sẽ control cũ
+            flowLayoutPanelLop.SuspendLayout(); // Tạm dừng vẽ để tránh giật
+            foreach (Control ctrl in flowLayoutPanelLop.Controls)
             {
-                btn.Click -= HomeroomButton_Click;
-                btn.Click -= LopButton_Click;
-                btn.Dispose();
+                // Gỡ sự kiện và dispose để tránh rò rỉ bộ nhớ
+                if (ctrl is Panel groupPanel)
+                {
+                    foreach (Control child in groupPanel.Controls)
+                    {
+                        if (child is Button btn) { btn.Click -= HomeroomButton_Click; btn.Click -= LopButton_Click; }
+                        else if (child is Panel innerPanel)
+                        {
+                            foreach (Control innerChild in innerPanel.Controls)
+                                if (innerChild is Button innerBtn) { innerBtn.Click -= LopButton_Click; }
+                        }
+                    }
+                }
+                ctrl.Dispose();
             }
             flowLayoutPanelLop.Controls.Clear();
 
-            // CHUẨN HÓA: Đã xóa '_'
             if (string.IsNullOrEmpty(maGV))
             {
                 lblChonLopTitle.Text = "Tài khoản chưa được phân công.";
+                flowLayoutPanelLop.ResumeLayout();
                 return;
             }
 
-            // Tải lớp chủ nhiệm
-            // CHUẨN HÓA: Đã xóa '_'
+            // --- PHẦN 1: GROUP LỚP CHỦ NHIỆM ---
             DataTable dtHomeroom = DatabaseHelper.GetHomeroomClassesByTeacher(maGV);
             if (dtHomeroom.Rows.Count > 0)
             {
-                homeroomClassInfo = new KeyValuePair<string, string>(dtHomeroom.Rows[0]["MaLop"].ToString(), dtHomeroom.Rows[0]["TenLop"].ToString());
-                int availableWidth = flowLayoutPanelLop.ClientSize.Width - flowLayoutPanelLop.Padding.Left - flowLayoutPanelLop.Padding.Right;
+                // Tạo Panel chứa (Wrapper) cho phần chủ nhiệm
+                FlowLayoutPanel pnHomeroomGroup = new FlowLayoutPanel
+                {
+                    AutoSize = true,
+                    FlowDirection = FlowDirection.TopDown, // Xếp dọc: Label trên, Nút dưới
+                    WrapContents = false,
+                    Width = flowLayoutPanelLop.ClientSize.Width - 20, // Rộng gần bằng panel chính
+                    Margin = new Padding(0, 0, 0, 20), // Cách phần dưới 20px
+                    Tag = "GROUP_HOMEROOM"
+                };
+
+                Label lblHeaderCN = new Label
+                {
+                    Text = "Lớp Chủ Nhiệm:",
+                    Font = new Font("Segoe UI", 11F, FontStyle.Italic),
+                    ForeColor = Color.DimGray,
+                    AutoSize = true,
+                    Margin = new Padding(10, 0, 0, 5) // Cách nút 5px
+                };
+
+                // Tính toán chiều rộng nút
+                int btnWidth = pnHomeroomGroup.Width - 20;
 
                 var btnHomeroom = new Button
                 {
-                    Text = "⭐ Lớp Chủ Nhiệm: " + dtHomeroom.Rows[0]["TenLop"].ToString(),
-                    Tag = "HOMEROOM",
-                    Size = new Size(availableWidth - 20, 80),
-                    Margin = new Padding(10, 10, 10, 20),
+                    Text = "⭐ " + dtHomeroom.Rows[0]["TenLop"].ToString(),
+                    Tag = "BTN_HOMEROOM", // Đổi Tag để dễ tìm khi Resize
+                    Size = new Size(btnWidth > 0 ? btnWidth : 800, 80),
+                    Margin = new Padding(10, 0, 10, 0),
                     Font = new Font("Segoe UI", 14F, FontStyle.Bold),
                     BackColor = Color.FromArgb(255, 184, 77),
                     ForeColor = Color.White,
                     FlatStyle = FlatStyle.Flat
                 };
-
                 btnHomeroom.FlatAppearance.BorderSize = 0;
                 btnHomeroom.Click += HomeroomButton_Click;
-                flowLayoutPanelLop.Controls.Add(btnHomeroom);
-                flowLayoutPanelLop.SetFlowBreak(btnHomeroom, true);
+
+                // Thêm vào Group
+                pnHomeroomGroup.Controls.Add(lblHeaderCN);
+                pnHomeroomGroup.Controls.Add(btnHomeroom);
+
+                // Thêm Group vào màn hình chính
+                flowLayoutPanelLop.Controls.Add(pnHomeroomGroup);
+
+                homeroomClassInfo = new KeyValuePair<string, string>(dtHomeroom.Rows[0]["MaLop"].ToString(), dtHomeroom.Rows[0]["TenLop"].ToString());
             }
 
-            // Tải các lớp giảng dạy
-            // CHUẨN HÓA: Đã xóa '_'
+            // --- PHẦN 2: GROUP LỚP BỘ MÔN ---
             DataTable dsLop = DatabaseHelper.GetClassesByTeacher(maGV);
+
+            // Cập nhật tiêu đề
             if (dsLop.Rows.Count == 0 && dtHomeroom.Rows.Count == 0)
-            {
                 lblChonLopTitle.Text = "Giáo viên này chưa được phân công lớp nào.";
-                return;
+            else
+                lblChonLopTitle.Text = "Vui lòng chọn lớp để quản lý";
+
+            if (dsLop.Rows.Count > 0)
+            {
+                // Tạo Panel chứa (Wrapper) cho phần bộ môn
+                FlowLayoutPanel pnSubjectGroup = new FlowLayoutPanel
+                {
+                    AutoSize = true,
+                    FlowDirection = FlowDirection.TopDown, // Xếp dọc: Label trên, Danh sách nút dưới
+                    WrapContents = false,
+                    Width = flowLayoutPanelLop.ClientSize.Width - 20,
+                    Tag = "GROUP_SUBJECT"
+                };
+
+                Label lblHeaderBM = new Label
+                {
+                    Text = "Lớp Bộ Môn:",
+                    Font = new Font("Segoe UI", 11F, FontStyle.Italic),
+                    ForeColor = Color.DimGray,
+                    AutoSize = true,
+                    Margin = new Padding(10, 0, 0, 5)
+                };
+
+                // Tạo Panel con chứa các nút (để các nút xếp ngang LeftToRight)
+                FlowLayoutPanel pnButtonContainer = new FlowLayoutPanel
+                {
+                    AutoSize = true,
+                    FlowDirection = FlowDirection.LeftToRight,
+                    WrapContents = true, // Cho phép xuống dòng
+                    Width = pnSubjectGroup.Width, // Rộng bằng group cha
+                    Margin = new Padding(0),
+                    Padding = new Padding(0)
+                };
+
+                foreach (DataRow row in dsLop.Rows)
+                {
+                    var btn = new Button
+                    {
+                        Text = row["TenLop"].ToString(),
+                        Tag = row["MaLop"].ToString(),
+                        Size = new Size(200, 80),
+                        Margin = new Padding(10, 0, 10, 10), // Cách đều
+                        Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                        BackColor = Color.FromArgb(45, 45, 65),
+                        ForeColor = Color.White,
+                        FlatStyle = FlatStyle.Flat
+                    };
+                    btn.FlatAppearance.BorderSize = 0;
+                    btn.Click += LopButton_Click;
+                    pnButtonContainer.Controls.Add(btn);
+                }
+
+                // Thêm vào Group
+                pnSubjectGroup.Controls.Add(lblHeaderBM);
+                pnSubjectGroup.Controls.Add(pnButtonContainer);
+
+                // Thêm Group vào màn hình chính
+                flowLayoutPanelLop.Controls.Add(pnSubjectGroup);
             }
 
-            lblChonLopTitle.Text = "Vui lòng chọn lớp để quản lý";
-            foreach (DataRow row in dsLop.Rows)
-            {
-                var btn = new Button
-                {
-                    Text = row["TenLop"].ToString(),
-                    Tag = row["MaLop"].ToString(),
-                    Size = new Size(200, 80),
-                    Margin = new Padding(10),
-                    Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                    BackColor = Color.FromArgb(45, 45, 65),
-                    ForeColor = Color.White,
-                    FlatStyle = FlatStyle.Flat
-                };
-                btn.FlatAppearance.BorderSize = 0;
-                btn.Click += LopButton_Click;
-                flowLayoutPanelLop.Controls.Add(btn);
-            }
+            flowLayoutPanelLop.ResumeLayout();
         }
 
         /// <summary>
@@ -242,14 +322,49 @@ namespace N6
             if (flowLayoutPanelLop == null || !flowLayoutPanelLop.IsHandleCreated)
                 return;
 
-            int availableWidth = flowLayoutPanelLop.ClientSize.Width - flowLayoutPanelLop.Padding.Left - flowLayoutPanelLop.Padding.Right;
-
-            foreach (Control ctrl in flowLayoutPanelLop.Controls)
+            flowLayoutPanelLop.SuspendLayout();
+            try
             {
-                if (ctrl is Button btn && btn.Tag != null && btn.Tag.ToString() == "HOMEROOM")
+                // Chiều rộng khả dụng của màn hình chính
+                int containerWidth = flowLayoutPanelLop.ClientSize.Width - flowLayoutPanelLop.Padding.Left - flowLayoutPanelLop.Padding.Right;
+                int safeWidth = containerWidth - 10; // Trừ hao an toàn
+
+                foreach (Control ctrl in flowLayoutPanelLop.Controls)
                 {
-                    btn.Width = availableWidth - btn.Margin.Left - btn.Margin.Right;
+                    // 1. Xử lý Group Lớp Chủ Nhiệm
+                    if (ctrl is FlowLayoutPanel groupPanel && ctrl.Tag?.ToString() == "GROUP_HOMEROOM")
+                    {
+                        groupPanel.Width = safeWidth; // Group rộng theo màn hình
+
+                        // Tìm nút chủ nhiệm bên trong để resize
+                        foreach (Control child in groupPanel.Controls)
+                        {
+                            if (child is Button btn && btn.Tag?.ToString() == "BTN_HOMEROOM")
+                            {
+                                int btnNewWidth = safeWidth - btn.Margin.Left - btn.Margin.Right;
+                                if (btnNewWidth > 0) btn.Width = btnNewWidth;
+                            }
+                        }
+                    }
+                    // 2. Xử lý Group Lớp Bộ Môn
+                    else if (ctrl is FlowLayoutPanel subjectGroup && ctrl.Tag?.ToString() == "GROUP_SUBJECT")
+                    {
+                        subjectGroup.Width = safeWidth;
+
+                        // Tìm Panel chứa các nút con bên trong để resize width (để nó wrap đúng)
+                        foreach (Control child in subjectGroup.Controls)
+                        {
+                            if (child is FlowLayoutPanel btnContainer)
+                            {
+                                btnContainer.Width = safeWidth;
+                            }
+                        }
+                    }
                 }
+            }
+            finally
+            {
+                flowLayoutPanelLop.ResumeLayout(true);
             }
         }
 
@@ -774,11 +889,9 @@ namespace N6
                 // Thêm các cột tính toán (không có trong CSDL)
                 dt.Columns.Add("Thu", typeof(decimal));
                 dt.Columns.Add("Chi", typeof(decimal));
-                dt.Columns.Add("Tồn", typeof(decimal));
 
                 decimal tongThu = 0;
                 decimal tongChi = 0;
-                decimal ton = 0;
 
                 // Tính toán số dư
                 foreach (DataRow row in dt.Rows)
@@ -790,15 +903,15 @@ namespace N6
                     {
                         row["Thu"] = soTien;
                         tongThu += soTien;
-                        ton += soTien;
+                     
                     }
                     else if (loai == "Chi")
                     {
                         row["Chi"] = soTien;
                         tongChi += soTien;
-                        ton -= soTien;
+                     
                     }
-                    row["Tồn"] = ton;
+
                 }
 
                 dgvQuyLop.DataSource = null;
@@ -828,7 +941,6 @@ namespace N6
                 // Cập nhật các thẻ thống kê
                 if (lblTongThu_Value != null) lblTongThu_Value.Text = $"{tongThu:N0}đ";
                 if (lblTongChi_Value != null) lblTongChi_Value.Text = $"{tongChi:N0}đ";
-                if (lblTonQuy_Value != null) lblTonQuy_Value.Text = $"{ton:N0}đ";
             }
             catch (Exception ex)
             {
@@ -1011,30 +1123,35 @@ namespace N6
             var container = new Panel { Dock = DockStyle.Fill, Name = "containerThuCong" };
             var top = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 45, Padding = new Padding(5), FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Name = "topThuCong" };
 
-            // Khởi tạo các control (biến class)
+            // Khởi tạo các control
             dtpNgayTC = new DateTimePicker { Name = "dtpNgayTC", Format = DateTimePickerFormat.Short, Value = DateTime.Today, Width = 110, Font = new Font("Segoe UI", 9F) };
             cbBuoiTC = new ComboBox { Name = "cbBuoiTC", DropDownStyle = ComboBoxStyle.DropDownList, Width = 80, Font = new Font("Segoe UI", 9F) };
             cbBuoiTC.Items.AddRange(new[] { "Sáng", "Chiều" });
             cbBuoiTC.SelectedIndex = DateTime.Now.Hour < 12 ? 0 : 1;
-            dtpThoiGianTC = new DateTimePicker { Name = "dtpThoiGianTC", Format = DateTimePickerFormat.Custom, CustomFormat = "HH:mm", ShowUpDown = true, Value = DateTime.Now, Width = 70, Font = new Font("Segoe UI", 9F) };
+
+            // --- [ĐÃ XÓA] dtpThoiGianTC vì không cho chọn giờ nữa ---
+            // dtpThoiGianTC = ... (Bỏ dòng này)
 
             dtpNgayTC.ValueChanged += AttendanceFilter_Changed;
             cbBuoiTC.SelectedIndexChanged += AttendanceFilter_Changed;
 
             var btnXemTC = new Button { Text = "Xem", Width = 70, Height = 28, BackColor = Color.DodgerBlue, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Name = "btnXemTC" };
-            btnXemTC.Click += (s, e) => LoadThuCong(readOnly: dtpNgayTC.Value.Date < DateTime.Today, createIfEmpty: false);
+
+            btnXemTC.Click += (s, e) => LoadThuCong(readOnly: dtpNgayTC.Value.Date != DateTime.Today, createIfEmpty: false);
+
             btnBatDauTC = new Button { Text = "Bắt đầu", Width = 80, Height = 28, BackColor = Color.SeaGreen, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Name = "btnBatDauTC" };
             btnBatDauTC.Click += BtnBatDauTC_Click;
+
             btnLuuTC = new Button { Text = "Lưu", Width = 70, Height = 28, BackColor = Color.OrangeRed, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Enabled = false, Name = "btnLuuTC" };
             btnLuuTC.Click += BtnLuuTC_Click;
+
             lblThongKeTC = new Label { Name = "lblThongKeTC", AutoSize = true, ForeColor = Color.Maroon, Padding = new Padding(15, 5, 0, 0), Font = new Font("Segoe UI", 11F, FontStyle.Bold) };
 
             top.Controls.Add(new Label { Text = "Ngày:", AutoSize = true, Padding = new Padding(0, 5, 5, 0) });
             top.Controls.Add(dtpNgayTC);
             top.Controls.Add(new Label { Text = "Buổi:", AutoSize = true, Padding = new Padding(10, 5, 5, 0) });
             top.Controls.Add(cbBuoiTC);
-            top.Controls.Add(new Label { Text = "Giờ:", AutoSize = true, Padding = new Padding(10, 5, 5, 0) });
-            top.Controls.Add(dtpThoiGianTC);
+
             top.Controls.Add(btnXemTC);
             top.Controls.Add(btnBatDauTC);
             top.Controls.Add(btnLuuTC);
@@ -1047,29 +1164,35 @@ namespace N6
 
             container.Controls.Add(dgvDiemDanh);
             container.Controls.Add(top);
-            // CHUẨN HÓA: Đã xóa '_'
+
             tabThuCong.Controls.Clear();
             tabThuCong.Controls.Add(container);
-            LoadThuCong(readOnly: true, createIfEmpty: false);
+
+            // Mặc định load readOnly nếu ngày khởi tạo khác hôm nay (phòng hờ)
+            LoadThuCong(readOnly: dtpNgayTC.Value.Date != DateTime.Today, createIfEmpty: false);
         }
 
         private void AttendanceFilter_Changed(object sender, EventArgs e)
         {
-            bool isPastDate = dtpNgayTC.Value.Date < DateTime.Today.Date;
-            LoadThuCong(readOnly: isPastDate, createIfEmpty: false);
+            bool isNotToday = dtpNgayTC.Value.Date != DateTime.Today;
+            LoadThuCong(readOnly: isNotToday, createIfEmpty: false);
         }
 
         private void BtnBatDauTC_Click(object sender, EventArgs e)
         {
-            if (dtpNgayTC.Value.Date > DateTime.Today)
+            if (dtpNgayTC.Value.Date != DateTime.Today)
             {
-                MessageBox.Show("Không thể điểm danh cho một ngày trong tương lai.");
+                MessageBox.Show("Chỉ được phép thực hiện điểm danh cho ngày hôm nay!\nKhông được sửa dữ liệu quá khứ hoặc tương lai.",
+                                "Sai thời gian",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Warning);
                 return;
             }
-            manualSessionActive = true; // CHUẨN HÓA: Đã xóa '_'
+
+            manualSessionActive = true;
             btnLuuTC.Enabled = true;
-            DateTime thoiDiemDiemDanh = dtpNgayTC.Value.Date + dtpThoiGianTC.Value.TimeOfDay;
-            // CHUẨN HÓA: Đã xóa '_'
+
+            DateTime thoiDiemDiemDanh = DateTime.Now;
             DatabaseHelper.ExecuteCreateDefaultAttendance(maLop, thoiDiemDiemDanh, cbBuoiTC.SelectedItem?.ToString());
             LoadThuCong(readOnly: false, createIfEmpty: false);
         }
@@ -1166,12 +1289,20 @@ namespace N6
                 return;
             }
 
+            // Kiểm tra lại một lần nữa cho chắc chắn
+            if (dtpNgayTC.Value.Date != DateTime.Today)
+            {
+                MessageBox.Show("Không thể lưu dữ liệu cho ngày khác ngày hôm nay.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             try
             {
                 dgvDiemDanh.EndEdit();
                 int saved = 0;
 
-                DateTime thoiDiemLuu = dtpNgayTC.Value.Date + dtpThoiGianTC.Value.TimeOfDay;
+                // Dùng DateTime.Now thay vì dtpThoiGianTC
+                DateTime thoiDiemLuu = DateTime.Now;
 
                 foreach (DataGridViewRow row in dgvDiemDanh.Rows)
                 {
@@ -1192,11 +1323,12 @@ namespace N6
                     saved++;
                 }
 
-                MessageBox.Show($"Đã lưu {saved} bản ghi.");
+                MessageBox.Show($"Đã lưu thành công {saved} học sinh vào lúc {thoiDiemLuu:HH:mm:ss}.");
 
-                manualSessionActive = false;  // Reset trạng thái phiên điểm danh
+                manualSessionActive = false;
                 btnLuuTC.Enabled = false;
 
+                // Load lại dữ liệu mới lưu
                 LoadThuCong(readOnly: false, createIfEmpty: false);
             }
             catch (Exception ex)
@@ -1671,7 +1803,7 @@ namespace N6
             dgvHocSinh.AutoGenerateColumns = true;
             dgvHocSinh.AllowUserToAddRows = false;
             dgvHocSinh.AllowUserToDeleteRows = false;
-            // CHUẨN HÓA: Đã xóa '_'
+            dgvHocSinh.ReadOnly = true;
             dgvHocSinh.DataSource = DatabaseHelper.GetStudentsByClass(maLop);
             panelContent.Controls.Add(dgvHocSinh);
             dgvHocSinh.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;

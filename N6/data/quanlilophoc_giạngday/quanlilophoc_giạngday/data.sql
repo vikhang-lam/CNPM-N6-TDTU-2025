@@ -1731,30 +1731,31 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_AddGhiChuChoHocSinh
+create PROCEDURE sp_AddGhiChuChoHocSinh
     @MaHS VARCHAR(10),
     @MaMon VARCHAR(10),
-    @GhiChu NVARCHAR(200)
+    @GhiChu NVARCHAR(200),
+    @HocKy INT -- Thêm tham số mới
 AS
 BEGIN
     SET NOCOUNT ON;
     
+    -- Xác định loại điểm dựa vào Học kỳ (Ví dụ: Học kỳ 1 -> CuoiKi1, Học kỳ 2 -> CuoiKi2)
+    -- Ghi chú thường được gắn vào cột điểm tổng kết của kỳ đó
     DECLARE @Loai NVARCHAR(20);
-    SELECT @Loai = thd.MaCotDiem
-    FROM ThoiHanDiem thd
-    JOIN HocSinh hs ON thd.Khoi = (SELECT Khoi FROM LopHoc WHERE MaLop = hs.MaLop)
-    WHERE hs.MaHS = @MaHS AND thd.MaCotDiem LIKE 'CuoiKi2%';
+    SET @Loai = 'CuoiKi' + CAST(@HocKy AS NVARCHAR(1));
 
-    IF @Loai IS NULL SET @Loai = 'CuoiKi2';
-
+    -- Kiểm tra nếu đã có dòng điểm này chưa để Update hoặc Insert
     IF EXISTS (SELECT 1 FROM KetQuaHocTap WHERE MaHS = @MaHS AND MaMon = @MaMon AND Loai = @Loai)
     BEGIN
-        UPDATE KetQuaHocTap SET GhiChu = @GhiChu WHERE MaHS = @MaHS AND MaMon = @MaMon AND Loai = @Loai;
+        UPDATE KetQuaHocTap 
+        SET GhiChu = @GhiChu, NgayNhap = GETDATE()
+        WHERE MaHS = @MaHS AND MaMon = @MaMon AND Loai = @Loai;
     END
     ELSE
     BEGIN
         INSERT INTO KetQuaHocTap (MaKQ, MaMon, MaHS, NgayNhap, GhiChu, Loai)
-        VALUES (LEFT(NEWID(), 10), @MaMon, @MaHS, GETDATE(), @GhiChu, @Loai);
+        VALUES (LEFT(NEWID(), 8), @MaMon, @MaHS, GETDATE(), @GhiChu, @Loai);
     END
 END;
 GO
@@ -2317,12 +2318,24 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_GetMonHocByGiaoVien
+create PROCEDURE sp_GetMonHocByGiaoVien
     @MaGV VARCHAR(10)
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT MaMon FROM GiaoVien_MonHoc WHERE MaGV = @MaGV;
+
+    SELECT 
+        GM.MaMon, 
+        MH.TenMon,
+        PC.MaLop  -- Cột mới được thêm vào
+    FROM 
+        GiaoVien_MonHoc GM
+    INNER JOIN 
+        MonHoc MH ON GM.MaMon = MH.MaMon
+    LEFT JOIN 
+        PhanCongGiangDay PC ON GM.MaGV = PC.MaGV AND GM.MaMon = PC.MaMon
+    WHERE 
+        GM.MaGV = @MaGV;
 END;
 GO
 

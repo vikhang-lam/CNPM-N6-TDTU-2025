@@ -15,6 +15,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.lblNoData = new System.Windows.Forms.Label();
             this.pnlFilters = new System.Windows.Forms.Panel();
             this.flpFilters = new System.Windows.Forms.FlowLayoutPanel();
             this.pnlReportTypeSelector = new System.Windows.Forms.FlowLayoutPanel();
@@ -57,6 +58,8 @@
             this.splitContainer1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvDuLieu)).BeginInit();
             this.SuspendLayout();
+            this.splitContainer1.Panel1.Controls.Add(this.lblNoData); // <--- THÊM LABEL VÀO PANEL 1
+            this.splitContainer1.Panel1.Controls.Add(this.dgvDuLieu);
             // 
             // pnlFilters
             // 
@@ -410,6 +413,20 @@
             this.splitContainer1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgvDuLieu)).EndInit();
             this.ResumeLayout(false);
+            // 
+            // lblNoData (CẤU HÌNH LABEL MỚI)
+            // 
+            this.lblNoData.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lblNoData.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblNoData.ForeColor = System.Drawing.Color.Gray;
+            this.lblNoData.Location = new System.Drawing.Point(0, 0);
+            this.lblNoData.Name = "lblNoData";
+            this.lblNoData.Size = new System.Drawing.Size(978, 228);
+            this.lblNoData.TabIndex = 1;
+            this.lblNoData.Text = "Chưa có dữ liệu báo cáo.\r\nVui lòng chọn bộ lọc để xem kết quả.";
+            this.lblNoData.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.lblNoData.Visible = true; // Mặc định hiện lên
+            this.lblNoData.BringToFront();
 
         }
 
@@ -443,5 +460,6 @@
         private System.Windows.Forms.FlowLayoutPanel pnlThang; // <-- THÊM MỚI
         private System.Windows.Forms.Label lblThang; // <-- THÊM MỚI
         private System.Windows.Forms.ComboBox cboThang; // <-- THÊM MỚI
+        private System.Windows.Forms.Label lblNoData;
     }
 }

@@ -1186,13 +1186,14 @@ public static class DatabaseHelper
 
     #region Teaching Support (Hỗ trợ giảng dạy)
 
-    public static void AddNoteForStudent(string maHS, string maMon, string ghiChu)
+    public static void AddNoteForStudent(string maHS, string maMon, string ghiChu, int hocKy)
     {
         var pMaHS = new SqlParameter("@MaHS", maHS);
         var pMaMon = new SqlParameter("@MaMon", maMon);
         var pGhiChu = new SqlParameter("@GhiChu", ghiChu);
+        var pHocKy = new SqlParameter("@HocKy", hocKy); 
 
-        ExecuteNonQueryStoredProcedure("sp_AddGhiChuChoHocSinh", pMaHS, pMaMon, pGhiChu);
+        ExecuteNonQueryStoredProcedure("sp_AddGhiChuChoHocSinh", pMaHS, pMaMon, pGhiChu, pHocKy);
     }
 
     public static DataTable GetStudentDataForPrediction(string maLop, string maMon)

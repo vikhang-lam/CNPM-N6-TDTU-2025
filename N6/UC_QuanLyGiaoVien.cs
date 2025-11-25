@@ -443,28 +443,24 @@ namespace N6
                 MessageBox.Show("Tên giáo viên không được để trống.", "Thiếu dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
             if (!Regex.IsMatch(ten, @"^[\p{L}\s]+$"))
             {
-                MessageBox.Show("Tên giáo viên không hợp lệ. Không được chứa số hoặc ký tự đặc biệt.", "Sai định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Tên giáo viên không hợp lệ.", "Sai định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
             if (string.IsNullOrWhiteSpace(email))
             {
                 MessageBox.Show("Email không được để trống.", "Thiếu dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
             if (!Regex.IsMatch(email, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"))
             {
-                MessageBox.Show("Email không đúng định dạng (ví dụ: ten@gmail.com).", "Sai định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Email không đúng định dạng.", "Sai định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
             if (!Regex.IsMatch(sdt, @"^\d{10}$"))
             {
-                MessageBox.Show("Số điện thoại phải có đúng 10 chữ số và chỉ bao gồm số.", "Sai định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Số điện thoại phải có đúng 10 chữ số.", "Sai định dạng", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -485,26 +481,35 @@ namespace N6
 
                 DataTable dtPhanCong = DatabaseHelper.GetTeacherAssignments(maGV);
 
-                var dsMonDangDay = dtPhanCong.AsEnumerable()
-                    .Select(r => r.Field<string>("MaMon"))
-                    .Distinct()
-                    .ToList();
-
                 var dsMonMoi = dtMaMonList.AsEnumerable()
                     .Select(r => r.Field<string>("MaMon"))
                     .ToList();
 
-                var monDangDayBiBo = dsMonDangDay.Where(mon => !dsMonMoi.Contains(mon)).ToList();
+                bool hasTenMonColumn = dtPhanCong.Columns.Contains("TenMon");
+                bool hasMaLopColumn = dtPhanCong.Columns.Contains("MaLop");
 
-                if (monDangDayBiBo.Count > 0)
+                var cacMonBiXungDot = dtPhanCong.AsEnumerable()
+                    .Where(r => !dsMonMoi.Contains(r.Field<string>("MaMon")))
+                    .Select(r => new
+                    {
+                        TenMon = hasTenMonColumn ? (r.Field<string>("TenMon") ?? r.Field<string>("MaMon")) : r.Field<string>("MaMon"),
+                        MaLop = hasMaLopColumn ? (r.Field<string>("MaLop") ?? "N/A") : "N/A"
+                    })
+                    .ToList();
+
+                if (cacMonBiXungDot.Count > 0)
                 {
-                    var chiTiet = string.Join(", ", dtPhanCong.AsEnumerable()
-                        .Where(r => monDangDayBiBo.Contains(r.Field<string>("MaMon")))
-                        .Select(r => $"{r["TenMon"]} (Lớp {r["MaLop"]})"));
+                    string chiTietLoi = "";
+                    foreach (var item in cacMonBiXungDot)
+                    {
+                        if (item.MaLop == "N/A")
+                            chiTietLoi += $"\n- Giáo viên đang được bổ nhiệm dạy môn {item.TenMon}";
+                        else
+                            chiTietLoi += $"\n- Giáo viên đang được bổ nhiệm dạy môn {item.TenMon} cho lớp {item.MaLop}";
+                    }
 
                     MessageBox.Show(
-                        $"Không thể thay đổi bộ môn vì giáo viên đang được phân công dạy: {chiTiet}. " +
-                        $"Vui lòng hủy phân công trước khi đổi môn.",
+                        $"Không thể gỡ bỏ môn học này vì đang có lịch giảng dạy:{chiTietLoi}\n\nVui lòng hủy phân công giảng dạy tại các lớp trên trước khi thay đổi môn chuyên môn.",
                         "Không thể thay đổi môn dạy",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Warning
@@ -521,7 +526,7 @@ namespace N6
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi cập nhật thông tin: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi hệ thống khi cập nhật: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

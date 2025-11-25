@@ -15,6 +15,7 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
     private string _maGV;
     private ComboBox cbLop;
     private ComboBox cbMonHoc;
+    private ComboBox cbHocKy; // <--- 1. Thêm biến Học Kỳ
     private ComboBox cbHocSinh;
     private TextBox txtGhiChu;
     private RoundedButton btnLuu;
@@ -32,7 +33,7 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
     {
         _maGV = maGV;
         this.Text = "Ghi chú cho Học sinh";
-        this.Size = new Size(400, 470);
+        this.Size = new Size(400, 520); // <--- Tăng chiều cao form một chút
         InitializeModernComponent();
         LoadLopHoc();
         InitializeWhisper();
@@ -40,8 +41,17 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
 
     private void InitializeModernComponent()
     {
+        // Khởi tạo các ComboBox
         cbLop = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0, 0, 0, 10) };
         cbMonHoc = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0, 0, 0, 10) };
+
+        // <--- 2. Khởi tạo ComboBox Học Kỳ
+        cbHocKy = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0, 0, 0, 10) };
+        cbHocKy.Items.Add("Học kỳ 1");
+        cbHocKy.Items.Add("Học kỳ 2");
+        cbHocKy.SelectedIndex = 0; // Mặc định chọn Học kỳ 1
+        // ----------------------------------
+
         cbHocSinh = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 10F), Margin = new Padding(0, 0, 0, 10) };
 
         var txtPanel = new RoundedPanel { Dock = DockStyle.Fill, BackColor = Color.White, CornerRadius = 10, Padding = new Padding(5) };
@@ -54,12 +64,15 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
         btnRecord = new RoundedButton { Dock = DockStyle.Bottom, Text = "🎤 Ghi Âm (Tiếng Việt)", Height = 40, CornerRadius = 12, BackColor = Color.RoyalBlue, Margin = new Padding(0, 5, 0, 0) };
         btnRecord.Click += BtnRecord_Click_Async;
 
-        this.ContentPanel.Controls.Add(txtPanel);
-        this.ContentPanel.Controls.Add(cbHocSinh);
-        this.ContentPanel.Controls.Add(cbMonHoc);
-        this.ContentPanel.Controls.Add(cbLop);
-        this.ContentPanel.Controls.Add(btnRecord);
-        this.ContentPanel.Controls.Add(btnLuu);
+        // <--- 3. Thêm vào Panel (Lưu ý thứ tự thêm: Cái nào thêm SAU sẽ nằm TRÊN cùng do DockStyle.Top)
+        this.ContentPanel.Controls.Add(txtPanel);       // Fill
+        this.ContentPanel.Controls.Add(cbHocSinh);      // Top (dưới cùng trong nhóm Top)
+        this.ContentPanel.Controls.Add(cbHocKy);        // Top (mới thêm)
+        this.ContentPanel.Controls.Add(cbMonHoc);       // Top
+        this.ContentPanel.Controls.Add(cbLop);          // Top (trên cùng)
+
+        this.ContentPanel.Controls.Add(btnRecord);      // Bottom
+        this.ContentPanel.Controls.Add(btnLuu);         // Bottom
 
         cbLop.SelectedIndexChanged += CbLop_SelectedIndexChanged;
     }
@@ -216,6 +229,7 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
     {
         if (cbLop.SelectedValue == null) { MessageBox.Show("Vui lòng chọn lớp."); return; }
         if (cbMonHoc.SelectedValue == null) { MessageBox.Show("Vui lòng chọn môn học."); return; }
+        if (cbHocKy.SelectedItem == null) { MessageBox.Show("Vui lòng chọn học kỳ."); return; } // Kiểm tra học kỳ
         if (cbHocSinh.SelectedValue == null) { MessageBox.Show("Vui lòng chọn học sinh."); return; }
         if (string.IsNullOrWhiteSpace(txtGhiChu.Text) || txtGhiChu.ForeColor == Color.Gray)
         {
@@ -228,8 +242,11 @@ public partial class frmGhiChuHocSinh : frmDraggableRoundedPopup
             string maHS = cbHocSinh.SelectedValue.ToString();
             string maMon = cbMonHoc.SelectedValue.ToString();
 
-            DatabaseHelper.AddNoteForStudent(maHS, maMon, txtGhiChu.Text);
-            MessageBox.Show("Đã lưu ghi chú thành công!");
+            // Lấy giá trị học kỳ (1 hoặc 2)
+            int hocKy = cbHocKy.SelectedIndex + 1;
+            DatabaseHelper.AddNoteForStudent(maHS, maMon, txtGhiChu.Text, hocKy);
+
+            MessageBox.Show($"Đã lưu ghi chú cho {cbHocKy.SelectedItem} thành công!");
             this.Close();
         }
         catch (Exception ex)

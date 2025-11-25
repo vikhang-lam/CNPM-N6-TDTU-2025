@@ -1,8 +1,42 @@
-﻿namespace N6
+﻿using System.Linq;
+
+namespace N6
 {
     partial class UC_BaoCao
     {
         private System.ComponentModel.IContainer components = null;
+        private System.Windows.Forms.Label lblNoData;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                foreach (var rb in reportTypeRadioButtons)
+                {
+                    if (rb != null) rb.CheckedChanged -= ReportType_CheckedChanged;
+                }
+
+                if (this.tabLoaiGiaoVien != null) this.tabLoaiGiaoVien.SelectedIndexChanged -= new System.EventHandler(this.tabLoaiGiaoVien_SelectedIndexChanged);
+                if (this.cboLop != null) this.cboLop.SelectedIndexChanged -= new System.EventHandler(this.cboLop_SelectedIndexChanged_Handler);
+                if (this.cboKhoi != null) this.cboKhoi.SelectedIndexChanged -= new System.EventHandler(this.AutoLoadReport_Trigger);
+                if (this.cboHocKy != null) this.cboHocKy.SelectedIndexChanged -= new System.EventHandler(this.cboHocKy_SelectedIndexChanged_Handler);
+                if (this.cboMonDay != null) this.cboMonDay.SelectedIndexChanged -= new System.EventHandler(this.AutoLoadReport_Trigger);
+                if (this.cboThang != null) this.cboThang.SelectedIndexChanged -= new System.EventHandler(this.AutoLoadReport_Trigger);
+                if (this.btnXuatExcel != null) this.btnXuatExcel.Click -= new System.EventHandler(this.btnXuatExcel_Click);
+                if (this.btnXuatPDF != null) this.btnXuatPDF.Click -= new System.EventHandler(this.btnXuatPDF_Click);
+                if (this.pnlFilters != null) this.pnlFilters.Paint -= new System.Windows.Forms.PaintEventHandler(this.pnlFilters_Paint);
+
+                if (flpCharts != null)
+                {
+                    foreach (System.Windows.Forms.DataVisualization.Charting.Chart chart in flpCharts.Controls.OfType<System.Windows.Forms.DataVisualization.Charting.Chart>().ToList()) chart.Dispose();
+                    flpCharts.Controls.Clear();
+                }
+
+                if (components != null) components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
         #region Component Designer generated code
 
         private void InitializeComponent()
@@ -35,6 +69,7 @@
             this.btnXuatPDF = new System.Windows.Forms.Button();
             this.btnXuatExcel = new System.Windows.Forms.Button();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.lblNoData = new System.Windows.Forms.Label();
             this.dgvDuLieu = new System.Windows.Forms.DataGridView();
             this.flpCharts = new System.Windows.Forms.FlowLayoutPanel();
             this.pnlFilters.SuspendLayout();
@@ -365,6 +400,7 @@
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.lblNoData);
             this.splitContainer1.Panel1.Controls.Add(this.dgvDuLieu);
             // 
             // splitContainer1.Panel2
@@ -373,6 +409,18 @@
             this.splitContainer1.Size = new System.Drawing.Size(980, 450);
             this.splitContainer1.SplitterDistance = 230;
             this.splitContainer1.TabIndex = 1;
+            // 
+            // lblNoData
+            // 
+            this.lblNoData.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.lblNoData.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblNoData.ForeColor = System.Drawing.Color.Gray;
+            this.lblNoData.Location = new System.Drawing.Point(0, 0);
+            this.lblNoData.Name = "lblNoData";
+            this.lblNoData.Size = new System.Drawing.Size(978, 228);
+            this.lblNoData.TabIndex = 1;
+            this.lblNoData.Text = "Chưa có dữ liệu báo cáo.\r\nVui lòng chọn bộ lọc để xem kết quả.";
+            this.lblNoData.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // dgvDuLieu
             // 

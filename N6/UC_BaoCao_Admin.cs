@@ -172,6 +172,8 @@ namespace N6
 
                 splitContainer1.Panel2Collapsed = true;
 
+                ToggleNoDataMessage(true);
+
                 // Set initial checked RadioButton *after* controls are ready
                 if (reportTypeRadioButtons.Count > 0 && !reportTypeRadioButtons.Any(rb => rb.Checked))
                 {
@@ -741,6 +743,7 @@ namespace N6
             dgvDuLieu.DataSource = null;
             flpCharts.Controls.Clear();
             splitContainer1.Panel2Collapsed = true;
+            ToggleNoDataMessage(true);
         }
 
         /// <summary>
@@ -748,46 +751,58 @@ namespace N6
         /// </summary>
         private void DisplayReportData(DataTable dtReport, string reportType)
         {
+            // TRƯỜNG HỢP 1: BÁO CÁO THÁNG (Cấu trúc bảng đặc biệt)
             if (reportType == "Báo cáo tháng")
             {
                 dgvDuLieu.DataSource = null; // Xóa lưới chính
-                flpCharts.Controls.Clear(); // Xóa panel dưới
+                flpCharts.Controls.Clear();  // Xóa panel biểu đồ
 
                 if (dtReport != null && dtReport.Rows.Count > 0)
                 {
-                    // Ẩn tiêu đề mặc định của DataGridView
+                    // Ẩn tiêu đề mặc định của DataGridView vì báo cáo tháng tự vẽ header
                     dgvDuLieu.ColumnHeadersVisible = false;
 
-                    // Gọi hàm hiển thị gộp
+                    // Gọi hàm hiển thị gộp (Logic hiển thị và ẩn LabelNoData nằm trong hàm này)
                     DisplayCombinedMonthlyReport(dtReport);
 
-                    splitContainer1.Panel2Collapsed = true;
+                    splitContainer1.Panel2Collapsed = true; // Báo cáo tháng không có biểu đồ dưới
                 }
                 else
                 {
-                    // Hiện lại tiêu đề nếu không có dữ liệu
+                    // Không có dữ liệu
                     dgvDuLieu.ColumnHeadersVisible = true;
-                    splitContainer1.Panel2Collapsed = true; // Ẩn nếu không có dữ liệu
+                    splitContainer1.Panel2Collapsed = true;
+
+                    // Hiện thông báo "Chưa có báo cáo"
+                    ToggleNoDataMessage(true);
                 }
             }
+            // TRƯỜNG HỢP 2: CÁC BÁO CÁO KHÁC (Cấu trúc bảng chuẩn)
             else
             {
-                // Luôn hiện lại tiêu đề cho TẤT CẢ các báo cáo khác
+                // Luôn hiện lại tiêu đề cột
                 dgvDuLieu.ColumnHeadersVisible = true;
-
-                // Logic cũ cho các báo cáo khác
                 dgvDuLieu.DataSource = dtReport;
                 flpCharts.Controls.Clear();
 
                 if (dtReport != null && dtReport.Rows.Count > 0)
                 {
+                    // Có dữ liệu: Ẩn thông báo "Chưa có báo cáo", hiện Grid
+                    ToggleNoDataMessage(false);
+
                     RenameDataGridViewColumns();
                     UpdateCharts(dtReport, reportType);
+
+                    // Chỉ hiện panel biểu đồ nếu có biểu đồ được vẽ
                     splitContainer1.Panel2Collapsed = flpCharts.Controls.Count == 0;
                 }
                 else
                 {
+                    // Không có dữ liệu
                     splitContainer1.Panel2Collapsed = true;
+
+                    // Hiện thông báo "Chưa có báo cáo"
+                    ToggleNoDataMessage(true);
                 }
             }
         }
@@ -889,6 +904,7 @@ namespace N6
 
             // 8. Hiển thị
             dgvDuLieu.DataSource = dtCombined;
+            ToggleNoDataMessage(false);
             // Truyền cờ isAdminReport vào hàm Format
             FormatCombinedMonthlyReportGrid(dgvDuLieu, isAdminReport);
         }
@@ -972,6 +988,26 @@ namespace N6
                     // Hàng data XẾP LOẠI (của Khối)
                     row.Cells["Col_Nu"].Value = "";
                     row.Cells["Col_NDT"].Value = "";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Hàm hỗ trợ ẩn/hiện thông báo "Chưa có dữ liệu"
+        /// </summary>
+        private void ToggleNoDataMessage(bool showMessage)
+        {
+            if (lblNoData != null)
+            {
+                lblNoData.Visible = showMessage;
+                if (showMessage)
+                {
+                    lblNoData.BringToFront();
+                    dgvDuLieu.Visible = false; // Ẩn lưới đi cho sạch
+                }
+                else
+                {
+                    dgvDuLieu.Visible = true; // Hiện lưới lại
                 }
             }
         }
