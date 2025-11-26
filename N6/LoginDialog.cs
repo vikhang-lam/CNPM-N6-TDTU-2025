@@ -93,7 +93,6 @@ namespace N6
             string username = this.Username;
             string password = this.Password;
 
-            // --- Validation ---
             if (string.IsNullOrWhiteSpace(username))
             {
                 MessageBox.Show("Vui lòng nhập tên đăng nhập!", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -109,8 +108,7 @@ namespace N6
 
             try
             {
-                // --- Xử lý Admin Login ---
-                if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
+                if (username.Equals("admin", StringComparison.Ordinal))
                 {
                     if (DatabaseHelper.CheckAdminLogin(username, password))
                     {
@@ -127,7 +125,6 @@ namespace N6
                     return;
                 }
 
-                // --- Xử lý Teacher Login ---
                 LoginStatus status = DatabaseHelper.CheckTeacherLogin(username, password);
                 switch (status)
                 {
@@ -150,7 +147,7 @@ namespace N6
             catch (Exception ex)
             {
                 MessageBox.Show("Lỗi đăng nhập: " + ex.Message, "Lỗi hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Debug.WriteLine(ex.ToString()); // Ghi log lỗi chi tiết
+                Debug.WriteLine(ex.ToString());
             }
         }
 

@@ -119,13 +119,22 @@ namespace N6
         /// </summary>
         private void LoadAndDisplaySavedUsers()
         {
+            // Lấy username từ Settings (vẫn cần username để định danh)
             string u1 = Properties.Settings.Default["User1"]?.ToString();
             string u2 = Properties.Settings.Default["User2"]?.ToString();
             string u3 = Properties.Settings.Default["User3"]?.ToString();
 
-            AddContentToPanel(paneluser1, string.IsNullOrEmpty(u1) ? "GV1" : u1);
-            AddContentToPanel(paneluser2, string.IsNullOrEmpty(u2) ? "GV2" : u2);
-            AddContentToPanel(paneluser3, string.IsNullOrEmpty(u3) ? "GV3" : u3);
+            // Chuyển đổi Username -> Tên giáo viên để hiển thị
+            // Nếu u1 rỗng thì hiển thị placeholder "Giáo viên 1"
+            string name1 = string.IsNullOrEmpty(u1) ? "Giáo viên 1" : GetDisplayName(u1);
+            string name2 = string.IsNullOrEmpty(u2) ? "Giáo viên 2" : GetDisplayName(u2);
+            string name3 = string.IsNullOrEmpty(u3) ? "Giáo viên 3" : GetDisplayName(u3);
+
+            // Đưa tên giáo viên vào Panel
+            AddContentToPanel(paneluser1, name1);
+            AddContentToPanel(paneluser2, name2);
+            AddContentToPanel(paneluser3, name3);
+
             AddPlusSignToPanel(paneluser4);
         }
 
@@ -401,6 +410,37 @@ namespace N6
             LoadAndDisplaySavedUsers();
         }
 
+        /// <summary>
+        /// Hàm lấy tên hiển thị từ Username
+        /// </summary>
+        private string GetDisplayName(string username)
+        {
+            if (string.IsNullOrEmpty(username)) return "";
+
+            // Nếu là admin thì hiển thị cứng là Admin hoặc Quản Trị Viên
+            if (username.Equals("admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Quản Trị Viên";
+            }
+
+            try
+            {
+                // Sử dụng lại hàm GetTeacherProfile đã có trong DatabaseHelper
+                var profile = DatabaseHelper.GetTeacherProfile(username);
+
+                // Nếu tìm thấy profile và có tên thì trả về Tên, ngược lại trả về username cũ
+                if (profile != null && !string.IsNullOrEmpty(profile.Ten))
+                {
+                    return profile.Ten;
+                }
+            }
+            catch (Exception)
+            {
+                // Nếu lỗi kết nối DB thì fallback về hiển thị username
+            }
+
+            return username;
+        }
         /// <summary>
         /// Xử lý logic kiểm tra đăng nhập với DatabaseHelper.
         /// </summary>

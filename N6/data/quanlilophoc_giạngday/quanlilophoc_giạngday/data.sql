@@ -326,12 +326,30 @@ GO
 --================================================================
 
 -- 1. LOGIN
-CREATE PROCEDURE sp_CheckTeacherLogin @user NVARCHAR(50), @pass VARCHAR(30) AS
-BEGIN SELECT TrangThai FROM GiaoVien WHERE Username=@user AND Password=@pass; END;
+create PROCEDURE sp_CheckTeacherLogin 
+    @user NVARCHAR(50), 
+    @pass VARCHAR(30) 
+AS
+BEGIN 
+    SELECT TrangThai 
+    FROM GiaoVien 
+    WHERE Username = @user COLLATE Latin1_General_CS_AS 
+      AND Password = @pass COLLATE Latin1_General_CS_AS; 
+END;
 GO
-CREATE PROCEDURE sp_CheckAdminLogin @user NVARCHAR(50), @pass VARCHAR(30) AS
-BEGIN SELECT COUNT(*) FROM Admin WHERE Username=@user AND Password=@pass; END;
+
+create PROCEDURE sp_CheckAdminLogin 
+    @user NVARCHAR(50), 
+    @pass VARCHAR(30) 
+AS
+BEGIN 
+    SELECT COUNT(*) 
+    FROM Admin 
+    WHERE Username = @user COLLATE Latin1_General_CS_AS 
+      AND Password = @pass COLLATE Latin1_General_CS_AS; 
+END;
 GO
+
 CREATE PROCEDURE sp_CreateTeacherRequest @Ten NVARCHAR(100), @Username NVARCHAR(50), @Password VARCHAR(30), @Email NVARCHAR(50), @SDT VARCHAR(15) AS
 BEGIN
     SET NOCOUNT ON;
