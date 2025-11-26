@@ -226,4 +226,19 @@
   <data name="cn_school_management" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Gemini_Generated_Image_5wy0wj5wy0wj5wy0.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="musicGame1" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\musicGame1.wav;System.IO.MemoryStream, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="musicGame2" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\musicGame2.wav;System.IO.MemoryStream, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="musicGame3" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\musicGame3.wav;System.IO.MemoryStream, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="musicGame4" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\musicGame4.wav;System.IO.MemoryStream, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="musicGame5" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\musicGame5.wav;System.IO.MemoryStream, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>

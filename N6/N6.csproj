@@ -771,11 +771,11 @@
     <Content Include="Resources\flashcard_bg.png" />
     <Content Include="Resources\ghepchu_bg.png" />
     <Content Include="Resources\logo.ico" />
-    <Content Include="Resources\musicGame1.wav" />
-    <Content Include="Resources\musicGame2.wav" />
-    <Content Include="Resources\musicGame3.wav" />
-    <Content Include="Resources\musicGame4.wav" />
-    <Content Include="Resources\musicGame5.wav" />
+    <None Include="Resources\musicGame1.wav" />
+    <None Include="Resources\musicGame2.wav" />
+    <None Include="Resources\musicGame5.wav" />
+    <None Include="Resources\musicGame4.wav" />
+    <None Include="Resources\musicGame3.wav" />
     <Content Include="Resources\quiz_bg.png" />
     <None Include="Resources\Gemini_Generated_Image_5wy0wj5wy0wj5wy0.png" />
   </ItemGroup>

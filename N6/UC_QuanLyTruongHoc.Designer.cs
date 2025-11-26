@@ -28,10 +28,10 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle41 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle42 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle43 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle44 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
             this.tabControlMain = new System.Windows.Forms.TabControl();
             this.tabMonHoc = new System.Windows.Forms.TabPage();
             this.dgvMonHoc = new System.Windows.Forms.DataGridView();
@@ -53,9 +53,9 @@
             this.lblThoiHanTitle = new System.Windows.Forms.Label();
             this.dgvThoiHanDiem = new System.Windows.Forms.DataGridView();
             this.tabLenLop = new System.Windows.Forms.TabPage();
+            this.btnNewYear = new System.Windows.Forms.Button();
             this.pnlLenLopMain = new System.Windows.Forms.Panel();
             this.pnlYearSelector = new System.Windows.Forms.Panel();
-            this.btnNewYear = new System.Windows.Forms.Button();
             this.cboNamHocXetDuyet = new System.Windows.Forms.ComboBox();
             this.lblNamHocTitle = new System.Windows.Forms.Label();
             this.lblSummary = new System.Windows.Forms.Label();
@@ -144,22 +144,22 @@
             this.dgvMonHoc.AllowUserToAddRows = false;
             this.dgvMonHoc.AllowUserToDeleteRows = false;
             this.dgvMonHoc.AllowUserToResizeRows = false;
-            dataGridViewCellStyle41.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
-            this.dgvMonHoc.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle41;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
+            this.dgvMonHoc.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
             this.dgvMonHoc.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dgvMonHoc.BackgroundColor = System.Drawing.Color.WhiteSmoke;
             this.dgvMonHoc.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.dgvMonHoc.CellBorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
             this.dgvMonHoc.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
-            dataGridViewCellStyle42.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle42.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(236)))), ((int)(((byte)(240)))), ((int)(((byte)(241)))));
-            dataGridViewCellStyle42.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle42.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            dataGridViewCellStyle42.Padding = new System.Windows.Forms.Padding(10, 0, 0, 0);
-            dataGridViewCellStyle42.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(222)))), ((int)(((byte)(239)))), ((int)(((byte)(254)))));
-            dataGridViewCellStyle42.SelectionForeColor = System.Drawing.Color.Black;
-            dataGridViewCellStyle42.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgvMonHoc.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle42;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(236)))), ((int)(((byte)(240)))), ((int)(((byte)(241)))));
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            dataGridViewCellStyle2.Padding = new System.Windows.Forms.Padding(10, 0, 0, 0);
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(222)))), ((int)(((byte)(239)))), ((int)(((byte)(254)))));
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.Color.Black;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvMonHoc.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
             this.dgvMonHoc.ColumnHeadersHeight = 45;
             this.dgvMonHoc.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvMonHoc.EnableHeadersVisualStyles = false;
@@ -384,8 +384,8 @@
             this.dgvThoiHanDiem.AllowUserToAddRows = false;
             this.dgvThoiHanDiem.AllowUserToDeleteRows = false;
             this.dgvThoiHanDiem.AllowUserToResizeRows = false;
-            dataGridViewCellStyle43.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
-            this.dgvThoiHanDiem.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle43;
+            dataGridViewCellStyle3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
+            this.dgvThoiHanDiem.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle3;
             this.dgvThoiHanDiem.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
@@ -394,15 +394,15 @@
             this.dgvThoiHanDiem.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.dgvThoiHanDiem.CellBorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
             this.dgvThoiHanDiem.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
-            dataGridViewCellStyle44.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle44.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(236)))), ((int)(((byte)(240)))), ((int)(((byte)(241)))));
-            dataGridViewCellStyle44.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle44.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            dataGridViewCellStyle44.Padding = new System.Windows.Forms.Padding(10, 0, 0, 0);
-            dataGridViewCellStyle44.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(222)))), ((int)(((byte)(239)))), ((int)(((byte)(254)))));
-            dataGridViewCellStyle44.SelectionForeColor = System.Drawing.Color.Black;
-            dataGridViewCellStyle44.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgvThoiHanDiem.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle44;
+            dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(236)))), ((int)(((byte)(240)))), ((int)(((byte)(241)))));
+            dataGridViewCellStyle4.Font = new System.Drawing.Font("Segoe UI", 10.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            dataGridViewCellStyle4.Padding = new System.Windows.Forms.Padding(10, 0, 0, 0);
+            dataGridViewCellStyle4.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(222)))), ((int)(((byte)(239)))), ((int)(((byte)(254)))));
+            dataGridViewCellStyle4.SelectionForeColor = System.Drawing.Color.Black;
+            dataGridViewCellStyle4.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvThoiHanDiem.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle4;
             this.dgvThoiHanDiem.ColumnHeadersHeight = 45;
             this.dgvThoiHanDiem.EnableHeadersVisualStyles = false;
             this.dgvThoiHanDiem.GridColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
@@ -426,6 +426,22 @@
             this.tabLenLop.Size = new System.Drawing.Size(942, 602);
             this.tabLenLop.TabIndex = 2;
             this.tabLenLop.Text = "  Xét Lên Lớp / Cuối Năm  ";
+            // 
+            // btnNewYear
+            // 
+            this.btnNewYear.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
+            this.btnNewYear.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnNewYear.FlatAppearance.BorderSize = 0;
+            this.btnNewYear.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnNewYear.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnNewYear.ForeColor = System.Drawing.Color.White;
+            this.btnNewYear.Location = new System.Drawing.Point(866, 31);
+            this.btnNewYear.Name = "btnNewYear";
+            this.btnNewYear.Size = new System.Drawing.Size(110, 32);
+            this.btnNewYear.TabIndex = 2;
+            this.btnNewYear.Text = "Kết Năm";
+            this.btnNewYear.UseVisualStyleBackColor = false;
+            this.btnNewYear.Click += new System.EventHandler(this.BtnNewYear_Click);
             // 
             // pnlLenLopMain
             // 
@@ -453,22 +469,6 @@
             this.pnlYearSelector.Name = "pnlYearSelector";
             this.pnlYearSelector.Size = new System.Drawing.Size(583, 45);
             this.pnlYearSelector.TabIndex = 8;
-            // 
-            // btnNewYear
-            // 
-            this.btnNewYear.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
-            this.btnNewYear.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.btnNewYear.FlatAppearance.BorderSize = 0;
-            this.btnNewYear.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnNewYear.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.btnNewYear.ForeColor = System.Drawing.Color.White;
-            this.btnNewYear.Location = new System.Drawing.Point(866, 31);
-            this.btnNewYear.Name = "btnNewYear";
-            this.btnNewYear.Size = new System.Drawing.Size(110, 32);
-            this.btnNewYear.TabIndex = 2;
-            this.btnNewYear.Text = "➕ Năm Mới";
-            this.btnNewYear.UseVisualStyleBackColor = false;
-            this.btnNewYear.Click += new System.EventHandler(this.BtnNewYear_Click);
             // 
             // cboNamHocXetDuyet
             // 
