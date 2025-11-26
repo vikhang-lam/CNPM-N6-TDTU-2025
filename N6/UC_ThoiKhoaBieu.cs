@@ -49,7 +49,7 @@ namespace N6
             //btnPrevWeek.Click += btnPrevWeek_Click;
             //btnNextWeek.Click += btnNextWeek_Click;
             //btnImportTKB.Click += btnImportTKB_Click;
-            //btnXoaTKB.Click += btnXoaTKB_Click;
+            btnXoaTKB.Click += btnXoaTKB_Click;
             //doiMauMenuItem.Click += doiMauMenuItem_Click;
             //xoaGhiChuMenuItem.Click += xoaGhiChuMenuItem_Click;
             //xoaTKBMenuItem.Click += xoaTKBMenuItem_Click;

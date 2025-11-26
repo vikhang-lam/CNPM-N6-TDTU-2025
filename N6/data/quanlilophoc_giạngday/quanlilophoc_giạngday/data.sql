@@ -1,5 +1,4 @@
 ﻿
-
 CREATE DATABASE quanlilophoc_giangday;
 GO
 USE quanlilophoc_giangday;
@@ -231,6 +230,7 @@ INSERT INTO Minigame (MaMNG, Ten, DuLieu) VALUES
 
 -- 5. Cấu hình Thời Hạn Điểm Mặc Định (Cần thiết để Trigger nhập điểm hoạt động)
 -- (Tạo cho cả 5 khối)
+
 DECLARE @khoi INT = 1;
 WHILE @khoi <= 5
 BEGIN
@@ -238,16 +238,19 @@ BEGIN
     
     INSERT INTO ThoiHanDiem (MaCotDiem, TenHienThi, Khoi, HocKy, NgayMoDiem, NgayKhoaDiem, KhoaThuCong)
     VALUES
+    -- HỌC KỲ 1
     ('Thang1_Ki1', N'Điểm Tháng 1 (Kỳ 1)', @tenKhoi, 1, '2024-09-01', '2024-09-30', 0),
     ('Thang2_Ki1', N'Điểm Tháng 2 (Kỳ 1)', @tenKhoi, 1, '2024-10-01', '2024-10-31', 0),
     ('Thang3_Ki1', N'Điểm Tháng 3 (Kỳ 1)', @tenKhoi, 1, '2024-11-01', '2024-11-30', 0),
-    ('GiuaKi1', N'Điểm Giữa Kỳ 1', @tenKhoi, 1, '2024-10-15', '2024-11-20', 0),
-    ('CuoiKi1', N'Điểm Cuối Kỳ 1', @tenKhoi, 1, '2024-12-15', '2025-01-15', 0),
+    ('GiuaKi1',    N'Điểm Giữa Kỳ 1',      @tenKhoi, 1, '2024-10-15', '2024-11-20', 0),
+    ('CuoiKi1',    N'Điểm Cuối Kỳ 1',      @tenKhoi, 1, '2024-12-15', '2025-01-15', 0),
+    
+    -- HỌC KỲ 2
     ('Thang1_Ki2', N'Điểm Tháng 1 (Kỳ 2)', @tenKhoi, 2, '2025-01-20', '2025-02-28', 0),
     ('Thang2_Ki2', N'Điểm Tháng 2 (Kỳ 2)', @tenKhoi, 2, '2025-03-01', '2025-03-31', 0),
     ('Thang3_Ki2', N'Điểm Tháng 3 (Kỳ 2)', @tenKhoi, 2, '2025-04-01', '2025-04-30', 0),
-    ('GiuaKi2', N'Điểm Giữa Kỳ 2', @tenKhoi, 2, '2025-03-15', '2025-04-20', 0),
-    ('CuoiKi2', N'Điểm Cuối Kỳ 2', @tenKhoi, 2, '2025-05-10', '2025-06-10', 0);
+    ('GiuaKi2',    N'Điểm Giữa Kỳ 2',      @tenKhoi, 2, '2025-03-15', '2025-04-20', 0),
+    ('CuoiKi2',    N'Điểm Cuối Kỳ 2',      @tenKhoi, 2, '2025-05-10', '2025-06-10', 0);
 
     SET @khoi = @khoi + 1;
 END
@@ -740,11 +743,43 @@ BEGIN
     INSERT INTO LopHoc (MaLop, TenLop, Khoi, NamHoc) VALUES (@MaLop, @TenLop, @Khoi, @NamHoc)
 END;
 GO
-CREATE PROCEDURE sp_DeleteLopHoc @MaLop NVARCHAR(10) AS
+create PROCEDURE sp_DeleteLopHoc 
+    @MaLop NVARCHAR(10) 
+AS
 BEGIN
-    BEGIN TRANSACTION; IF NOT EXISTS (SELECT 1 FROM LopHoc WHERE MaLop = @MaLop) BEGIN RAISERROR('Lớp không tồn tại!', 16, 1) RETURN END
-    IF EXISTS (SELECT 1 FROM HocSinh WHERE MaLop = @MaLop) BEGIN RAISERROR('Không thể xóa lớp vì lớp đang có học sinh!', 16, 1) RETURN END
-    DELETE FROM PhanCongGiangDay WHERE MaLop = @MaLop; DELETE FROM LopHoc WHERE MaLop = @MaLop; COMMIT TRANSACTION;
+    BEGIN TRANSACTION;
+    
+    -- 1. Kiểm tra lớp có tồn tại không
+    IF NOT EXISTS (SELECT 1 FROM LopHoc WHERE MaLop = @MaLop) 
+    BEGIN 
+        RAISERROR(N'Lớp không tồn tại!', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN; 
+    END
+
+    -- 2. Kiểm tra an toàn: Không cho xóa nếu lớp đang có Học sinh
+    IF EXISTS (SELECT 1 FROM HocSinh WHERE MaLop = @MaLop) 
+    BEGIN 
+        RAISERROR(N'Không thể xóa lớp vì lớp đang có học sinh! Hãy chuyển học sinh đi trước.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN; 
+    END
+
+    -- 3. XÓA CÁC DỮ LIỆU LIÊN QUAN (Dọn dẹp sạch sẽ trước khi xóa lớp)
+    
+    -- Xóa Phân công giảng dạy
+    DELETE FROM PhanCongGiangDay WHERE MaLop = @MaLop;
+    
+    -- [MỚI] Xóa Thời khóa biểu của lớp này
+    DELETE FROM ThoiKhoaBieu WHERE MaLop = @MaLop;
+
+    -- [MỚI] Xóa Quỹ lớp (nếu có)
+    DELETE FROM QuyLop WHERE MaLop = @MaLop;
+
+    -- 4. Cuối cùng: Xóa Lớp học
+    DELETE FROM LopHoc WHERE MaLop = @MaLop;
+
+    COMMIT TRANSACTION;
 END;
 GO
 CREATE PROCEDURE sp_GetAllHocSinh AS BEGIN SELECT MaHS, MaLop, HoTen, NgaySinh, GioiTinh, SDTPhuHuynh, DiaChi, DanToc FROM HocSinh ORDER BY MaLop, HoTen; END;
@@ -763,7 +798,38 @@ CREATE PROCEDURE sp_UpdateHocSinh @MaHS VARCHAR(10), @HoTen NVARCHAR(100), @Ngay
 GO
 CREATE PROCEDURE sp_UpdateHocSinhProfile @MaHS VARCHAR(10), @HoTen NVARCHAR(100), @GioiTinh NVARCHAR(10), @NgaySinh DATE, @DiaChi NVARCHAR(200) AS BEGIN UPDATE HocSinh SET HoTen=@HoTen, GioiTinh=@GioiTinh, NgaySinh=@NgaySinh, DiaChi=@DiaChi WHERE MaHS=@MaHS; END;
 GO
-CREATE PROCEDURE sp_DeleteHocSinh @MaHS VARCHAR(10) AS BEGIN DELETE FROM HocSinh WHERE MaHS=@MaHS; END;
+create PROCEDURE sp_DeleteHocSinh 
+    @MaHS VARCHAR(10) 
+AS 
+BEGIN 
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        -- 1. Xóa Chi tiết điểm lưu trữ (Bảng con của HoSoLuuTru)
+        -- Phải xóa cái này trước vì nó tham chiếu đến HoSoLuuTru
+        DELETE ct 
+        FROM ChiTietDiemLuuTru ct
+        INNER JOIN HoSoLuuTru hslt ON ct.MaHoSo = hslt.MaHoSo
+        WHERE hslt.MaHS = @MaHS;
+
+        -- 2. Xóa Hồ sơ lưu trữ (Lịch sử các năm cũ)
+        DELETE FROM HoSoLuuTru WHERE MaHS = @MaHS;
+
+        -- 3. Xóa Học sinh
+        -- (Lưu ý: Các bảng DiemDanh và KetQuaHocTap đã có ON DELETE CASCADE trong data.sql nên sẽ tự mất)
+        DELETE FROM HocSinh WHERE MaHS = @MaHS;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        
+        -- Báo lỗi chi tiết nếu có trục trặc khác
+        DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE();
+        RAISERROR(N'Lỗi khi xóa học sinh: %s', 16, 1, @ErrMsg);
+    END CATCH
+END;
 GO
 CREATE PROCEDURE sp_UpdateHocSinhLop @MaHS VARCHAR(10), @MaLopMoi VARCHAR(10) AS BEGIN UPDATE HocSinh SET MaLop = @MaLopMoi WHERE MaHS = @MaHS; END;
 GO
@@ -929,25 +995,148 @@ BEGIN
     SELECT mh.TenMon, MAX(CASE WHEN ct.LoaiDiem = 'Thang1_Ki1' THEN ct.Diem END) AS [T1 (K1)], MAX(CASE WHEN ct.LoaiDiem = 'Thang2_Ki1' THEN ct.Diem END) AS [T2 (K1)], MAX(CASE WHEN ct.LoaiDiem = 'Thang3_Ki1' THEN ct.Diem END) AS [T3 (K1)], MAX(CASE WHEN ct.LoaiDiem = 'GiuaKi1' THEN ct.Diem END) AS [Giữa K1], MAX(CASE WHEN ct.LoaiDiem = 'CuoiKi1' THEN ct.Diem END) AS [Cuối K1], MAX(CASE WHEN ct.LoaiDiem = 'Thang1_Ki2' THEN ct.Diem END) AS [T1 (K2)], MAX(CASE WHEN ct.LoaiDiem = 'Thang2_Ki2' THEN ct.Diem END) AS [T2 (K2)], MAX(CASE WHEN ct.LoaiDiem = 'Thang3_Ki2' THEN ct.Diem END) AS [T3 (K2)], MAX(CASE WHEN ct.LoaiDiem = 'GiuaKi2' THEN ct.Diem END) AS [Giữa K2], MAX(CASE WHEN ct.LoaiDiem = 'CuoiKi2' THEN ct.Diem END) AS [Cuối K2], MAX(CASE WHEN ct.LoaiDiem = 'CuoiKi2' THEN ct.NhanXet END) AS [Nhận Xét Năm] FROM ChiTietDiemLuuTru ct JOIN MonHoc mh ON ct.MaMon = mh.MaMon WHERE ct.MaHoSo = @MaHoSo GROUP BY mh.TenMon ORDER BY mh.TenMon
 END
 GO
-CREATE OR ALTER PROCEDURE sp_ProcessStudentPromotion_V2 @MaLopCu VARCHAR(10), @MaLopMoi_LenLop VARCHAR(10), @MaLopMoi_OLaiLop VARCHAR(10), @IsLop5_TotNghiep BIT, @MaNamHocHienTai VARCHAR(10) AS
+create PROCEDURE sp_ProcessStudentPromotion_V2
+    @MaLopCu VARCHAR(10),
+    @MaLopMoi_LenLop VARCHAR(10),
+    @MaLopMoi_OLaiLop VARCHAR(10),
+    @IsLop5_TotNghiep BIT,
+    @MaNamHocHienTai VARCHAR(10)
+AS
 BEGIN
     SET NOCOUNT ON;
-    IF NOT EXISTS (SELECT 1 FROM NamHoc WHERE MaNamHoc = @MaNamHocHienTai) BEGIN RAISERROR(N'Mã năm học không tồn tại!', 16, 1); RETURN; END
-    CREATE TABLE #DanhSachXetDuyet (MaHS VARCHAR(10), DiemTB_Nam FLOAT, TrangThai INT);
-    ;WITH DiemThanhPhan AS ( SELECT kq.MaHS, kq.MaMon, MAX(CASE WHEN kq.Loai = 'Thang1_Ki1' THEN kq.Diem END) AS T1_1, MAX(CASE WHEN kq.Loai = 'Thang2_Ki1' THEN kq.Diem END) AS T2_1, MAX(CASE WHEN kq.Loai = 'Thang3_Ki1' THEN kq.Diem END) AS T3_1, MAX(CASE WHEN kq.Loai = 'GiuaKi1' THEN kq.Diem END) AS GK_1, MAX(CASE WHEN kq.Loai = 'CuoiKi1' THEN kq.Diem END) AS CK_1, MAX(CASE WHEN kq.Loai = 'Thang1_Ki2' THEN kq.Diem END) AS T1_2, MAX(CASE WHEN kq.Loai = 'Thang2_Ki2' THEN kq.Diem END) AS T2_2, MAX(CASE WHEN kq.Loai = 'Thang3_Ki2' THEN kq.Diem END) AS T3_2, MAX(CASE WHEN kq.Loai = 'GiuaKi2' THEN kq.Diem END) AS GK_2, MAX(CASE WHEN kq.Loai = 'CuoiKi2' THEN kq.Diem END) AS CK_2 FROM KetQuaHocTap kq JOIN HocSinh hs ON kq.MaHS = hs.MaHS WHERE hs.MaLop = @MaLopCu AND kq.Diem IS NOT NULL GROUP BY kq.MaHS, kq.MaMon ), TinhToanHeSo AS ( SELECT MaHS, MaMon, (ISNULL(T1_1, 0) + ISNULL(T2_1, 0) + ISNULL(T3_1, 0) + (ISNULL(GK_1, 0)*2) + (ISNULL(CK_1, 0)*3)) AS TongDiem_HK1, ((CASE WHEN T1_1 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T2_1 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T3_1 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN GK_1 IS NOT NULL THEN 2 ELSE 0 END) + (CASE WHEN CK_1 IS NOT NULL THEN 3 ELSE 0 END)) AS TongHeSo_HK1, (ISNULL(T1_2, 0) + ISNULL(T2_2, 0) + ISNULL(T3_2, 0) + (ISNULL(GK_2, 0)*2) + (ISNULL(CK_2, 0)*3)) AS TongDiem_HK2, ((CASE WHEN T1_2 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T2_2 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T3_2 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN GK_2 IS NOT NULL THEN 2 ELSE 0 END) + (CASE WHEN CK_2 IS NOT NULL THEN 3 ELSE 0 END)) AS TongHeSo_HK2 FROM DiemThanhPhan ), DiemTrungBinhMon AS ( SELECT MaHS, MaMon, CAST(TongDiem_HK1 AS FLOAT) / NULLIF(TongHeSo_HK1, 0) AS TBHK1, CAST(TongDiem_HK2 AS FLOAT) / NULLIF(TongHeSo_HK2, 0) AS TBHK2 FROM TinhToanHeSo ), DiemTongKetNam_Mon AS ( SELECT MaHS, MaMon, CASE WHEN TBHK1 IS NOT NULL AND TBHK2 IS NOT NULL THEN (TBHK1 + (TBHK2 * 2)) / 3.0 WHEN TBHK1 IS NULL AND TBHK2 IS NOT NULL THEN TBHK2 ELSE NULL END AS TBM_CaNam FROM DiemTrungBinhMon ), TongKetChung AS ( SELECT MaHS, AVG(TBM_CaNam) AS DTB_Chung FROM DiemTongKetNam_Mon WHERE TBM_CaNam IS NOT NULL GROUP BY MaHS )
-    INSERT INTO #DanhSachXetDuyet (MaHS, DiemTB_Nam, TrangThai) SELECT hs.MaHS, ISNULL(tk.DTB_Chung, 0), CASE WHEN ISNULL(tk.DTB_Chung, 0) >= 5.0 THEN 1 ELSE 0 END FROM HocSinh hs LEFT JOIN TongKetChung tk ON hs.MaHS = tk.MaHS WHERE hs.MaLop = @MaLopCu;
+    DECLARE @NewLine CHAR(1) = CHAR(13);
+
+    -- A. KIỂM TRA CƠ BẢN
+    IF NOT EXISTS (SELECT 1 FROM NamHoc WHERE MaNamHoc = @MaNamHocHienTai)
+    BEGIN
+        RAISERROR(N'Mã năm học không tồn tại!', 16, 1);
+        RETURN;
+    END
+
+    -- [SỬA ĐỔI QUAN TRỌNG]: Không chặn toàn bộ lớp, mà sẽ lọc học sinh ở bước dưới.
+    -- Nhưng vẫn chặn nếu lớp đích còn học sinh cũ (chưa dọn dẹp)
+    IF @IsLop5_TotNghiep = 0 AND @MaLopMoi_LenLop IS NOT NULL
+    BEGIN
+        DECLARE @SiSoDich INT;
+        -- Chỉ đếm những học sinh ở lớp đích MÀ CHƯA ĐƯỢC XÉT DUYỆT NĂM NAY
+        -- (Để tránh trường hợp vừa đẩy học sinh lớp 1 lên lớp 2, rồi hệ thống báo lớp 2 có người)
+        SELECT @SiSoDich = COUNT(*) 
+        FROM HocSinh hs
+        WHERE hs.MaLop = @MaLopMoi_LenLop
+          AND hs.MaHS NOT IN (SELECT MaHS FROM HoSoLuuTru WHERE MaNamHoc = @MaNamHocHienTai);
+        
+        IF @SiSoDich > 0
+        BEGIN
+            DECLARE @TenLopDich NVARCHAR(50);
+            SELECT @TenLopDich = TenLop FROM LopHoc WHERE MaLop = @MaLopMoi_LenLop;
+            
+            RAISERROR(N'⛔ Lớp đích [%s] vẫn còn %d học sinh cũ chưa được xử lý.%s👉 Bạn phải xét lên lớp cho [%s] trước (Quy tắc cuốn chiếu: 5->4->3...).', 
+                      16, 1, @TenLopDich, @SiSoDich, @NewLine, @TenLopDich);
+            RETURN;
+        END
+    END
+
+    -- D. TÍNH TOÁN ĐIỂM (CTE)
+    CREATE TABLE #DanhSachXetDuyet (MaHS VARCHAR(10), DiemTB_Nam FLOAT, TrangThai INT); 
+
+    ;WITH DiemThanhPhan AS (
+        SELECT 
+            kq.MaHS, kq.MaMon,
+            MAX(CASE WHEN kq.Loai = 'Thang1_Ki1' THEN kq.Diem END) AS T1_1,
+            MAX(CASE WHEN kq.Loai = 'Thang2_Ki1' THEN kq.Diem END) AS T2_1,
+            MAX(CASE WHEN kq.Loai = 'Thang3_Ki1' THEN kq.Diem END) AS T3_1,
+            MAX(CASE WHEN kq.Loai = 'GiuaKi1'    THEN kq.Diem END) AS GK_1,
+            MAX(CASE WHEN kq.Loai = 'CuoiKi1'    THEN kq.Diem END) AS CK_1,
+            MAX(CASE WHEN kq.Loai = 'Thang1_Ki2' THEN kq.Diem END) AS T1_2,
+            MAX(CASE WHEN kq.Loai = 'Thang2_Ki2' THEN kq.Diem END) AS T2_2,
+            MAX(CASE WHEN kq.Loai = 'Thang3_Ki2' THEN kq.Diem END) AS T3_2,
+            MAX(CASE WHEN kq.Loai = 'GiuaKi2'    THEN kq.Diem END) AS GK_2,
+            MAX(CASE WHEN kq.Loai = 'CuoiKi2'    THEN kq.Diem END) AS CK_2
+        FROM KetQuaHocTap kq
+        JOIN HocSinh hs ON kq.MaHS = hs.MaHS
+        -- [QUAN TRỌNG] CHỈ LẤY HỌC SINH CHƯA CÓ TRONG KHO LƯU TRỮ NĂM NAY
+        WHERE hs.MaLop = @MaLopCu 
+          AND kq.Diem IS NOT NULL
+          AND hs.MaHS NOT IN (SELECT MaHS FROM HoSoLuuTru WHERE MaNamHoc = @MaNamHocHienTai) 
+        GROUP BY kq.MaHS, kq.MaMon
+    ),
+    TinhToanHeSo AS (
+        SELECT 
+            MaHS, MaMon,
+            (ISNULL(T1_1, 0) + ISNULL(T2_1, 0) + ISNULL(T3_1, 0) + (ISNULL(GK_1, 0)*2) + (ISNULL(CK_1, 0)*3)) AS TongDiem_HK1,
+            ((CASE WHEN T1_1 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T2_1 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T3_1 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN GK_1 IS NOT NULL THEN 2 ELSE 0 END) + (CASE WHEN CK_1 IS NOT NULL THEN 3 ELSE 0 END)) AS TongHeSo_HK1,
+            (ISNULL(T1_2, 0) + ISNULL(T2_2, 0) + ISNULL(T3_2, 0) + (ISNULL(GK_2, 0)*2) + (ISNULL(CK_2, 0)*3)) AS TongDiem_HK2,
+            ((CASE WHEN T1_2 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T2_2 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T3_2 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN GK_2 IS NOT NULL THEN 2 ELSE 0 END) + (CASE WHEN CK_2 IS NOT NULL THEN 3 ELSE 0 END)) AS TongHeSo_HK2
+        FROM DiemThanhPhan
+    ),
+    DiemTrungBinhMon AS (
+        SELECT MaHS, MaMon,
+            CAST(TongDiem_HK1 AS FLOAT) / NULLIF(TongHeSo_HK1, 0) AS TBHK1,
+            CAST(TongDiem_HK2 AS FLOAT) / NULLIF(TongHeSo_HK2, 0) AS TBHK2
+        FROM TinhToanHeSo
+    ),
+    DiemTongKetNam_Mon AS (
+        SELECT MaHS, MaMon,
+            CASE WHEN TBHK1 IS NOT NULL AND TBHK2 IS NOT NULL THEN (TBHK1 + (TBHK2 * 2)) / 3.0
+                 WHEN TBHK1 IS NULL AND TBHK2 IS NOT NULL THEN TBHK2 ELSE NULL END AS TBM_CaNam
+        FROM DiemTrungBinhMon
+    ),
+    TongKetChung AS (
+        SELECT MaHS, AVG(TBM_CaNam) AS DTB_Chung
+        FROM DiemTongKetNam_Mon WHERE TBM_CaNam IS NOT NULL GROUP BY MaHS
+    )
+    INSERT INTO #DanhSachXetDuyet (MaHS, DiemTB_Nam, TrangThai)
+    SELECT hs.MaHS, ISNULL(tk.DTB_Chung, 0), CASE WHEN ISNULL(tk.DTB_Chung, 0) >= 5.0 THEN 1 ELSE 0 END
+    FROM HocSinh hs 
+    LEFT JOIN TongKetChung tk ON hs.MaHS = tk.MaHS 
+    WHERE hs.MaLop = @MaLopCu
+      -- [QUAN TRỌNG] LỌC LẦN 2 ĐỂ CHẮC CHẮN
+      AND hs.MaHS NOT IN (SELECT MaHS FROM HoSoLuuTru WHERE MaNamHoc = @MaNamHocHienTai);
+
+    -- KIỂM TRA NẾU KHÔNG CÒN HỌC SINH NÀO CẦN XỬ LÝ
+    IF NOT EXISTS (SELECT 1 FROM #DanhSachXetDuyet)
+    BEGIN
+        -- Không báo lỗi, chỉ thông báo nhẹ nhàng (hoặc im lặng thành công)
+        -- Trả về 0 để C# biết
+        SELECT 0 AS SoHSLenLop, 0 AS SoHSOLaiLop;
+        DROP TABLE #DanhSachXetDuyet;
+        RETURN;
+    END
+
+    -- E. LƯU TRỮ VÀ CHUYỂN LỚP (TRANSACTION)
     BEGIN TRANSACTION;
     BEGIN TRY
-        INSERT INTO HoSoLuuTru (MaHoSo, MaHS, MaNamHoc, MaLop, MaGVCN, DiemTB_CuoiNam, KetQua) SELECT hs.MaHS + '_' + @MaNamHocHienTai, hs.MaHS, @MaNamHocHienTai, @MaLopCu, lh.MaGVCN, ds.DiemTB_Nam, CASE WHEN ds.TrangThai = 0 THEN N'Lưu ban' WHEN ds.TrangThai = 1 AND @IsLop5_TotNghiep = 1 THEN N'Tốt nghiệp' ELSE N'Lên lớp' END FROM #DanhSachXetDuyet ds JOIN HocSinh hs ON ds.MaHS = hs.MaHS JOIN LopHoc lh ON hs.MaLop = lh.MaLop;
-        INSERT INTO ChiTietDiemLuuTru (MaHoSo, MaMon, LoaiDiem, Diem, NhanXet) SELECT kq.MaHS + '_' + @MaNamHocHienTai, kq.MaMon, kq.Loai, kq.Diem, kq.NhanXet FROM KetQuaHocTap kq INNER JOIN #DanhSachXetDuyet ds ON kq.MaHS = ds.MaHS WHERE kq.Diem IS NOT NULL;
+        -- Lưu Hồ Sơ
+        INSERT INTO HoSoLuuTru (MaHoSo, MaHS, MaNamHoc, MaLop, MaGVCN, DiemTB_CuoiNam, KetQua)
+        SELECT hs.MaHS + '_' + @MaNamHocHienTai, hs.MaHS, @MaNamHocHienTai, @MaLopCu, lh.MaGVCN, ds.DiemTB_Nam,
+            CASE WHEN ds.TrangThai = 0 THEN N'Lưu ban' WHEN ds.TrangThai = 1 AND @IsLop5_TotNghiep = 1 THEN N'Tốt nghiệp' ELSE N'Lên lớp' END
+        FROM #DanhSachXetDuyet ds JOIN HocSinh hs ON ds.MaHS = hs.MaHS JOIN LopHoc lh ON hs.MaLop = lh.MaLop;
+
+        -- Lưu Chi Tiết
+        INSERT INTO ChiTietDiemLuuTru (MaHoSo, MaMon, LoaiDiem, Diem, NhanXet)
+        SELECT kq.MaHS + '_' + @MaNamHocHienTai, kq.MaMon, kq.Loai, kq.Diem, kq.NhanXet
+        FROM KetQuaHocTap kq INNER JOIN #DanhSachXetDuyet ds ON kq.MaHS = ds.MaHS WHERE kq.Diem IS NOT NULL;
+
+        -- Chuyển lớp
         UPDATE HocSinh SET MaLop = @MaLopMoi_OLaiLop WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet WHERE TrangThai = 0);
-        IF @IsLop5_TotNghiep = 1 UPDATE HocSinh SET MaLop = NULL WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet WHERE TrangThai = 1);
-        ELSE UPDATE HocSinh SET MaLop = @MaLopMoi_LenLop WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet WHERE TrangThai = 1);
+        
+        IF @IsLop5_TotNghiep = 1
+            UPDATE HocSinh SET MaLop = NULL WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet WHERE TrangThai = 1);
+        ELSE
+            UPDATE HocSinh SET MaLop = @MaLopMoi_LenLop WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet WHERE TrangThai = 1);
+
+        -- Dọn dẹp
         DELETE FROM KetQuaHocTap WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet);
+
         COMMIT TRANSACTION;
     END TRY
-    BEGIN CATCH ROLLBACK TRANSACTION; THROW; END CATCH;
-    SELECT (SELECT COUNT(*) FROM #DanhSachXetDuyet WHERE TrangThai = 1) AS SoHSLenLop, (SELECT COUNT(*) FROM #DanhSachXetDuyet WHERE TrangThai = 0) AS SoHSOLaiLop;
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+
+    SELECT (SELECT COUNT(*) FROM #DanhSachXetDuyet WHERE TrangThai = 1) AS SoHSLenLop,
+           (SELECT COUNT(*) FROM #DanhSachXetDuyet WHERE TrangThai = 0) AS SoHSOLaiLop;
     DROP TABLE #DanhSachXetDuyet;
 END;
 GO
@@ -1147,6 +1336,35 @@ BEGIN
     SELECT (SELECT COUNT(*) FROM #DanhSachXetDuyet WHERE TrangThai = 1) AS SoHSLenLop,
            (SELECT COUNT(*) FROM #DanhSachXetDuyet WHERE TrangThai = 0) AS SoHSOLaiLop;
     DROP TABLE #DanhSachXetDuyet;
+END;
+GO
+create PROCEDURE sp_CheckAllClassesPromoted
+    @MaNamHoc VARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @TongSoHocSinh INT;
+    DECLARE @SoHocSinhDaXet INT;
+
+    -- Đếm tổng số học sinh hiện đang đi học (có Mã Lớp)
+    -- (Học sinh đã tốt nghiệp MaLop=NULL thì không tính)
+    SELECT @TongSoHocSinh = COUNT(*) FROM HocSinh WHERE MaLop IS NOT NULL;
+
+    -- Đếm số học sinh đã được lưu trữ trong năm nay
+    -- Chỉ đếm những em nào hiện tại vẫn đang đi học (để khớp với tập dữ liệu trên)
+    -- Hoặc đơn giản là đếm trong HoSoLuuTru
+    SELECT @SoHocSinhDaXet = COUNT(DISTINCT MaHS) 
+    FROM HoSoLuuTru 
+    WHERE MaNamHoc = @MaNamHoc 
+      AND MaHS IN (SELECT MaHS FROM HocSinh WHERE MaLop IS NOT NULL);
+
+    -- Nếu số học sinh đã xét = tổng số học sinh => Cho phép qua năm mới
+    -- (Thêm điều kiện >0 để tránh trường hợp chưa có học sinh nào mà vẫn hiện nút)
+    IF @TongSoHocSinh > 0 AND @TongSoHocSinh <= @SoHocSinhDaXet
+        SELECT 1 AS IsFinished;
+    ELSE
+        SELECT 0 AS IsFinished;
 END;
 GO
 PRINT 'DONE.';

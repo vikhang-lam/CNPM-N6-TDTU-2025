@@ -128,14 +128,40 @@ namespace N6
             userMenu.Font = new Font("Segoe UI", 11, FontStyle.Regular);
 
             settingsItem = new ToolStripMenuItem("👤 Hồ sơ cá nhân");
+            settingsItem.Click -= SettingsItem_Click;
             settingsItem.Click += SettingsItem_Click;
 
             logoutItem = new ToolStripMenuItem("🚪 Đăng xuất");
-            logoutItem.Click += (s, e) => btnDangXuat_Click(s, e);
+ 
+            logoutItem.Click -= LogoutItem_Click;
+            logoutItem.Click += LogoutItem_Click;
 
+            userMenu.Items.Clear();
             userMenu.Items.Add(settingsItem);
             userMenu.Items.Add(new ToolStripSeparator());
             userMenu.Items.Add(logoutItem);
+
+            if (avatarAdmin != null)
+            {
+                avatarAdmin.ContextMenuStrip = userMenu;
+                avatarAdmin.Click -= UserControl_Click;
+                avatarAdmin.Click += UserControl_Click;
+            }
+
+            if (lblAdminName != null)
+            {
+                lblAdminName.ContextMenuStrip = userMenu;
+
+                lblAdminName.Click -= UserControl_Click;
+                lblAdminName.Click += UserControl_Click;
+            }
+        }
+
+        // Named logout handler so we can remove it in Dispose
+        private void LogoutItem_Click(object sender, EventArgs e)
+        {
+            // Forward to existing logout logic to keep behavior consistent
+            btnDangXuat_Click(sender, e);
         }
 
         /// <summary>

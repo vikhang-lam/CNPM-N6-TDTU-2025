@@ -245,17 +245,7 @@ namespace N6
                 AutoSize = true
             };
             plusLabel.Location = new Point((panel.Width - plusLabel.Width) / 2, (panel.Height - plusLabel.Height) / 2 - 20);
-
-            Label otherTeacherLabel = new Label
-            {
-                Text = "", // Bổ sung Text
-                Font = new Font("Segoe UI", 12),
-                ForeColor = Color.FromArgb(97, 97, 97),
-                AutoSize = true
-            };
-            otherTeacherLabel.Location = new Point((panel.Width - otherTeacherLabel.Width) / 2, plusLabel.Bottom + 10);
             panel.Controls.Add(plusLabel);
-            panel.Controls.Add(otherTeacherLabel);
         }
 
         // --- Xử lý các nút trên Title Bar ---

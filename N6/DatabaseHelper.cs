@@ -1739,4 +1739,14 @@ public static class DatabaseHelper
 
         ExecuteNonQueryStoredProcedure("sp_CreateNewSchoolYear", pMa, pTen);
     }
+
+    /// <summary>
+    /// Kiểm tra xem tất cả các lớp trong năm học này đã được xét lên lớp hết chưa.
+    /// </summary>
+    public static bool CheckAllClassesPromoted(string maNamHoc)
+    {
+        var pNam = new SqlParameter("@MaNamHoc", maNamHoc);
+        object result = ExecuteScalarStoredProcedure("sp_CheckAllClassesPromoted", pNam);
+        return (result != null && Convert.ToInt32(result) == 1);
+    }
 }

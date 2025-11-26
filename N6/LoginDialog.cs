@@ -122,7 +122,7 @@ namespace N6
                     }
                     else
                     {
-                        MessageBox.Show("Sai tài khoản hoặc mật khẩu của Admin!", "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("Sai tài khoản hoặc mật khẩu ", "Đăng nhập thất bại", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                     return;
                 }

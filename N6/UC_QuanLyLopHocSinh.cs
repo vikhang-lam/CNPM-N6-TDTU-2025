@@ -311,7 +311,6 @@ namespace N6
         #endregion
 
         #region QUẢN LÝ LỚP HỌC: THÊM, XÓA
-
         private void btnThemLop_Click(object sender, EventArgs e)
         {
             try
@@ -319,7 +318,7 @@ namespace N6
                 using (var formThemLop = new Form
                 {
                     Text = "Thêm Lớp Học Mới",
-                    Size = new Size(450, 380),
+                    Size = new Size(450, 420),
                     StartPosition = FormStartPosition.CenterParent,
                     FormBorderStyle = FormBorderStyle.FixedDialog,
                     MaximizeBox = false,
@@ -351,16 +350,19 @@ namespace N6
                         ColumnCount = 2,
                         RowCount = 4,
                         AutoSize = true,
-                        Padding = new Padding(0, 10, 0, 20),
+                        Padding = new Padding(0, 10, 0, 10),
                         BackColor = Color.Transparent
                     };
 
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70F));
-                    for (int i = 0; i < 4; i++) pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
 
-                    // Margin để căn giữa ô nhập liệu với Label theo chiều dọc (Dòng 60px)
-                    Padding inputMargin = new Padding(0, 16, 0, 0);
+                    // Giữ chiều cao dòng 50px cho gọn
+                    for (int i = 0; i < 4; i++) pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
+
+                    Padding inputMargin = new Padding(0, 12, 0, 0);
+
+                    // --- CÁC CONTROL NHẬP LIỆU ---
 
                     var lblMaLop = new Label { Text = "Mã Lớp *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
                     var txtMaLop = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
@@ -371,38 +373,85 @@ namespace N6
                     var lblKhoi = new Label { Text = "Khối *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
                     var cboKhoiThem = new ComboBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
 
-                    var lblNamHoc = new Label { Text = "Năm Học", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-                    var txtNamHoc = new TextBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, Text = DateTime.Now.Year.ToString(), BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
+                    // [SỬA ĐỔI] Thay TextBox Năm Học bằng ComboBox để lấy từ DB
+                    var lblNamHoc = new Label { Text = "Năm Học *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+                    var cboNamHoc = new ComboBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
 
+                    // --- LOGIC LOAD DỮ LIỆU ---
+
+                    // 1. Load danh sách Khối (Fix cứng 5 khối)
+                    cboKhoiThem.Items.Clear();
+                    cboKhoiThem.Items.AddRange(new string[] { "Khối 1", "Khối 2", "Khối 3", "Khối 4", "Khối 5" });
+                    cboKhoiThem.SelectedIndex = 0;
+
+                    // 2. Load danh sách Năm Học từ Database và chọn năm hiện tại
                     try
                     {
-                        var khoiList = DatabaseHelper.GetAvailableGrades();
-                        cboKhoiThem.Items.AddRange(khoiList.ToArray());
-                        if (cboKhoiThem.Items.Count > 0) cboKhoiThem.SelectedIndex = 0;
+                        DataTable dtNamHoc = DatabaseHelper.GetAllSchoolYears(); // Gọi hàm lấy toàn bộ năm học
+                        if (dtNamHoc != null && dtNamHoc.Rows.Count > 0)
+                        {
+                            cboNamHoc.DataSource = dtNamHoc;
+                            cboNamHoc.DisplayMember = "TenNamHoc"; // Hiển thị: "Năm học 2024 - 2025"
+                            cboNamHoc.ValueMember = "MaNamHoc";    // Giá trị: "2024-2025"
+
+                            // Tìm năm học đang kích hoạt (IsCurrent = true/1)
+                            foreach (DataRow row in dtNamHoc.Rows)
+                            {
+                                if (row["IsCurrent"] != DBNull.Value && Convert.ToBoolean(row["IsCurrent"]) == true)
+                                {
+                                    cboNamHoc.SelectedValue = row["MaNamHoc"];
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Fallback nếu DB chưa có năm học nào (hiếm khi xảy ra nếu đã chạy script data.sql)
+                            cboNamHoc.Items.Add($"{DateTime.Now.Year}-{DateTime.Now.Year + 1}");
+                            cboNamHoc.SelectedIndex = 0;
+                        }
                     }
                     catch
                     {
-                        cboKhoiThem.Items.Add("Khối 1");
-                        cboKhoiThem.SelectedIndex = 0;
+                        // Fallback khi lỗi kết nối
+                        cboNamHoc.Items.Add($"{DateTime.Now.Year}-{DateTime.Now.Year + 1}");
+                        cboNamHoc.SelectedIndex = 0;
                     }
 
-                    txtMaLop.TextChanged += (s, ev) =>
+                    // Tự động sinh tên lớp: "Lớp" + [Khối] + [Mã] (Ví dụ: Mã 5A -> Lớp 5A)
+                    // Logic: Nếu mã lớp chưa có tên khối, tự động thêm vào dựa trên selection
+                    EventHandler updateTenLop = (s, ev) =>
                     {
-                        txtTenLop.Text = string.IsNullOrWhiteSpace(txtMaLop.Text) ? "" : $"Lớp {txtMaLop.Text.Trim().ToUpper()}";
+                        string rawMa = txtMaLop.Text.Trim().ToUpper();
+                        if (string.IsNullOrEmpty(rawMa))
+                        {
+                            txtTenLop.Text = "";
+                            return;
+                        }
+
+                        // Nếu người dùng nhập "5A" -> Tên lớp: "Lớp 5A"
+                        // Nếu người dùng nhập "A" và chọn Khối 5 -> Tên lớp: "Lớp 5A" (Gợi ý)
+                        txtTenLop.Text = $"Lớp {rawMa}";
                     };
+                    txtMaLop.TextChanged += updateTenLop;
+
+                    // --- THÊM CONTROL VÀO FORM ---
 
                     pnlFields.Controls.Add(lblMaLop, 0, 0); pnlFields.Controls.Add(txtMaLop, 1, 0);
                     pnlFields.Controls.Add(lblTenLop, 0, 1); pnlFields.Controls.Add(txtTenLop, 1, 1);
                     pnlFields.Controls.Add(lblKhoi, 0, 2); pnlFields.Controls.Add(cboKhoiThem, 1, 2);
-                    pnlFields.Controls.Add(lblNamHoc, 0, 3); pnlFields.Controls.Add(txtNamHoc, 1, 3);
+                    pnlFields.Controls.Add(lblNamHoc, 0, 3); pnlFields.Controls.Add(cboNamHoc, 1, 3); // Dùng cboNamHoc
 
-                    var pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 70, BackColor = Color.White };
+                    var pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 60, BackColor = Color.White };
+                    var btnLuu = new Button { Text = "💾 LƯU LỚP", Font = new Font("Segoe UI", 10F, FontStyle.Bold), BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 38, Width = 130, Dock = DockStyle.Right };
+                    var btnHuy = new Button { Text = "❌ HỦY", Font = new Font("Segoe UI", 10F, FontStyle.Bold), BackColor = Color.FromArgb(108, 117, 125), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 38, Width = 100, Dock = DockStyle.Right };
 
-                    var btnLuu = new Button { Text = "💾 LƯU LỚP HỌC", Font = new Font("Segoe UI", 10F, FontStyle.Bold), BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 45, Width = 150, Dock = DockStyle.Right };
-                    var btnHuy = new Button { Text = "❌ HỦY BỎ", Font = new Font("Segoe UI", 10F, FontStyle.Bold), BackColor = Color.FromArgb(108, 117, 125), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 45, Width = 120, Dock = DockStyle.Right };
+                    btnLuu.Margin = new Padding(0, 10, 0, 0);
 
+                    // --- SỰ KIỆN LƯU ---
                     btnLuu.Click += (s, ev) =>
                     {
+                        // Validation
                         if (string.IsNullOrWhiteSpace(txtMaLop.Text))
                         {
                             MessageBox.Show("Vui lòng nhập Mã Lớp!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -412,31 +461,29 @@ namespace N6
 
                         if (!Regex.IsMatch(txtMaLop.Text, @"^[a-zA-Z0-9]+$"))
                         {
-                            MessageBox.Show("❌ Mã lớp chỉ được chứa Chữ cái và Số (Không dấu, không khoảng trắng)!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("❌ Mã lớp chỉ được chứa Chữ cái và Số (Ví dụ: 5A, 1B)!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             txtMaLop.Focus();
                             return;
                         }
 
-                        if (cboKhoiThem.SelectedItem == null)
+                        if (cboNamHoc.SelectedItem == null)
                         {
-                            MessageBox.Show("Vui lòng chọn Khối!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-
-                        if (!int.TryParse(txtNamHoc.Text, out _))
-                        {
-                            MessageBox.Show("❌ Năm học phải là số nguyên (Ví dụ: 2025)!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            txtNamHoc.Focus();
+                            MessageBox.Show("Vui lòng chọn Năm Học!", "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
 
                         try
                         {
+                            // Lấy giá trị thực: MaNamHoc (VD: "2024-2025") từ ComboBox
+                            string selectedNamHoc = cboNamHoc.SelectedValue != null
+                                                    ? cboNamHoc.SelectedValue.ToString()
+                                                    : cboNamHoc.Text;
+
                             DatabaseHelper.InsertClass(
                                 txtMaLop.Text.Trim().ToUpper(),
                                 txtTenLop.Text.Trim(),
                                 cboKhoiThem.SelectedItem.ToString(),
-                                txtNamHoc.Text.Trim()
+                                selectedNamHoc // Truyền mã năm học chuẩn
                             );
 
                             MessageBox.Show("✅ Thêm lớp học thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -450,8 +497,11 @@ namespace N6
 
                     btnHuy.Click += (s, ev) => formThemLop.Close();
 
+                    Panel spacer = new Panel { Dock = DockStyle.Right, Width = 10 };
                     pnlButtons.Controls.Add(btnLuu);
+                    pnlButtons.Controls.Add(spacer);
                     pnlButtons.Controls.Add(btnHuy);
+
                     pnlMain.Controls.Add(pnlFields);
                     pnlMain.Controls.Add(pnlButtons);
                     formThemLop.Controls.Add(pnlMain);
@@ -864,36 +914,70 @@ namespace N6
                         return;
                     }
 
-                    // 4. Validation Date of Birth
+                    // 4. Validation Date of Birth (NGÀY SINH)
+                    DateTime ngaySinh = DateTime.Now;
                     if (row["NgaySinh"] != DBNull.Value)
                     {
-                        DateTime ns = Convert.ToDateTime(row["NgaySinh"]);
-                        if (ns.Date > DateTime.Now.Date)
+                        try
                         {
-                            MessageBox.Show($"❌ Học sinh {hoTen}: Ngày sinh không được lớn hơn ngày hiện tại!",
-                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            dt.RejectChanges();
-                            return;
+                            ngaySinh = Convert.ToDateTime(row["NgaySinh"]);
+
+                            // --- [FIX] KIỂM TRA CHẶN LỖI OVERFLOW SQL ---
+                            if (ngaySinh.Year < 1753 || ngaySinh.Year > 9999)
+                            {
+                                MessageBox.Show($"❌ Học sinh {hoTen}: Ngày sinh không hợp lệ (Năm phải từ 1753 đến 9999)!",
+                                    "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                dt.RejectChanges();
+                                return;
+                            }
+                            // --------------------------------------------
+
+                            if (ngaySinh.Date > DateTime.Now.Date)
+                            {
+                                MessageBox.Show($"❌ Học sinh {hoTen}: Ngày sinh không được lớn hơn ngày hiện tại!",
+                                    "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                dt.RejectChanges();
+                                return;
+                            }
+
+                            int age = DateTime.Now.Year - ngaySinh.Year;
+                            if (ngaySinh.Date > DateTime.Now.AddYears(-age)) age--;
+
+                            if (age < 6)
+                            {
+                                MessageBox.Show($"❌ Học sinh {hoTen}: Tuổi quá nhỏ ({age} tuổi). Phải từ 6 tuổi trở lên!",
+                                    "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                dt.RejectChanges();
+                                return;
+                            }
                         }
-
-                        int age = DateTime.Now.Year - ns.Year;
-                        if (ns.Date > DateTime.Now.AddYears(-age)) age--;
-
-                        if (age < 6)
+                        catch (FormatException)
                         {
-                            MessageBox.Show($"❌ Học sinh {hoTen}: Tuổi quá nhỏ ({age} tuổi). Phải từ 6 tuổi trở lên!",
-                                "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show($"❌ Học sinh {hoTen}: Định dạng ngày sinh không hợp lệ!",
+                                    "Lỗi nhập liệu", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             dt.RejectChanges();
                             return;
                         }
                     }
 
-                    DateTime ngaySinh = Convert.ToDateTime(row["NgaySinh"]);
                     string diaChi = row["DiaChi"].ToString();
                     string danToc = row["DanToc"].ToString();
 
-                    DatabaseHelper.UpdateStudent(maHS, hoTen, ngaySinh, gioiTinh, sdtPH, diaChi, danToc);
-                    successCount++;
+                    // --- [FIX] TRY-CATCH RIÊNG CHO LỆNH SQL ---
+                    try
+                    {
+                        DatabaseHelper.UpdateStudent(maHS, hoTen, ngaySinh, gioiTinh, sdtPH, diaChi, danToc);
+                        successCount++;
+                    }
+                    catch (System.Data.SqlTypes.SqlTypeException)
+                    {
+                        // Bắt chính xác lỗi SqlDateTime overflow ở đây
+                        MessageBox.Show($"❌ Học sinh {hoTen}: Lỗi ngày sinh không hợp lệ !",
+                            "Lỗi lưu dữ liệu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        dt.RejectChanges();
+                        return;
+                    }
+                    // ------------------------------------------
                 }
 
                 dt.AcceptChanges();
@@ -1311,6 +1395,7 @@ namespace N6
         {
             if (dgvHocSinh.DataSource == null || dgvHocSinh.Columns.Count == 0) return;
 
+            dgvHocSinh.AllowUserToAddRows = false;
             dgvHocSinh.ReadOnly = false;
 
             if (dgvHocSinh.Columns.Contains("STT"))

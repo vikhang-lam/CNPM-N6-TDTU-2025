@@ -102,12 +102,55 @@ namespace N6
 
         private void btnThemMon_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtTenMon.Text)) return;
-            try { DatabaseHelper.InsertSubject(txtTenMon.Text.Trim()); LoadMonHoc(); } catch (Exception ex) { MessageBox.Show(ex.Message); }
+            // Kiểm tra trống
+            if (string.IsNullOrWhiteSpace(txtTenMon.Text))
+            {
+                MessageBox.Show("Tên môn học không được để trống!", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtTenMon.Focus(); // Đưa con trỏ chuột về ô nhập
+                return;
+            }
+
+            try
+            {
+                DatabaseHelper.InsertSubject(txtTenMon.Text.Trim());
+                LoadMonHoc();
+                MessageBox.Show("Thêm môn học thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                ClearMonHocInputs(); // Xóa trắng ô nhập sau khi thêm
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi: " + ex.Message, "Lỗi Database", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
+
         private void btnSuaMon_Click(object sender, EventArgs e)
         {
-            try { DatabaseHelper.UpdateSubject(txtMaMon.Text, txtTenMon.Text.Trim()); LoadMonHoc(); } catch (Exception ex) { MessageBox.Show(ex.Message); }
+            // Kiểm tra trống
+            if (string.IsNullOrWhiteSpace(txtTenMon.Text))
+            {
+                MessageBox.Show("Tên môn học không được để trống!", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtTenMon.Focus();
+                return;
+            }
+
+            // Kiểm tra xem đã chọn môn để sửa chưa (trường hợp hiếm nhưng nên có)
+            if (string.IsNullOrWhiteSpace(txtMaMon.Text))
+            {
+                MessageBox.Show("Vui lòng chọn môn học cần sửa từ danh sách!", "Chưa chọn môn", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                DatabaseHelper.UpdateSubject(txtMaMon.Text, txtTenMon.Text.Trim());
+                LoadMonHoc();
+                MessageBox.Show("Cập nhật môn học thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                ClearMonHocInputs();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi: " + ex.Message, "Lỗi Database", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         private void btnXoaMon_Click(object sender, EventArgs e)
         {
@@ -240,20 +283,49 @@ namespace N6
             try
             {
                 DataTable dt = DatabaseHelper.GetAllSchoolYears();
-                // Sử dụng control của Designer (không có dấu gạch dưới)
                 cboNamHocXetDuyet.DataSource = dt;
                 cboNamHocXetDuyet.DisplayMember = "TenNamHoc";
                 cboNamHocXetDuyet.ValueMember = "MaNamHoc";
+
+                bool foundCurrent = false;
                 foreach (DataRow row in dt.Rows)
                 {
-                    if (Convert.ToBoolean(row["IsCurrent"]))
+                    if (row["IsCurrent"] != DBNull.Value && Convert.ToBoolean(row["IsCurrent"]))
                     {
                         cboNamHocXetDuyet.SelectedValue = row["MaNamHoc"];
+                        foundCurrent = true;
                         break;
                     }
                 }
+
+                if (!foundCurrent && cboNamHocXetDuyet.Items.Count > 0)
+                    cboNamHocXetDuyet.SelectedIndex = 0;
+
+                CheckButtonState();
             }
             catch { }
+        }
+
+        private void CheckButtonState()
+        {
+            if (cboNamHocXetDuyet.SelectedValue == null) return;
+
+            string maNamHoc = cboNamHocXetDuyet.SelectedValue.ToString();
+
+            bool isFinished = DatabaseHelper.CheckAllClassesPromoted(maNamHoc);
+
+            btnNewYear.Enabled = isFinished;
+
+            if (isFinished)
+            {
+                btnNewYear.BackColor = Color.FromArgb(40, 167, 69); 
+                btnNewYear.Text = "Kết năm";
+            }
+            else
+            {
+                btnNewYear.BackColor = Color.Gray; // Màu xám (Bị khóa)
+                btnNewYear.Text = "⏳ Chưa xét hết các lớp";
+            }
         }
 
         // Sự kiện này đã được gán trong Designer (this.btnNewYear.Click += ...)
@@ -407,26 +479,73 @@ namespace N6
 
         private void btnThucHienLenLop_SingleClass_Click(object sender, EventArgs e)
         {
-            // Sử dụng control của Designer
-            if (cboNamHocXetDuyet.SelectedValue == null) { MessageBox.Show("Chưa chọn Năm học!"); return; }
+            // 1. Kiểm tra đầu vào
+            if (cboNamHocXetDuyet.SelectedValue == null)
+            {
+                MessageBox.Show("Chưa chọn Năm học xét duyệt!", "Thiếu thông tin", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-            string msg = $"XÁC NHẬN KẾT THÚC NĂM HỌC {cboNamHocXetDuyet.Text}\nLỚP: {cboLopCu.Text}\n\nBạn có chắc chắn?";
-            if (MessageBox.Show(msg, "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            // 2. Xác nhận hành động từ người dùng
+            string msg = $"XÁC NHẬN KẾT THÚC NĂM HỌC {cboNamHocXetDuyet.Text}\nLỚP: {cboLopCu.Text}\n\nThao tác này sẽ lưu điểm và chuyển lớp cho học sinh.\nBạn có chắc chắn?";
+
+            if (MessageBox.Show(msg, "Xác nhận kết thúc năm học", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 this.Cursor = Cursors.WaitCursor;
                 try
                 {
+                    // 3. Chuẩn bị dữ liệu
                     string maNam = cboNamHocXetDuyet.SelectedValue.ToString();
+
+                    // Nếu là Khối 5 (Tốt nghiệp) -> Lớp lên là NULL. Ngược lại lấy ID lớp đích đã tính toán tự động.
                     string maLopLen = _currentIsLop5 ? null : _autoTargetClassIdForPassers;
+
+                    // Nếu có học sinh lưu ban -> Lấy ID lớp lưu ban từ ComboBox. Ngược lại là NULL.
                     string maLopLuuBan = lstFailingStudents.Items.Count > 0 ? cboLopMoi_OLaiLop.SelectedValue?.ToString() : null;
 
-                    DatabaseHelper.ProcessStudentPromotion_V2(_currentMaLopCu, maLopLen, maLopLuuBan, _currentIsLop5, maNam);
+                    // 4. Gọi hàm xử lý trong DatabaseHelper
+                    DatabaseHelper.ProcessStudentPromotion_V2(
+                        _currentMaLopCu,
+                        maLopLen,
+                        maLopLuuBan,
+                        _currentIsLop5,
+                        maNam
+                    );
 
-                    MessageBox.Show("✅ Xử lý thành công!", "Thông báo");
-                    LoadLopCuComboBox(); ResetLenLopUI();
+                    // 5. Thông báo thành công
+                    MessageBox.Show("✅ Xử lý thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    // 6. Tải lại giao diện để tránh thao tác trùng
+                    LoadLopCuComboBox();
+                    ResetLenLopUI();
+
+                    // 7. [QUAN TRỌNG] Kiểm tra xem đã xét hết tất cả các lớp chưa để mở khóa nút "Tạo Niên Khóa Mới"
+                    CheckButtonState();
                 }
-                catch (Exception ex) { MessageBox.Show("Lỗi: " + ex.Message, "Lỗi Database", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-                finally { this.Cursor = Cursors.Default; }
+                catch (System.Data.SqlClient.SqlException ex)
+                {
+                    // 🔹 BẮT LỖI TỪ SQL: Nếu mã lỗi là 50000 (Lỗi do RAISERROR trong SQL tạo ra)
+                    // Ví dụ: "Lớp này đã xét rồi" hoặc "Lớp đích chưa trống"
+                    if (ex.Number == 50000)
+                    {
+                        MessageBox.Show(ex.Message, "⚠️ Quy tắc Xếp Lớp", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    else
+                    {
+                        // Các lỗi SQL khác (mất mạng, sai câu lệnh...)
+                        MessageBox.Show("Lỗi hệ thống CSDL: " + ex.Message, "Lỗi Nghiêm Trọng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Các lỗi C# khác
+                    MessageBox.Show("Lỗi ứng dụng: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    // 8. Đưa con trỏ chuột về bình thường
+                    this.Cursor = Cursors.Default;
+                }
             }
         }
         #endregion
@@ -479,61 +598,95 @@ namespace N6
 
         private void LoadArchiveStudents()
         {
+            // Nếu chưa chọn lớp thì xóa dữ liệu và thoát
             if (cboArchiveLop.SelectedValue == null || cboArchiveLop.SelectedValue == DBNull.Value)
             {
                 dgvArchiveStudents.DataSource = null;
                 lblArchiveGVCN.Text = "GVCN: ---";
                 return;
             }
+
             try
             {
                 string maLop = cboArchiveLop.SelectedValue.ToString();
                 string nam = cboArchiveNamHoc.SelectedValue.ToString();
 
+                // Cập nhật Label GVCN
                 if (cboArchiveLop.SelectedItem is DataRowView row)
                 {
                     string maGVCN = row["MaGVCN"]?.ToString();
                     lblArchiveGVCN.Text = "GVCN: " + (string.IsNullOrEmpty(maGVCN) ? "Chưa rõ" : DatabaseHelper.GetTeacherNameById(maGVCN));
                 }
 
+                // Lấy dữ liệu
                 DataTable dt = DatabaseHelper.GetArchiveStudentList(nam, maLop);
                 dgvArchiveStudents.DataSource = dt;
 
-                dgvArchiveStudents.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+                // --- ÁP DỤNG GIAO DIỆN MỚI ---
+                StyleArchiveGrid(dgvArchiveStudents);
 
+                // 1. Ẩn các cột ID không cần thiết
                 if (dgvArchiveStudents.Columns.Contains("MaHoSo")) dgvArchiveStudents.Columns["MaHoSo"].Visible = false;
                 if (dgvArchiveStudents.Columns.Contains("MaHS")) dgvArchiveStudents.Columns["MaHS"].Visible = false;
 
+                // 2. Cấu hình kích thước từng cột (Thông minh)
+
+                // Cột [Họ tên]: Quan trọng nhất -> Cho giãn hết phần còn lại (Fill)
                 if (dgvArchiveStudents.Columns.Contains("HoTen"))
                 {
-                    dgvArchiveStudents.Columns["HoTen"].HeaderText = "Họ và Tên";
-                    dgvArchiveStudents.Columns["HoTen"].FillWeight = 40;
+                    var col = dgvArchiveStudents.Columns["HoTen"];
+                    col.HeaderText = "HỌ VÀ TÊN HỌC SINH";
+                    col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; // Tự động giãn đầy
+                    col.MinimumWidth = 200; // Đảm bảo không bị bóp quá nhỏ
                 }
+
+                // Cột [Ngày sinh]: Vừa đủ nội dung (AllCells)
                 if (dgvArchiveStudents.Columns.Contains("NgaySinh"))
                 {
-                    dgvArchiveStudents.Columns["NgaySinh"].HeaderText = "Ngày Sinh";
-                    dgvArchiveStudents.Columns["NgaySinh"].DefaultCellStyle.Format = "dd/MM/yyyy";
-                    dgvArchiveStudents.Columns["NgaySinh"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                    var col = dgvArchiveStudents.Columns["NgaySinh"];
+                    col.HeaderText = "NGÀY SINH";
+                    col.DefaultCellStyle.Format = "dd/MM/yyyy";
+                    col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; // Vừa khít nội dung
+                    col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
                 }
+
+                // Cột [Giới tính]: Vừa đủ nội dung
                 if (dgvArchiveStudents.Columns.Contains("GioiTinh"))
                 {
-                    dgvArchiveStudents.Columns["GioiTinh"].HeaderText = "Giới Tính";
-                    dgvArchiveStudents.Columns["GioiTinh"].FillWeight = 15;
+                    var col = dgvArchiveStudents.Columns["GioiTinh"];
+                    col.HeaderText = "GIỚI TÍNH";
+                    col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                 }
+
+                // Cột [Điểm]: Vừa đủ nội dung + Font đậm
                 if (dgvArchiveStudents.Columns.Contains("DiemTongKet"))
                 {
-                    dgvArchiveStudents.Columns["DiemTongKet"].HeaderText = "ĐTB Cả Năm";
-                    dgvArchiveStudents.Columns["DiemTongKet"].DefaultCellStyle.Format = "N2";
-                    dgvArchiveStudents.Columns["DiemTongKet"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-                    dgvArchiveStudents.Columns["DiemTongKet"].DefaultCellStyle.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+                    var col = dgvArchiveStudents.Columns["DiemTongKet"];
+                    col.HeaderText = "ĐTB CẢ NĂM";
+                    col.DefaultCellStyle.Format = "N2"; // 2 số lẻ
+                    col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                    col.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+                    col.DefaultCellStyle.ForeColor = Color.FromArgb(0, 120, 215); // Màu xanh nổi bật
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                 }
+
+                // Cột [Kết quả]: Vừa đủ nội dung + Màu sắc
                 if (dgvArchiveStudents.Columns.Contains("KetQua"))
                 {
-                    dgvArchiveStudents.Columns["KetQua"].HeaderText = "Kết Quả";
-                    dgvArchiveStudents.Columns["KetQua"].DefaultCellStyle.ForeColor = Color.Blue;
+                    var col = dgvArchiveStudents.Columns["KetQua"];
+                    col.HeaderText = "KẾT QUẢ";
+                    col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                    col.DefaultCellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+                    col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi hiển thị danh sách: " + ex.Message);
+            }
         }
 
         private void DgvArchiveStudents_DoubleClick(object sender, EventArgs e)
@@ -554,6 +707,44 @@ namespace N6
             TabPage page = tabControlMain.TabPages[e.Index];
             e.Graphics.FillRectangle(new SolidBrush((e.State & DrawItemState.Selected) == DrawItemState.Selected ? Color.FromArgb(0, 123, 255) : Color.WhiteSmoke), e.Bounds);
             TextRenderer.DrawText(e.Graphics, page.Text, new Font("Segoe UI", 10, (e.State & DrawItemState.Selected) == DrawItemState.Selected ? FontStyle.Bold : FontStyle.Regular), e.Bounds, (e.State & DrawItemState.Selected) == DrawItemState.Selected ? Color.White : Color.Black, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
+
+        /// <summary>
+        /// Hàm trang trí bảng Lưu Trữ: Khóa kích thước thủ công nhưng tự động co giãn thông minh
+        /// </summary>
+        private void StyleArchiveGrid(DataGridView dgv)
+        {
+            // 1. Cấu hình cơ bản & Màu sắc
+            dgv.BorderStyle = BorderStyle.None;
+            dgv.BackgroundColor = Color.White;
+            dgv.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgv.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+
+            // Màu tiêu đề
+            dgv.EnableHeadersVisualStyles = false;
+            dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 242, 245); // Xám nhạt hiện đại
+            dgv.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(64, 64, 64);
+            dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            dgv.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter; // Căn giữa tiêu đề
+            dgv.ColumnHeadersHeight = 45; // Tăng chiều cao tiêu đề cho thoáng
+
+            // Màu dòng dữ liệu
+            dgv.DefaultCellStyle.Font = new Font("Segoe UI", 10F);
+            dgv.DefaultCellStyle.ForeColor = Color.FromArgb(50, 50, 50);
+            dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(230, 240, 255); // Màu chọn xanh nhạt dịu mắt
+            dgv.DefaultCellStyle.SelectionForeColor = Color.Black;
+            dgv.RowTemplate.Height = 40; // Tăng chiều cao dòng
+            dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.White; // Có thể đổi thành màu khác nếu thích so le
+
+            // 2. KHÓA NGƯỜI DÙNG (Không cho chỉnh sửa kích thước tay)
+            dgv.AllowUserToResizeColumns = false;
+            dgv.AllowUserToResizeRows = false;
+            dgv.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+
+            // 3. Tắt các thành phần thừa
+            dgv.RowHeadersVisible = false; // Ẩn cột mũi tên bên trái ngoài cùng
+            dgv.MultiSelect = false;       // Chỉ cho chọn 1 dòng
+            dgv.SelectionMode = DataGridViewSelectionMode.FullRowSelect; // Chọn cả dòng
         }
     }
 }

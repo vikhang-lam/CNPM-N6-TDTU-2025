@@ -79,13 +79,13 @@ PRINT 'Tao hoc sinh...';
 
 -- Lớp 1A1 (7 học sinh: 5 Đậu, 2 Rớt)
 INSERT INTO HocSinh (MaHS, MaLop, HoTen, NgaySinh, GioiTinh) VALUES
-('HS101', '1A1', N'Nguyễn Văn An (Đậu)', '2018-01-01', N'Nam'),
-('HS102', '1A1', N'Trần Thị Bình (Đậu)', '2018-02-02', N'Nữ'),
-('HS103', '1A1', N'Lê Văn Cường (Đậu)', '2018-03-03', N'Nam'),
-('HS104', '1A1', N'Phạm Thị Dung (Đậu)', '2018-04-04', N'Nữ'),
-('HS105', '1A1', N'Hoàng Văn Em (Đậu)', '2018-05-05', N'Nam'),
-('HS106', '1A1', N'Vũ Thị Fail (Rớt)', '2018-06-06', N'Nữ'),    -- Sẽ set điểm thấp
-('HS107', '1A1', N'Đặng Văn Gớt (Rớt)', '2018-07-07', N'Nam'); -- Sẽ set điểm thấp
+('HS101', '1A1', N'Nguyễn Văn An', '2018-01-01', N'Nam'),
+('HS102', '1A1', N'Trần Thị Bình', '2018-02-02', N'Nữ'),
+('HS103', '1A1', N'Lê Văn Cường', '2018-03-03', N'Nam'),
+('HS104', '1A1', N'Phạm Thị Dung', '2018-04-04', N'Nữ'),
+('HS105', '1A1', N'Hoàng Văn Em', '2018-05-05', N'Nam'),
+('HS106', '1A1', N'Vũ Thị Fail', '2018-06-06', N'Nữ'),    -- Sẽ set điểm thấp
+('HS107', '1A1', N'Đặng Văn Gớt', '2018-07-07', N'Nam'); -- Sẽ set điểm thấp
 
 -- Lớp 5A1 (8 học sinh: 6 Tốt nghiệp, 2 Lưu ban)
 INSERT INTO HocSinh (MaHS, MaLop, HoTen, NgaySinh, GioiTinh) VALUES
