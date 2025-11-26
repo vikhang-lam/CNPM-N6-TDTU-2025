@@ -174,10 +174,51 @@ namespace N6
                 dgvThoiHanDiem.DataError += (s, e) => { e.ThrowException = false; };
                 dgvThoiHanDiem.CellValidating += dgvThoiHanDiem_CellValidating;
 
+                dgvThoiHanDiem.RowValidating += dgvThoiHanDiem_RowValidating;
+
                 cboKhoiFilter_SelectedIndexChanged(null, null);
                 CustomizeThoiHanGrid();
             }
             catch (Exception ex) { MessageBox.Show("Lỗi: " + ex.Message); }
+        }
+
+        private void dgvThoiHanDiem_RowValidating(object sender, DataGridViewCellCancelEventArgs e)
+        {
+            // Lấy dòng hiện tại đang kiểm tra
+            DataGridViewRow row = dgvThoiHanDiem.Rows[e.RowIndex];
+
+            // Bỏ qua nếu là dòng mới (new row placeholder)
+            if (row.IsNewRow) return;
+
+            // Lấy giá trị ô
+            var cellMo = row.Cells["NgayMoDiem"].Value;
+            var cellKhoa = row.Cells["NgayKhoaDiem"].Value;
+
+            // Kiểm tra null và parse sang DateTime
+            if (cellMo != null && cellKhoa != null && cellMo != DBNull.Value && cellKhoa != DBNull.Value)
+            {
+                DateTime ngayMo;
+                DateTime ngayKhoa;
+
+                bool isMoValid = DateTime.TryParse(cellMo.ToString(), out ngayMo);
+                bool isKhoaValid = DateTime.TryParse(cellKhoa.ToString(), out ngayKhoa);
+
+                if (isMoValid && isKhoaValid)
+                {
+                    // LOGIC KIỂM TRA: Ngày mở không được lớn hơn Ngày khóa
+                    if (ngayMo > ngayKhoa)
+                    {
+                        e.Cancel = true; // Chặn không cho rời dòng
+                        row.ErrorText = "Ngày mở điểm không được lớn hơn ngày khóa điểm!";
+                        MessageBox.Show($"Lỗi tại dòng {e.RowIndex + 1}: Ngày mở ({ngayMo:dd/MM}) không được sau Ngày khóa ({ngayKhoa:dd/MM}).",
+                                        "Dữ liệu không hợp lệ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    else
+                    {
+                        row.ErrorText = ""; // Xóa thông báo lỗi nếu hợp lệ
+                    }
+                }
+            }
         }
 
         private void CustomizeThoiHanGrid()
@@ -240,17 +281,40 @@ namespace N6
         {
             try
             {
+                // Kết thúc việc chỉnh sửa trên giao diện để dữ liệu chui vào DataTable
                 BindingContext[dgvThoiHanDiem.DataSource].EndCurrentEdit();
+
                 DataTable changes = _allThoiHanDiemCache.GetChanges(DataRowState.Modified);
                 if (changes != null)
                 {
+                    // --- THÊM ĐOẠN VALIDATION NÀY ---
                     foreach (DataRow row in changes.Rows)
                     {
-                        DatabaseHelper.UpdateScoreDeadline(row["MaCotDiem"].ToString(), row["Khoi"].ToString(), Convert.ToInt32(row["HocKy"]),
-                            Convert.ToDateTime(row["NgayMoDiem"]), Convert.ToDateTime(row["NgayKhoaDiem"]), Convert.ToBoolean(row["KhoaThuCong"]));
+                        DateTime ngayMo = Convert.ToDateTime(row["NgayMoDiem"]);
+                        DateTime ngayKhoa = Convert.ToDateTime(row["NgayKhoaDiem"]);
+
+                        if (ngayMo > ngayKhoa)
+                        {
+                            MessageBox.Show($"Lỗi tại mục '{row["TenHienThi"]}':\nNgày mở ({ngayMo:dd/MM/yyyy}) đang lớn hơn Ngày khóa ({ngayKhoa:dd/MM/yyyy}).\nVui lòng sửa lại trước khi lưu.",
+                                            "Dữ liệu sai", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return; // Dừng lại, không lưu
+                        }
+                    }
+                    // ---------------------------------
+
+                    foreach (DataRow row in changes.Rows)
+                    {
+                        DatabaseHelper.UpdateScoreDeadline(
+                            row["MaCotDiem"].ToString(),
+                            row["Khoi"].ToString(),
+                            Convert.ToInt32(row["HocKy"]),
+                            Convert.ToDateTime(row["NgayMoDiem"]),
+                            Convert.ToDateTime(row["NgayKhoaDiem"]),
+                            Convert.ToBoolean(row["KhoaThuCong"])
+                        );
                     }
                     _allThoiHanDiemCache.AcceptChanges();
-                    MessageBox.Show("Đã lưu thành công!");
+                    MessageBox.Show("Đã lưu thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     LoadThoiHanDiem();
                 }
             }
