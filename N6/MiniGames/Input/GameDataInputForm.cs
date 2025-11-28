@@ -1967,16 +1967,13 @@ namespace N6
                 }
             }
 
-            // BƯỚC 1: Chọn file Excel
             using (OpenFileDialog ofd = new OpenFileDialog())
             {
-                // Điều chỉnh filter để bao gồm cả .xls và .csv
                 ofd.Filter = "Excel Files|*.xlsx;*.xls;*.csv|All Files|*.*";
                 if (ofd.ShowDialog() != DialogResult.OK) return;
 
                 try
                 {
-                    // Hàm này trả về DataTable, và đã bỏ qua hàng tiêu đề
                     System.Data.DataTable dataTable = ExcelHelper.ReadExcelFile(ofd.FileName);
 
                     if (dataTable == null || dataTable.Rows.Count == 0)
@@ -1985,31 +1982,75 @@ namespace N6
                         return;
                     }
 
-                    // BƯỚC 2: Ánh xạ dữ liệu dựa trên mã game (_maMNG)
-                    int itemsCount = 0; // Biến đếm số lượng bản ghi nhập thành công
+                    // kiểm tra số cột PHÙ HỢP CHÍNH XÁC theo loại game
+                    int fileCols = dataTable.Columns.Count;
+                    int? expectedCols = _maMNG.ToUpper() switch
+                    {
+                        "MNG01" => 6, // Quiz
+                        "MNG03" => 2, // Flashcard
+                        "MNG04" => 3, // Word Scramble
+                        "MNG06" => 1, // Sentence Scramble
+                        "MNG07" => 2, // Fill Blank
+                        _ => null
+                    };
+
+                    if (expectedCols.HasValue && fileCols != expectedCols.Value)
+                    {
+                        MessageBox.Show(
+                            $"Số cột ({fileCols} cột) trong file không phù hợp cho game \"{_tenMNG}\". Game này yêu cầu chính xác {expectedCols.Value} cột. Vui lòng chọn file đúng định dạng hoặc tải mẫu trước khi import.",
+                            "Lỗi định dạng file",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    int itemsCount = 0;
+                    var skipMessages = new System.Collections.Generic.List<string>();
+
                     switch (_maMNG)
                     {
-                        case "MNG01": // QUIZ (Cần 6 cột)
+                        case "MNG01": // QUIZ (6 cột)
                             {
-                                var existing = GameDataManager.GetQuizQuestions(_maMNG) ?? new List<QuizQuestion>();
-                                var newItems = new List<QuizQuestion>();
+                                var existing = GameDataManager.GetQuizQuestions(_maMNG) ?? new System.Collections.Generic.List<QuizQuestion>();
+                                var newItems = new System.Collections.Generic.List<QuizQuestion>();
 
-                                foreach (DataRow row in dataTable.Rows)
+                                for (int r = 0; r < dataTable.Rows.Count; r++)
                                 {
-                                    if (dataTable.Columns.Count >= 6 && !string.IsNullOrWhiteSpace(row[0]?.ToString()))
+                                    var row = dataTable.Rows[r];
+                                    int rowIndex = r + 1;
+
+                                    // now fileCols == expectedCols, chỉ validate nội dung
+                                    string q = row[0]?.ToString()?.Trim() ?? "";
+                                    string a = row[1]?.ToString()?.Trim() ?? "";
+                                    string b = row[2]?.ToString()?.Trim() ?? "";
+                                    string c = row[3]?.ToString()?.Trim() ?? "";
+                                    string d = row[4]?.ToString()?.Trim() ?? "";
+                                    string correct = row[5]?.ToString()?.Trim().ToUpper() ?? "";
+
+                                    if (string.IsNullOrWhiteSpace(q))
                                     {
-                                        newItems.Add(new QuizQuestion
-                                        {
-                                            QuestionText = row[0].ToString().Trim(),
-                                            Options = new List<string> {
-                                                row[1].ToString().Trim(),
-                                                row[2].ToString().Trim(),
-                                                row[3].ToString().Trim(),
-                                                row[4].ToString().Trim()
-                                            },
-                                            CorrectAnswer = row[5].ToString().Trim().ToUpper()
-                                        });
+                                        skipMessages.Add($"Câu {rowIndex}: Cột 'Câu hỏi' rỗng.");
+                                        continue;
                                     }
+
+                                    if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b) || string.IsNullOrWhiteSpace(c) || string.IsNullOrWhiteSpace(d))
+                                    {
+                                        skipMessages.Add($"Câu {rowIndex}: Một trong các đáp án A/B/C/D bị rỗng.");
+                                        continue;
+                                    }
+
+                                    if (!(new[] { "A", "B", "C", "D" }.Contains(correct)))
+                                    {
+                                        skipMessages.Add($"Câu {rowIndex}: Giá trị 'Đáp án đúng' không hợp lệ (phải A/B/C/D).");
+                                        continue;
+                                    }
+
+                                    newItems.Add(new QuizQuestion
+                                    {
+                                        QuestionText = q,
+                                        Options = new System.Collections.Generic.List<string> { a, b, c, d },
+                                        CorrectAnswer = correct
+                                    });
                                 }
 
                                 existing.AddRange(newItems);
@@ -2017,91 +2058,156 @@ namespace N6
                                 itemsCount = newItems.Count;
                                 break;
                             }
+
                         case "MNG03": // FLASHCARD (2 cột)
                             {
-                                var existing = GameDataManager.GetFlashcardItems(_maMNG) ?? new List<FlashcardItem>();
-                                var newItems = new List<FlashcardItem>();
-                                foreach (DataRow row in dataTable.Rows)
+                                var existing = GameDataManager.GetFlashcardItems(_maMNG) ?? new System.Collections.Generic.List<FlashcardItem>();
+                                var newItems = new System.Collections.Generic.List<FlashcardItem>();
+
+                                for (int r = 0; r < dataTable.Rows.Count; r++)
                                 {
-                                    if (dataTable.Columns.Count >= 2 && !string.IsNullOrWhiteSpace(row[0]?.ToString()) && !string.IsNullOrWhiteSpace(row[1]?.ToString()))
+                                    var row = dataTable.Rows[r];
+                                    int rowIndex = r + 1;
+
+                                    string term = row[0]?.ToString()?.Trim() ?? "";
+                                    string def = row[1]?.ToString()?.Trim() ?? "";
+
+                                    if (string.IsNullOrWhiteSpace(term) || string.IsNullOrWhiteSpace(def))
                                     {
-                                        newItems.Add(new FlashcardItem
-                                        {
-                                            Term = row[0].ToString().Trim(),
-                                            Definition = row[1].ToString().Trim()
-                                        });
+                                        skipMessages.Add($"Câu {rowIndex}: Thuật ngữ hoặc Định nghĩa rỗng.");
+                                        continue;
                                     }
+
+                                    newItems.Add(new FlashcardItem { Term = term, Definition = def });
                                 }
+
                                 existing.AddRange(newItems);
                                 GameDataManager.SaveFlashcardItems(_maMNG, existing);
                                 itemsCount = newItems.Count;
                                 break;
                             }
-                        case "MNG04": // GHÉP CHỮ (Word Scramble - Cần 3 cột)
+
+                        case "MNG04": // WORD SCRAMBLE (3 cột)
                             {
-                                var existing = GameDataManager.GetWordScrambleItems(_maMNG) ?? new List<WordScrambleItem>();
-                                var newItems = new List<WordScrambleItem>();
-                                foreach (DataRow row in dataTable.Rows)
+                                var existing = GameDataManager.GetWordScrambleItems(_maMNG) ?? new System.Collections.Generic.List<WordScrambleItem>();
+                                var newItems = new System.Collections.Generic.List<WordScrambleItem>();
+
+                                for (int r = 0; r < dataTable.Rows.Count; r++)
                                 {
-                                    if (dataTable.Columns.Count >= 3 && !string.IsNullOrWhiteSpace(row[2]?.ToString()))
+                                    var row = dataTable.Rows[r];
+                                    int rowIndex = r + 1;
+
+                                    string img = row[0]?.ToString()?.Trim() ?? "";
+                                    string question = row[1]?.ToString()?.Trim() ?? "";
+                                    string answer = row[2]?.ToString()?.Trim() ?? "";
+
+                                    if (string.IsNullOrWhiteSpace(answer))
                                     {
-                                        newItems.Add(new WordScrambleItem
-                                        {
-                                            ImageHintResourceName = row[0]?.ToString().Trim() ?? string.Empty,
-                                            Question = row[1]?.ToString().Trim() ?? string.Empty,
-                                            Answer = row[2].ToString().Trim().ToUpper()
-                                        });
+                                        skipMessages.Add($"Câu {rowIndex}: Đáp án trống (bắt buộc).");
+                                        continue;
                                     }
+
+                                    if (string.IsNullOrWhiteSpace(question))
+                                    {
+                                        skipMessages.Add($"Câu {rowIndex}: Câu hỏi/Gợi ý trống.");
+                                        continue;
+                                    }
+
+                                    newItems.Add(new WordScrambleItem
+                                    {
+                                        ImageHintResourceName = img,
+                                        Question = question,
+                                        Answer = answer.ToUpper()
+                                    });
                                 }
+
                                 existing.AddRange(newItems);
                                 GameDataManager.SaveWordScrambleItems(_maMNG, existing);
                                 itemsCount = newItems.Count;
                                 break;
                             }
-                        case "MNG06": // SẮP XẾP CÂU (Sentence Scramble - Cần 1 cột)
+
+                        case "MNG06": // SENTENCE SCRAMBLE (1 cột)
                             {
-                                var existing = GameDataManager.GetSentenceScrambleItems(_maMNG) ?? new List<SentenceScrambleItem>();
-                                var newItems = new List<SentenceScrambleItem>();
-                                foreach (DataRow row in dataTable.Rows)
+                                var existing = GameDataManager.GetSentenceScrambleItems(_maMNG) ?? new System.Collections.Generic.List<SentenceScrambleItem>();
+                                var newItems = new System.Collections.Generic.List<SentenceScrambleItem>();
+
+                                for (int r = 0; r < dataTable.Rows.Count; r++)
                                 {
-                                    if (dataTable.Columns.Count >= 1 && !string.IsNullOrWhiteSpace(row[0]?.ToString()))
+                                    var row = dataTable.Rows[r];
+                                    int rowIndex = r + 1;
+
+                                    string raw = row[0]?.ToString()?.Trim() ?? "";
+                                    if (string.IsNullOrWhiteSpace(raw))
                                     {
-                                        string cleaned = Regex.Replace(row[0].ToString().Trim(), @"^\d+\.\s*", "");
-                                        newItems.Add(new SentenceScrambleItem { CorrectSentence = cleaned });
+                                        skipMessages.Add($"Câu {rowIndex}: Câu rỗng.");
+                                        continue;
                                     }
+
+                                    string cleaned = Regex.Replace(raw, @"^\d+\.\s*", "");
+                                    newItems.Add(new SentenceScrambleItem { CorrectSentence = cleaned });
                                 }
+
                                 existing.AddRange(newItems);
                                 GameDataManager.SaveSentenceScrambleItems(_maMNG, existing);
                                 itemsCount = newItems.Count;
                                 break;
                             }
-                        case "MNG07": // ĐIỀN TỪ (Fill in the Blank - Cần 2 cột)
+
+                        case "MNG07": // FILL BLANK (2 cột)
                             {
-                                var existing = GameDataManager.GetFillBlankQuestions(_maMNG) ?? new List<FillBlankQuestion>();
-                                var newItems = new List<FillBlankQuestion>();
-                                foreach (DataRow row in dataTable.Rows)
+                                var existing = GameDataManager.GetFillBlankQuestions(_maMNG) ?? new System.Collections.Generic.List<FillBlankQuestion>();
+                                var newItems = new System.Collections.Generic.List<FillBlankQuestion>();
+
+                                for (int r = 0; r < dataTable.Rows.Count; r++)
                                 {
-                                    if (dataTable.Columns.Count >= 2 && !string.IsNullOrWhiteSpace(row[0]?.ToString()) && !string.IsNullOrWhiteSpace(row[1]?.ToString()))
+                                    var row = dataTable.Rows[r];
+                                    int rowIndex = r + 1;
+
+                                    string q = row[0]?.ToString()?.Trim() ?? "";
+                                    string ans = row[1]?.ToString()?.Trim() ?? "";
+
+                                    if (string.IsNullOrWhiteSpace(q))
                                     {
-                                        newItems.Add(new FillBlankQuestion
-                                        {
-                                            QuestionText = row[0].ToString().Trim(),
-                                            Answer = row[1].ToString().Trim()
-                                        });
+                                        skipMessages.Add($"Câu {rowIndex}: Câu hỏi rỗng.");
+                                        continue;
                                     }
+
+                                    if (string.IsNullOrWhiteSpace(ans))
+                                    {
+                                        skipMessages.Add($"Câu {rowIndex}: Đáp án rỗng.");
+                                        continue;
+                                    }
+
+                                    newItems.Add(new FillBlankQuestion { QuestionText = q, Answer = ans });
                                 }
+
                                 existing.AddRange(newItems);
                                 GameDataManager.SaveFillBlankQuestions(_maMNG, existing);
                                 itemsCount = newItems.Count;
                                 break;
                             }
+
                         default:
                             MessageBox.Show($"Game chưa được hỗ trợ nhập liệu Excel.", "Lỗi");
                             return;
                     }
 
-                    // BƯỚC 3: Hiển thị kết quả
-                    MessageBox.Show($"Đã nhập **{itemsCount}** bản ghi cho game.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    if (skipMessages.Count == 0)
+                    {
+                        MessageBox.Show($"Đã nhập {itemsCount} bản ghi cho game.", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        string first = skipMessages[0];
+                        try
+                        {
+                            System.Windows.Forms.Clipboard.SetText(string.Join(Environment.NewLine, skipMessages));
+                        }
+                        catch { }
+
+                        MessageBox.Show($"Đã nhập {itemsCount} bản ghi. Bỏ qua {skipMessages.Count} câu do lỗi/thiếu dữ liệu.\n\nVí dụ: {first}.", "Hoàn tất với cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
 
                     BuildInputUI();
                 }
