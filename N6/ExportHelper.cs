@@ -31,15 +31,19 @@ namespace N6
                                          .Where(col => col.Visible)
                                          .ToList();
 
-                // Add header
-                string[] headers = new string[visibleColumns.Count];
-                for (int i = 0; i < visibleColumns.Count; i++)
+                // [FIX] Chỉ xuất dòng Header nếu trên GridView đang hiển thị Header
+                if (gridView.ColumnHeadersVisible)
                 {
-                    headers[i] = "\"" + visibleColumns[i].HeaderText.Replace("\"", "\"\"") + "\"";
+                    string[] headers = new string[visibleColumns.Count];
+                    for (int i = 0; i < visibleColumns.Count; i++)
+                    {
+                        // Xử lý ký tự đặc biệt trong CSV
+                        headers[i] = "\"" + visibleColumns[i].HeaderText.Replace("\"", "\"\"") + "\"";
+                    }
+                    csvContent.AppendLine(string.Join(";", headers));
                 }
-                csvContent.AppendLine(string.Join(";", headers));
 
-                // Add data
+                // Add data (Phần này giữ nguyên)
                 foreach (DataGridViewRow row in gridView.Rows)
                 {
                     if (row.IsNewRow) continue;
@@ -48,7 +52,12 @@ namespace N6
                     for (int i = 0; i < visibleColumns.Count; i++)
                     {
                         var cell = row.Cells[visibleColumns[i].Name];
+                        // Lấy giá trị format để đảm bảo giống hiển thị trên lưới
                         string field = cell.FormattedValue?.ToString() ?? "";
+
+                        // Xử lý ký tự xuống dòng nếu có (để không vỡ file CSV)
+                        field = field.Replace("\n", " ").Replace("\r", "");
+
                         field = "\"" + field.Replace("\"", "\"\"") + "\"";
                         fields[i] = field;
                     }
@@ -60,12 +69,11 @@ namespace N6
                     fileName = Path.ChangeExtension(fileName, ".csv");
                 }
 
-                // Ghi file với UTF-8 BOM
+                // Ghi file với UTF-8 BOM để Excel đọc đúng tiếng Việt
                 File.WriteAllText(fileName, csvContent.ToString(), Encoding.UTF8);
             }
             catch (Exception ex)
             {
-                // Ném ngoại lệ để lớp UI bên ngoài bắt và xử lý
                 throw new Exception($"Lỗi khi xuất file CSV: {ex.Message}", ex);
             }
         }

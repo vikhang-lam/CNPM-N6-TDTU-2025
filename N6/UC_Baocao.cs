@@ -996,7 +996,7 @@ namespace N6
                 {
                     string reportTypeTitle = reportType?.ToUpper() ?? "BÁO CÁO";
                     string documentTitle = reportTypeTitle;
-                    documentTitle += $"\nLỚP: {cboLop.Text}";
+                    documentTitle += $"\nMÃ: {cboLop.Text}";
                     if (cboHocKy.Visible && cboHocKy.SelectedIndex != -1) documentTitle += $" - {cboHocKy.Text.ToUpper()}";
                     if (cboMonDay.Visible && cboMonDay.SelectedIndex != -1) documentTitle += $"\nMÔN: {cboMonDay.Text}";
                     if (cboThang.Visible && cboThang.SelectedIndex != -1) documentTitle += $"\nTHÁNG: {cboThang.Text}";

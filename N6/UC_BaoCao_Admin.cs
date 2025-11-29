@@ -9,10 +9,6 @@ using System.Windows.Forms.DataVisualization.Charting;
 
 namespace N6
 {
-    /// <summary>
-    /// UserControl dành cho Admin (Ban Giám Hiệu) để xem các báo cáo tổng hợp
-    /// toàn trường, theo khối, hoặc theo lớp.
-    /// </summary>
     public partial class UC_BaoCao_Admin : UserControl
     {
         #region Fields (Biến thành viên)
@@ -20,15 +16,12 @@ namespace N6
         private List<RadioButton> reportTypeRadioButtons = new List<RadioButton>();
         private DataTable allLopHoc;
         private DataTable allMonHoc;
-        private bool isProgrammaticChange = false; // Flag to prevent cascading events
+        private bool isProgrammaticChange = false;
 
         #endregion
 
         #region Constructor & Load
 
-        /// <summary>
-        /// Khởi tạo UserControl báo cáo dành cho Admin.
-        /// </summary>
         public UC_BaoCao_Admin()
         {
             InitializeComponent();
@@ -38,9 +31,6 @@ namespace N6
             UpdateControlsVisibility();
         }
 
-        /// <summary>
-        /// Áp dụng style hiện đại cho các control (DataGridView, Buttons, etc.).
-        /// </summary>
         private void ApplyModernStyles()
         {
             StyleDataGridViewModern(this.dgvDuLieu);
@@ -66,7 +56,7 @@ namespace N6
             }
             if (reportTypeRadioButtons.Count > 0)
             {
-                // Set initial check later in LoadInitialAdminData
+                // reportTypeRadioButtons[0].Checked = true;
             }
 
             StyleActionButton(btnXuatExcel, Color.FromArgb(16, 124, 65));
@@ -75,9 +65,6 @@ namespace N6
             splitContainer1.BackColor = Color.FromArgb(220, 220, 220);
         }
 
-        /// <summary>
-        /// Định dạng style cho các nút hành động (Excel, PDF).
-        /// </summary>
         private void StyleActionButton(Button btn, Color backColor)
         {
             btn.BackColor = backColor;
@@ -89,10 +76,6 @@ namespace N6
             btn.TextAlign = ContentAlignment.MiddleCenter;
         }
 
-
-        /// <summary>
-        /// Áp dụng style hiện đại cho DataGridView.
-        /// </summary>
         private void StyleDataGridViewModern(DataGridView dgv)
         {
             if (dgv == null) return;
@@ -123,9 +106,6 @@ namespace N6
             dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         }
 
-        /// <summary>
-        /// Gán các trình xử lý sự kiện cho control.
-        /// </summary>
         private void SetupEventHandlers()
         {
             this.cboLop.SelectedIndexChanged += new System.EventHandler(this.cboLop_SelectedIndexChanged_Handler);
@@ -135,46 +115,37 @@ namespace N6
             this.cboThang.SelectedIndexChanged += new System.EventHandler(this.AutoLoadReport_Trigger);
             this.btnXuatExcel.Click += new System.EventHandler(this.btnXuatExcel_Click);
             this.btnXuatPDF.Click += new System.EventHandler(this.btnXuatPDF_Click);
+            this.pnlFilters.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlFilters_Paint);
         }
 
-        /// <summary>
-        /// Tải dữ liệu ban đầu cho Admin (danh sách Khối, Môn học).
-        /// </summary>
         private void LoadInitialAdminData()
         {
-            isProgrammaticChange = true; // Prevent event firing during setup
+            isProgrammaticChange = true;
             try
             {
-                // Load all classes and subjects into memory
                 allLopHoc = DatabaseHelper.GetAllClasses();
                 allMonHoc = DatabaseHelper.GetAllSubjects();
 
-                // Populate Khoi ComboBox
                 var khoiList = allLopHoc.AsEnumerable()
                                         .Select(row => row.Field<string>("Khoi"))
                                         .Distinct()
-                                        .OrderBy(k => k) // Sort Khoi 1, Khoi 2...
+                                        .OrderBy(k => k)
                                         .ToList();
-                khoiList.Insert(0, "Tất cả các khối"); // Add option for all grades
+                khoiList.Insert(0, "Tất cả các khối");
                 cboKhoi.DataSource = khoiList;
-                cboKhoi.SelectedIndex = -1; // No initial selection
+                cboKhoi.SelectedIndex = -1;
 
-                // Populate Mon Hoc ComboBox
-                LoadAllSubjects(); // Load all subjects initially
+                LoadAllSubjects();
 
-                // Populate Hoc Ky ComboBox (can be static)
                 cboHocKy.Items.Clear();
                 cboHocKy.Items.AddRange(new object[] { "Học kỳ 1", "Học kỳ 2", "Cả năm" });
                 cboHocKy.SelectedIndex = -1;
 
-                // Set initial placeholder text
                 ResetPlaceholders();
 
                 splitContainer1.Panel2Collapsed = true;
-
                 ToggleNoDataMessage(true);
 
-                // Set initial checked RadioButton *after* controls are ready
                 if (reportTypeRadioButtons.Count > 0 && !reportTypeRadioButtons.Any(rb => rb.Checked))
                 {
                     reportTypeRadioButtons[0].Checked = true;
@@ -190,26 +161,21 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Đặt lại văn bản placeholder cho các ComboBox.
-        /// </summary>
         private void ResetPlaceholders()
         {
             isProgrammaticChange = true;
             cboKhoi.SelectedIndex = -1;
             cboKhoi.Text = "Chọn khối...";
-            cboLop.DataSource = null; // Clear items first
+            cboLop.DataSource = null;
             cboLop.Items.Clear();
             cboLop.Text = "Chọn lớp...";
             cboHocKy.SelectedIndex = -1;
             cboHocKy.Text = "Chọn học kỳ...";
             cboMonDay.SelectedIndex = -1;
             cboMonDay.Text = "Chọn môn...";
-
             cboThang.DataSource = null;
             cboThang.Items.Clear();
             cboThang.Text = "Chọn tháng...";
-
             isProgrammaticChange = false;
         }
 
@@ -217,55 +183,38 @@ namespace N6
 
         #region Event Handlers
 
-        /// <summary>
-        /// Xử lý khi thay đổi loại báo cáo (RadioButton).
-        /// </summary>
         private void ReportType_CheckedChanged(object sender, EventArgs e)
         {
             RadioButton rb = sender as RadioButton;
-            if (rb != null && rb.Checked && !isProgrammaticChange) // Added !isProgrammaticChange check
+            if (rb != null && rb.Checked && !isProgrammaticChange)
             {
-                // Update RadioButton styles
                 foreach (var button in reportTypeRadioButtons)
                 {
-                    // Use Invoke if called from a different thread, though unlikely here
                     button.ForeColor = button.Checked ? Color.White : Color.Black;
                     button.BackColor = button.Checked ? Color.FromArgb(0, 120, 215) : Color.FromArgb(240, 240, 240);
                 }
-
-                UpdateControlsVisibility(); // Update filter visibility
-                ClearReportData(); // Clear previous report
-                ResetPlaceholders(); // Reset filter selections AFTER visibility update
+                UpdateControlsVisibility();
+                ClearReportData();
+                ResetPlaceholders();
             }
         }
 
-        /// <summary>
-        /// Xử lý khi thay đổi lựa chọn Khối.
-        /// </summary>
         private void cboKhoi_SelectedIndexChanged_Handler(object sender, EventArgs e)
         {
             if (isProgrammaticChange || cboKhoi.SelectedIndex < 0) return;
 
-            LoadClassesForSelectedGrade(); // Reload class list based on selected grade
+            LoadClassesForSelectedGrade();
 
-            // Nếu chọn Khối, cboLop sẽ được tải lại. 
-            // Nếu báo cáo tháng đang được chọn, chúng ta cũng cần cập nhật cboThang
             string reportType = GetSelectedReportType();
             if (reportType == "Báo cáo tháng")
             {
-                // Tạm thời xóa cboThang để người dùng chọn lại
                 cboThang.DataSource = null;
                 cboThang.Items.Clear();
                 cboThang.Text = "Chọn học kỳ/lớp...";
             }
-
-            // Trigger report loading only if all necessary filters are selected for the current report type
             AutoLoadReport_Trigger(sender, e);
         }
 
-        /// <summary>
-        /// Xử lý khi thay đổi lựa chọn Lớp.
-        /// </summary>
         private void cboLop_SelectedIndexChanged_Handler(object sender, EventArgs e)
         {
             if (isProgrammaticChange) return;
@@ -273,17 +222,11 @@ namespace N6
             string reportType = GetSelectedReportType();
             if (reportType == "Báo cáo tháng")
             {
-                // Khi chọn lớp, tải lại danh sách tháng
                 LoadThangForSelectedHocKy();
             }
-
-            // Trigger report loading only if all necessary filters are selected
             AutoLoadReport_Trigger(sender, e);
         }
 
-        /// <summary>
-        /// Xử lý khi thay đổi lựa chọn Học Kỳ.
-        /// </summary>
         private void cboHocKy_SelectedIndexChanged_Handler(object sender, EventArgs e)
         {
             if (isProgrammaticChange) return;
@@ -293,18 +236,13 @@ namespace N6
             {
                 LoadThangForSelectedHocKy();
             }
-
-            // Kích hoạt tải báo cáo tự động
             AutoLoadReport_Trigger(sender, e);
         }
 
         #endregion
 
-        #region Data Loading (Tải dữ liệu)
+        #region Data Loading
 
-        /// <summary>
-        /// Tải danh sách tháng (cột điểm) dựa trên Lớp/Khối và Học Kỳ.
-        /// </summary>
         private void LoadThangForSelectedHocKy()
         {
             if (isProgrammaticChange) return;
@@ -312,7 +250,7 @@ namespace N6
 
             string selectedMaLopValue = cboLop.SelectedValue?.ToString();
             string selectedKhoiValue = cboKhoi.SelectedItem?.ToString();
-            int hocKyIndex = cboHocKy.SelectedIndex; // 0 for HK1, 1 for HK2
+            int hocKyIndex = cboHocKy.SelectedIndex;
 
             this.cboThang.DataSource = null;
 
@@ -323,7 +261,6 @@ namespace N6
                 return;
             }
 
-            // Báo cáo tháng không có "Cả năm"
             if (hocKyIndex > 1)
             {
                 cboThang.Text = "Chọn HK1 hoặc 2";
@@ -331,18 +268,14 @@ namespace N6
                 return;
             }
 
-            int hocKy = hocKyIndex + 1; // 1 for HK1, 2 for HK2
-
-            // Ưu tiên Lớp cụ thể
+            int hocKy = hocKyIndex + 1;
             string maLopDeTim = null;
             if (!string.IsNullOrEmpty(selectedMaLopValue) && selectedMaLopValue != "ALL" && selectedMaLopValue != "ALL_KHOI")
             {
                 maLopDeTim = selectedMaLopValue;
             }
-            // Nếu không chọn lớp cụ thể, nhưng chọn Khối
             else if (!string.IsNullOrEmpty(selectedKhoiValue) && selectedKhoiValue != "Tất cả các khối")
             {
-                // Lấy mã lớp đầu tiên thuộc khối đó để tìm danh sách tháng
                 maLopDeTim = allLopHoc.AsEnumerable()
                                     .Where(r => r.Field<string>("Khoi") == selectedKhoiValue)
                                     .Select(r => r.Field<string>("MaLop"))
@@ -382,36 +315,26 @@ namespace N6
             }
         }
 
-
-        /// <summary>
-        /// Tải TẤT CẢ các môn học vào ComboBox (thêm "Tất cả").
-        /// </summary>
         private void LoadAllSubjects()
         {
             isProgrammaticChange = true;
             try
             {
-                // Create a copy to add "All" option without modifying the original cache
                 DataTable dtMonDisplay = allMonHoc.Copy();
-
-                // Add "All Subjects" option
                 DataRow allRow = dtMonDisplay.NewRow();
-                allRow["MaMon"] = "ALL"; // Use a special value
+                allRow["MaMon"] = "ALL";
                 allRow["TenMon"] = "Tất cả các môn";
                 dtMonDisplay.Rows.InsertAt(allRow, 0);
 
                 cboMonDay.DataSource = dtMonDisplay;
                 cboMonDay.DisplayMember = "TenMon";
                 cboMonDay.ValueMember = "MaMon";
-                cboMonDay.SelectedIndex = -1; // Default to no selection
+                cboMonDay.SelectedIndex = -1;
                 cboMonDay.Text = "Chọn môn...";
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Lỗi tải danh sách môn học: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                cboMonDay.DataSource = null;
-                cboMonDay.Items.Clear();
-                cboMonDay.Text = "Lỗi tải môn";
             }
             finally
             {
@@ -419,13 +342,10 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Tải danh sách Lớp vào ComboBox dựa trên Khối đã chọn.
-        /// </summary>
         private void LoadClassesForSelectedGrade()
         {
             isProgrammaticChange = true;
-            cboLop.DataSource = null; // Clear previous items
+            cboLop.DataSource = null;
             cboLop.Items.Clear();
 
             try
@@ -434,16 +354,14 @@ namespace N6
 
                 if (string.IsNullOrEmpty(selectedKhoi) || selectedKhoi == "Tất cả các khối")
                 {
-                    // If "All Grades" or no grade selected, show all classes
                     var allClassList = allLopHoc.AsEnumerable()
                                        .OrderBy(row => row.Field<string>("Khoi"))
                                        .ThenBy(row => row.Field<string>("TenLop"))
                                        .CopyToDataTable();
-                    // Add "All Classes" option only when "All Grades" is selected
                     if (selectedKhoi == "Tất cả các khối")
                     {
                         DataRow allRow = allClassList.NewRow();
-                        allRow["MaLop"] = "ALL"; // Special value
+                        allRow["MaLop"] = "ALL";
                         allRow["TenLop"] = "Tất cả các lớp";
                         allClassList.Rows.InsertAt(allRow, 0);
                     }
@@ -451,15 +369,13 @@ namespace N6
                 }
                 else
                 {
-                    // Filter classes by the selected grade
                     var filteredClasses = allLopHoc.AsEnumerable()
                                             .Where(row => row.Field<string>("Khoi") == selectedKhoi)
                                             .OrderBy(row => row.Field<string>("TenLop"))
                                             .CopyToDataTable();
 
-                    // Add "All Classes in this Grade" option
                     DataRow allInGradeRow = filteredClasses.NewRow();
-                    allInGradeRow["MaLop"] = "ALL_KHOI"; // Special value for all in grade
+                    allInGradeRow["MaLop"] = "ALL_KHOI";
                     allInGradeRow["TenLop"] = $" ({selectedKhoi})";
                     filteredClasses.Rows.InsertAt(allInGradeRow, 0);
 
@@ -468,7 +384,7 @@ namespace N6
 
                 cboLop.DisplayMember = "TenLop";
                 cboLop.ValueMember = "MaLop";
-                cboLop.SelectedIndex = -1; // Default to no selection
+                cboLop.SelectedIndex = -1;
                 cboLop.Text = "Chọn lớp...";
             }
             catch (Exception ex)
@@ -484,82 +400,66 @@ namespace N6
 
         #endregion
 
-        #region Report Logic (Logic Báo cáo)
+        #region Report Logic
 
-        /// <summary>
-        /// Lấy tên (Text) của RadioButton đang được chọn.
-        /// </summary>
         private string GetSelectedReportType()
         {
             foreach (var rb in reportTypeRadioButtons)
             {
-                if (rb.Checked)
-                {
-                    // Use Text property which holds the display name
-                    return rb.Text;
-                }
+                if (rb.Checked) return rb.Text;
             }
-            return null; // Should not happen if one is checked by default
+            return null;
         }
 
-        /// <summary>
-        /// Cập nhật hiển thị (ẩn/hiện) các bộ lọc dựa trên loại báo cáo.
-        /// </summary>
         private void UpdateControlsVisibility()
         {
             string reportType = GetSelectedReportType();
 
-            // Start by assuming most are visible, then hide as needed
             lblKhoi.Visible = cboKhoi.Visible = true;
             lblLop.Visible = cboLop.Visible = true;
             lblHocKy.Visible = cboHocKy.Visible = true;
             lblMonDay.Visible = cboMonDay.Visible = true;
             lblThang.Visible = cboThang.Visible = false;
 
-            // Reset HocKy items initially
-            isProgrammaticChange = true; // Prevent event firing during item changes
+            isProgrammaticChange = true;
             cboHocKy.Items.Clear();
             cboHocKy.Items.AddRange(new object[] { "Học kỳ 1", "Học kỳ 2", "Cả năm" });
             isProgrammaticChange = false;
 
-            // Hide controls based on report type
             switch (reportType)
             {
                 case "Báo cáo chuyên cần":
-                    lblMonDay.Visible = cboMonDay.Visible = false; // Not needed
-                    // HocKy defaults to All options
+                    lblMonDay.Visible = cboMonDay.Visible = false;
                     break;
 
                 case "Bảng điểm học kỳ":
-                    // All filters (Khoi, Lop, HocKy, Mon) are potentially needed
-                    // HocKy needs to exclude "Cả năm" for detailed grades
                     isProgrammaticChange = true;
                     cboHocKy.Items.Clear();
-                    cboHocKy.Items.AddRange(new object[] { "Học kỳ 1", "Học kỳ 2" }); // Bảng điểm chi tiết không có "Cả năm"
+                    cboHocKy.Items.AddRange(new object[] { "Học kỳ 1", "Học kỳ 2" });
                     isProgrammaticChange = false;
                     break;
 
                 case "Hồ sơ học sinh":
-                    lblHocKy.Visible = cboHocKy.Visible = false; // Not needed
-                    lblMonDay.Visible = cboMonDay.Visible = false; // Not needed
+                    lblHocKy.Visible = cboHocKy.Visible = false;
+                    lblMonDay.Visible = cboMonDay.Visible = false;
                     break;
 
                 case "Thống kê tổng hợp khối":
-                    lblLop.Visible = cboLop.Visible = false; // Only filter by Khoi
-                    lblHocKy.Visible = cboHocKy.Visible = false; // Not needed
-                    lblMonDay.Visible = cboMonDay.Visible = false; // Not needed
+                    lblLop.Visible = cboLop.Visible = false;
+                    lblHocKy.Visible = cboHocKy.Visible = false;
+                    lblMonDay.Visible = cboMonDay.Visible = false;
                     break;
 
                 case "Báo cáo tháng":
-                    lblThang.Visible = cboThang.Visible = true; // Hiện cboThang
+                    lblThang.Visible = cboThang.Visible = true;
                     isProgrammaticChange = true;
                     cboHocKy.Items.Clear();
-                    cboHocKy.Items.AddRange(new object[] { "Học kỳ 1", "Học kỳ 2" }); // Báo cáo tháng không có "Cả năm"
+                    cboHocKy.Items.AddRange(new object[] { "Học kỳ 1", "Học kỳ 2" });
                     isProgrammaticChange = false;
-                    LoadThangForSelectedHocKy(); // Tải danh sách tháng
+                    LoadThangForSelectedHocKy();
                     break;
 
-                default: // Hide everything if no report type selected (shouldn't happen)
+                default:
                     lblKhoi.Visible = cboKhoi.Visible = false;
                     lblLop.Visible = cboLop.Visible = false;
                     lblHocKy.Visible = cboHocKy.Visible = false;
@@ -568,19 +468,14 @@ namespace N6
             }
         }
 
-
-        /// <summary>
-        /// Kích hoạt tải báo cáo tự động khi một ComboBox thay đổi.
-        /// </summary>
         private void AutoLoadReport_Trigger(object sender, EventArgs e)
         {
-            if (isProgrammaticChange) return; // Prevent loading during setup or programmatic changes
-            if (sender is ComboBox cbo && cbo.SelectedIndex < 0) return; // Don't load if placeholder selected
+            if (isProgrammaticChange) return;
+            if (sender is ComboBox cbo && cbo.SelectedIndex < 0) return;
 
             string reportType = GetSelectedReportType();
             if (string.IsNullOrEmpty(reportType)) return;
 
-            // Check if all *required* filters for the *current* report type have a valid selection
             bool canLoad = false;
             switch (reportType)
             {
@@ -594,28 +489,16 @@ namespace N6
                     canLoad = cboKhoi.SelectedIndex != -1 && cboLop.SelectedIndex != -1;
                     break;
                 case "Thống kê tổng hợp khối":
-                    canLoad = cboKhoi.SelectedIndex != -1; // Only Khoi is needed
+                    canLoad = cboKhoi.SelectedIndex != -1;
                     break;
                 case "Báo cáo tháng":
-                    canLoad = cboKhoi.SelectedIndex != -1 &&
-                              cboLop.SelectedIndex != -1 &&
-                              cboHocKy.SelectedIndex != -1 &&
-                              cboMonDay.SelectedIndex != -1 &&
-                              cboThang.SelectedIndex != -1;
+                    canLoad = cboKhoi.SelectedIndex != -1 && cboLop.SelectedIndex != -1 && cboHocKy.SelectedIndex != -1 && cboMonDay.SelectedIndex != -1 && cboThang.SelectedIndex != -1;
                     break;
             }
 
-
-            if (canLoad)
-            {
-                LoadReportData();
-            }
-
+            if (canLoad) LoadReportData();
         }
 
-        /// <summary>
-        /// Tải dữ liệu báo cáo chính từ CSDL dựa trên các bộ lọc.
-        /// </summary>
         private void LoadReportData()
         {
             string reportType = GetSelectedReportType();
@@ -624,120 +507,63 @@ namespace N6
             DataTable dtReport = null;
             try
             {
-                // 1. Lấy giá trị từ các bộ lọc
                 string selectedKhoi = cboKhoi.SelectedItem?.ToString();
-                string selectedMaLopValue = cboLop.SelectedValue?.ToString(); // vd: "1A1", "ALL", "ALL_KHOI"
-                int selectedHocKyIndex = cboHocKy.SelectedIndex; // 0=HK1, 1=HK2, 2=Cả năm
-                int hocKyParam = selectedHocKyIndex + 1; // Tham số cho SP: 1, 2, 3
+                string selectedMaLopValue = cboLop.SelectedValue?.ToString();
+                int selectedHocKyIndex = cboHocKy.SelectedIndex;
+                int hocKyParam = selectedHocKyIndex + 1;
                 string selectedMaMon = cboMonDay.SelectedValue?.ToString();
                 string selectedLoaiDiem = cboThang.SelectedValue?.ToString();
 
-                // 2. Chuẩn hóa giá trị tham số
                 string khoiParam = (selectedKhoi == "Tất cả các khối") ? null : selectedKhoi;
                 string maLopParam_Admin = (selectedMaLopValue == "ALL" || selectedMaLopValue == "ALL_KHOI") ? null : selectedMaLopValue;
                 string maMonParam_Pivot = (selectedMaMon == "ALL") ? null : selectedMaMon;
 
-                // 3. Biến kiểm tra xem có phải chọn LỚP CỤ THỂ không
-                bool isSpecificClass = !string.IsNullOrEmpty(selectedMaLopValue)
-                                       && selectedMaLopValue != "ALL"
-                                       && selectedMaLopValue != "ALL_KHOI";
+                bool isSpecificClass = !string.IsNullOrEmpty(selectedMaLopValue) && selectedMaLopValue != "ALL" && selectedMaLopValue != "ALL_KHOI";
 
-                // 4. Gọi SP tương ứng dựa trên loại báo cáo VÀ lựa chọn Lớp/Khối
                 switch (reportType)
                 {
                     case "Báo cáo chuyên cần":
-                        if (isSpecificClass)
-                        {
-                            // Dùng hàm cũ (cho GV) khi chọn lớp cụ thể
-                            dtReport = DatabaseHelper.GetAttendanceReport(maLopParam_Admin, hocKyParam);
-                        }
-                        else
-                        {
-                            // Dùng hàm Admin khi chọn "Tất cả các lớp" / "Tất cả các khối"
-                            dtReport = DatabaseHelper.GetAttendanceReport_Admin(khoiParam, maLopParam_Admin, hocKyParam);
-                        }
+                        dtReport = isSpecificClass ? DatabaseHelper.GetAttendanceReport(maLopParam_Admin, hocKyParam) : DatabaseHelper.GetAttendanceReport_Admin(khoiParam, maLopParam_Admin, hocKyParam);
                         break;
-
                     case "Bảng điểm học kỳ":
                         if (!string.IsNullOrEmpty(maMonParam_Pivot))
                         {
-                            // --- Bảng điểm PIVOT (chi tiết 1 môn) ---
-                            // Yêu cầu phải chọn lớp cụ thể
                             if (isSpecificClass)
                             {
                                 dtReport = DatabaseHelper.GetScoreboardPivot(maLopParam_Admin, hocKyParam, maMonParam_Pivot);
-                                CalculateAndAddAverageColumn(dtReport); // Tính TB môn
+                                CalculateAndAddAverageColumn(dtReport);
                             }
                             else
                             {
                                 MessageBox.Show("Vui lòng chọn một lớp cụ thể để xem bảng điểm chi tiết theo môn.", "Yêu cầu", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                                ClearReportData(); // Xóa dữ liệu cũ nếu có
-                                return; // Không tải dữ liệu
+                                ClearReportData(); return;
                             }
                         }
                         else
                         {
-                            // --- Bảng điểm TỔNG HỢP (nhiều môn) ---
-                            if (isSpecificClass)
-                            {
-                                // Dùng hàm cũ (cho GV) khi chọn lớp cụ thể
-                                dtReport = DatabaseHelper.GetSemesterScoreboard(maLopParam_Admin, hocKyParam);
-                            }
-                            else
-                            {
-                                // Dùng hàm Admin khi chọn "Tất cả các lớp" / "Tất cả các khối"
-                                dtReport = DatabaseHelper.GetSemesterScoreboard_Admin(khoiParam, maLopParam_Admin, hocKyParam);
-                            }
+                            dtReport = isSpecificClass ? DatabaseHelper.GetSemesterScoreboard(maLopParam_Admin, hocKyParam) : DatabaseHelper.GetSemesterScoreboard_Admin(khoiParam, maLopParam_Admin, hocKyParam);
                         }
                         break;
-
                     case "Hồ sơ học sinh":
-                        if (isSpecificClass)
-                        {
-                            // Dùng hàm cũ (cho GV) khi chọn lớp cụ thể
-                            dtReport = DatabaseHelper.GetStudentRecords(maLopParam_Admin);
-                        }
-                        else
-                        {
-                            // Dùng hàm Admin khi chọn "Tất cả các lớp" / "Tất cả các khối"
-                            dtReport = DatabaseHelper.GetStudentRecords_Admin(khoiParam, maLopParam_Admin);
-                        }
+                        dtReport = isSpecificClass ? DatabaseHelper.GetStudentRecords(maLopParam_Admin) : DatabaseHelper.GetStudentRecords_Admin(khoiParam, maLopParam_Admin);
                         break;
-
                     case "Thống kê tổng hợp khối":
-                        // Trường hợp này luôn ẩn cboLop, nên isSpecificClass luôn là false
-                        // Luôn dùng hàm Admin, không cần thay đổi
-                        dtReport = DatabaseHelper.GetGradeStatistics_Admin(khoiParam); // SP này xử lý null cho toàn trường
+                        dtReport = DatabaseHelper.GetGradeStatistics_Admin(khoiParam);
                         break;
-
                     case "Báo cáo tháng":
-                        if (isSpecificClass)
-                        {
-                            // Xem theo Lớp cụ thể -> Dùng SP của GV
-                            dtReport = DatabaseHelper.GetMonthlyReport_Statistics(maLopParam_Admin, selectedMaMon, selectedLoaiDiem);
-                        }
-                        else
-                        {
-                            // Xem theo Khối -> Dùng SP mới của Admin
-                            dtReport = DatabaseHelper.GetMonthlyReport_Statistics_Admin(khoiParam, selectedMaMon, selectedLoaiDiem);
-                        }
+                        dtReport = isSpecificClass ? DatabaseHelper.GetMonthlyReport_Statistics(maLopParam_Admin, selectedMaMon, selectedLoaiDiem) : DatabaseHelper.GetMonthlyReport_Statistics_Admin(khoiParam, selectedMaMon, selectedLoaiDiem);
                         break;
                 }
 
-                // 5. Hiển thị dữ liệu (như cũ)
                 DisplayReportData(dtReport, reportType);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Lỗi khi tải báo cáo: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                ClearReportData(); // Xóa dữ liệu nếu có lỗi
+                ClearReportData();
             }
         }
 
-
-        /// <summary>
-        /// Xóa dữ liệu báo cáo (Grid, Chart) khỏi giao diện.
-        /// </summary>
         private void ClearReportData()
         {
             dgvDuLieu.DataSource = null;
@@ -746,179 +572,160 @@ namespace N6
             ToggleNoDataMessage(true);
         }
 
-        /// <summary>
-        /// Hiển thị dữ liệu báo cáo lên Grid và Chart.
-        /// </summary>
         private void DisplayReportData(DataTable dtReport, string reportType)
         {
-            // TRƯỜNG HỢP 1: BÁO CÁO THÁNG (Cấu trúc bảng đặc biệt)
             if (reportType == "Báo cáo tháng")
             {
-                dgvDuLieu.DataSource = null; // Xóa lưới chính
-                flpCharts.Controls.Clear();  // Xóa panel biểu đồ
-
+                dgvDuLieu.DataSource = null;
+                flpCharts.Controls.Clear();
                 if (dtReport != null && dtReport.Rows.Count > 0)
                 {
-                    // Ẩn tiêu đề mặc định của DataGridView vì báo cáo tháng tự vẽ header
                     dgvDuLieu.ColumnHeadersVisible = false;
-
-                    // Gọi hàm hiển thị gộp (Logic hiển thị và ẩn LabelNoData nằm trong hàm này)
                     DisplayCombinedMonthlyReport(dtReport);
-
-                    splitContainer1.Panel2Collapsed = true; // Báo cáo tháng không có biểu đồ dưới
+                    splitContainer1.Panel2Collapsed = true;
                 }
                 else
                 {
-                    // Không có dữ liệu
                     dgvDuLieu.ColumnHeadersVisible = true;
                     splitContainer1.Panel2Collapsed = true;
-
-                    // Hiện thông báo "Chưa có báo cáo"
                     ToggleNoDataMessage(true);
                 }
             }
-            // TRƯỜNG HỢP 2: CÁC BÁO CÁO KHÁC (Cấu trúc bảng chuẩn)
             else
             {
-                // Luôn hiện lại tiêu đề cột
                 dgvDuLieu.ColumnHeadersVisible = true;
                 dgvDuLieu.DataSource = dtReport;
                 flpCharts.Controls.Clear();
-
                 if (dtReport != null && dtReport.Rows.Count > 0)
                 {
-                    // Có dữ liệu: Ẩn thông báo "Chưa có báo cáo", hiện Grid
                     ToggleNoDataMessage(false);
-
                     RenameDataGridViewColumns();
                     UpdateCharts(dtReport, reportType);
-
-                    // Chỉ hiện panel biểu đồ nếu có biểu đồ được vẽ
                     splitContainer1.Panel2Collapsed = flpCharts.Controls.Count == 0;
                 }
                 else
                 {
-                    // Không có dữ liệu
                     splitContainer1.Panel2Collapsed = true;
-
-                    // Hiện thông báo "Chưa có báo cáo"
                     ToggleNoDataMessage(true);
                 }
             }
         }
 
-
-        /// <summary>
-        /// Hiển thị báo cáo tháng (GỘP CHUNG) lên DataGridView.
-        /// </summary>
         private void DisplayCombinedMonthlyReport(DataTable dtReport)
         {
-            // 1. Dọn dẹp
+            // 1. Dọn dẹp giao diện và DỮ LIỆU CŨ
             flpCharts.Controls.Clear();
-            splitContainer1.Panel2Collapsed = true; // Không dùng panel dưới nữa
+            splitContainer1.Panel2Collapsed = true;
 
-            // Kiểm tra đây là báo cáo Khối (Admin) hay Lớp
+            // [FIX QUAN TRỌNG] Xóa sạch cột cũ để tránh bị chồng cột hoặc dư cột ẩn
+            dgvDuLieu.DataSource = null;
+            dgvDuLieu.Columns.Clear();
+
+            // Kiểm tra loại báo cáo
             bool isAdminReport = dtReport.Columns.Contains("TyLe");
 
-            // 2. Lấy dữ liệu nguồn
+            // 2. Map dữ liệu (Giữ nguyên logic cũ)
             var dataMapDiem = dtReport.Select("LoaiThongKe = 'Diem'")
                                       .ToDictionary(r => r["PhanLoai"].ToString(), r => r);
             var dataMapXepLoai = dtReport.Select("LoaiThongKe = 'XepLoai'")
                                          .ToDictionary(r => r["PhanLoai"].ToString(), r => r);
 
-            // 3. Tạo DataTable KẾT HỢP
+            // 3. Tạo DataTable kết hợp
             DataTable dtCombined = new DataTable();
             dtCombined.Columns.Add("PhanLoai", typeof(string));
             dtCombined.Columns.Add("Col_TS", typeof(string));
             dtCombined.Columns.Add("Col_Nu", typeof(string));
-            dtCombined.Columns.Add("Col_DanToc_Percent", typeof(string)); // Cột này dùng chung
+            dtCombined.Columns.Add("Col_DanToc_Percent", typeof(string));
             dtCombined.Columns.Add("Col_NDT", typeof(string));
-            dtCombined.Columns.Add("IsHeader", typeof(int)); // Cột cờ để PDF nhận diện
+            dtCombined.Columns.Add("IsHeader", typeof(int));
 
-            // 4. Thêm hàng tiêu đề ĐIỂM
+            // --- PHẦN 1: ĐIỂM SỐ ---
             dtCombined.Rows.Add("ĐIỂM", "TS", "Nữ", "Dân tộc", "NDT", 1);
 
-            // 5. Thêm các hàng dữ liệu ĐIỂM (Dùng chung cho cả Lớp và Khối)
             string[] scoreOrder = { "10", "9", "8", "7", "6", "5", "Dưới 5" };
             foreach (string key in scoreOrder)
             {
                 string ts = "0", nu = "0", dtoc = "0", ndt = "0";
-                if (dataMapDiem.ContainsKey(key))
+                string dbKey = key;
+
+                // Fix lỗi tìm key "Dưới 5" vs "<5"
+                bool found = dataMapDiem.ContainsKey(key);
+                if (!found && key == "Dưới 5" && dataMapDiem.ContainsKey("<5")) { dbKey = "<5"; found = true; }
+
+                if (found)
                 {
-                    ts = dataMapDiem[key]["TS"].ToString();
-                    nu = dataMapDiem[key]["Nu"].ToString();
-                    dtoc = dataMapDiem[key]["DanToc"].ToString();
-                    ndt = dataMapDiem[key]["NDT"].ToString();
+                    ts = dataMapDiem[dbKey]["TS"].ToString();
+                    nu = dataMapDiem[dbKey]["Nu"].ToString();
+                    dtoc = dataMapDiem[dbKey]["DanToc"].ToString();
+                    ndt = dataMapDiem[dbKey]["NDT"].ToString();
                 }
                 dtCombined.Rows.Add(key, ts, nu, dtoc, ndt, 0);
             }
 
-            // Thêm hàng TỔNG CỘNG cho báo cáo LỚP
-            if (!isAdminReport)
-            {
-                // Tính tổng từ dataMapDiem
-                int totalTS = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["TS"]));
-                int totalNu = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["Nu"]));
-                int totalDanToc = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["DanToc"]));
-                int totalNDT = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["NDT"]));
-                dtCombined.Rows.Add("Tổng", totalTS.ToString(), totalNu.ToString(), totalDanToc.ToString(), totalNDT.ToString(), 0);
-            }
+            // Tính tổng Điểm
+            int totalTS = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["TS"]));
+            int totalNu = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["Nu"]));
+            int totalDanToc = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["DanToc"]));
+            int totalNDT = dataMapDiem.Values.Sum(r => Convert.ToInt32(r["NDT"]));
+            dtCombined.Rows.Add("Tổng", totalTS.ToString(), totalNu.ToString(), totalDanToc.ToString(), totalNDT.ToString(), 0);
 
-            // 6. Thêm hàng tiêu đề XẾP LOẠI
+            // --- PHẦN 2: XẾP LOẠI ---
             if (isAdminReport)
-            {
                 dtCombined.Rows.Add("XẾP LOẠI", "TS", "", "%", "", 1);
-            }
             else
-            {
                 dtCombined.Rows.Add("XẾP LOẠI", "TS", "Nữ", "Dân tộc", "NDT", 1);
-            }
 
-            // 7. Thêm các hàng dữ liệu XẾP LOẠI
             string[] rankOrder = { "T", "H", "C" };
             foreach (string key in rankOrder)
             {
-                string ts = "0";
-                string col2 = ""; // Nữ (Lớp) hoặc "" (Khối)
-                string col3 = ""; // Dân tộc (Lớp) hoặc % (Khối)
-                string col4 = ""; // NDT (Lớp) hoặc "" (Khối)
+                string ts = "0", col2 = "0", col3 = "0", col4 = "0";
 
                 if (dataMapXepLoai.ContainsKey(key))
                 {
                     ts = dataMapXepLoai[key]["TS"].ToString();
                     if (isAdminReport)
                     {
-                        // Báo cáo Khối (Admin) lấy TyLe
+                        col2 = "";
                         col3 = Convert.ToDouble(dataMapXepLoai[key]["TyLe"]).ToString("N1") + "%";
+                        col4 = "";
                     }
                     else
                     {
-                        // Báo cáo Lớp lấy chi tiết
                         col2 = dataMapXepLoai[key]["Nu"].ToString();
                         col3 = dataMapXepLoai[key]["DanToc"].ToString();
                         col4 = dataMapXepLoai[key]["NDT"].ToString();
                     }
                 }
+                else if (isAdminReport)
+                {
+                    col2 = ""; col3 = "0.0%"; col4 = "";
+                }
                 dtCombined.Rows.Add(key, ts, col2, col3, col4, 0);
             }
 
-            // 8. Hiển thị
+            // 4. Gán dữ liệu
             dgvDuLieu.DataSource = dtCombined;
+
+            // [FIX QUAN TRỌNG] Duyệt từng cột để ẩn IsHeader chắc chắn 100%
+            foreach (DataGridViewColumn col in dgvDuLieu.Columns)
+            {
+                if (col.DataPropertyName == "IsHeader")
+                {
+                    col.Visible = false;
+                }
+            }
+
             ToggleNoDataMessage(false);
-            // Truyền cờ isAdminReport vào hàm Format
             FormatCombinedMonthlyReportGrid(dgvDuLieu, isAdminReport);
         }
 
-        /// <summary>
-        /// Định dạng các cột cho lưới Báo cáo tháng (GỘP CHUNG).
-        /// </summary>
         private void FormatCombinedMonthlyReportGrid(DataGridView dgv, bool isAdminReport)
         {
             if (dgv.DataSource == null) return;
 
-            // 1. Định dạng cột
             foreach (DataGridViewColumn col in dgv.Columns)
             {
+                // Căn giữa toàn bộ header
                 col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
                 col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
                 col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
@@ -926,75 +733,50 @@ namespace N6
                 switch (col.DataPropertyName)
                 {
                     case "PhanLoai":
-                        col.HeaderText = ""; // Cột đầu tiên không có header
+                        col.HeaderText = ""; // Cột tên loại (10, 9, T, H...)
                         col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
                         col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                         break;
-                    case "Col_TS":
-                        col.HeaderText = "TS";
-                        break;
-                    case "Col_Nu":
-                        col.HeaderText = "Nữ";
-                        break;
-                    case "Col_DanToc_Percent":
-                        // Header vẫn là "Dân tộc" cho cả 2
-                        col.HeaderText = "Dân tộc";
-                        break;
-                    case "Col_NDT":
-                        col.HeaderText = "NDT";
-                        break;
+                    case "Col_TS": col.HeaderText = "TS"; break;
+                    case "Col_Nu": col.HeaderText = "Nữ"; break;
+                    case "Col_DanToc_Percent": col.HeaderText = "Dân tộc"; break;
+                    case "Col_NDT": col.HeaderText = "NDT"; break;
+
+                    // [QUAN TRỌNG] Đảm bảo ẩn ở đây nữa
                     case "IsHeader":
-                        col.Visible = false; // Ẩn cột cờ
+                        col.Visible = false;
                         break;
                 }
             }
 
-            // 2. Định dạng hàng (Hàng tiêu đề và hàng dữ liệu)
+            // Tô màu nền cho hàng tiêu đề (ĐIỂM, XẾP LOẠI) và hàng Tổng
             foreach (DataGridViewRow row in dgv.Rows)
             {
+                // Kiểm tra an toàn null
+                if (row.Cells["IsHeader"].Value == DBNull.Value) continue;
+
                 bool isHeader = Convert.ToInt32(row.Cells["IsHeader"].Value) == 1;
                 string phanLoai = row.Cells["PhanLoai"].Value?.ToString();
 
                 if (isHeader)
                 {
-                    // Hàng tiêu đề (ĐIỂM, XẾP LOẠI)
                     row.DefaultCellStyle.Font = new Font(dgv.Font, FontStyle.Bold);
                     row.DefaultCellStyle.BackColor = Color.FromArgb(235, 235, 235);
                     row.DefaultCellStyle.ForeColor = Color.Black;
                 }
                 else
                 {
-                    // Hàng dữ liệu (10, 9, T, H...)
                     row.Cells["PhanLoai"].Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
                 }
 
-                // Tô đậm hàng "Tổng" cho báo cáo lớp
-                if (!isAdminReport && phanLoai == "Tổng")
+                if (phanLoai == "Tổng")
                 {
                     row.DefaultCellStyle.Font = new Font(dgv.Font, FontStyle.Bold);
                     row.DefaultCellStyle.BackColor = Color.FromArgb(240, 240, 240);
                 }
-
-                // Ẩn/Thay đổi các ô không cần thiết cho báo cáo Khối (Admin)
-                if (isAdminReport && phanLoai == "XẾP LOẠI")
-                {
-                    // Hàng tiêu đề XẾP LOẠI (của Khối)
-                    row.Cells["Col_Nu"].Value = "";
-                    row.Cells["Col_DanToc_Percent"].Value = "%";
-                    row.Cells["Col_NDT"].Value = "";
-                }
-                else if (isAdminReport && (phanLoai == "T" || phanLoai == "H" || phanLoai == "C"))
-                {
-                    // Hàng data XẾP LOẠI (của Khối)
-                    row.Cells["Col_Nu"].Value = "";
-                    row.Cells["Col_NDT"].Value = "";
-                }
             }
         }
 
-        /// <summary>
-        /// Hàm hỗ trợ ẩn/hiện thông báo "Chưa có dữ liệu"
-        /// </summary>
         private void ToggleNoDataMessage(bool showMessage)
         {
             if (lblNoData != null)
@@ -1003,22 +785,19 @@ namespace N6
                 if (showMessage)
                 {
                     lblNoData.BringToFront();
-                    dgvDuLieu.Visible = false; // Ẩn lưới đi cho sạch
+                    dgvDuLieu.Visible = false;
                 }
                 else
                 {
-                    dgvDuLieu.Visible = true; // Hiện lưới lại
+                    dgvDuLieu.Visible = true;
                 }
             }
         }
 
         #endregion
 
-        #region Charting (Vẽ Biểu đồ)
+        #region Charting
 
-        /// <summary>
-        /// Cập nhật (vẽ) các biểu đồ dựa trên loại báo cáo.
-        /// </summary>
         private void UpdateCharts(DataTable dt, string reportType)
         {
             switch (reportType)
@@ -1033,13 +812,9 @@ namespace N6
                     DrawStudentCountChart(dt);
                     DrawAverageScoreChart(dt);
                     break;
-                    // Add cases for other charts if needed
             }
         }
 
-        /// <summary>
-        /// Tạo một đối tượng Chart cơ bản với style chung.
-        /// </summary>
         private Chart CreateBaseChart(string title)
         {
             var chart = new Chart { Size = new Size(450, 250), BackColor = Color.White };
@@ -1058,21 +833,12 @@ namespace N6
             return chart;
         }
 
-        /// <summary>
-        /// Vẽ biểu đồ tròn chuyên cần.
-        /// </summary>
         private void DrawAttendancePieChart(DataTable dt)
         {
-            // Check if required columns exist before proceeding
-            if (!dt.Columns.Contains("SoBuoiCoMat") || !dt.Columns.Contains("SoBuoiVang") || !dt.Columns.Contains("SoBuoiVangCoPhep"))
-            {
-                return;
-            }
-
+            if (!dt.Columns.Contains("SoBuoiCoMat") || !dt.Columns.Contains("SoBuoiVang") || !dt.Columns.Contains("SoBuoiVangCoPhep")) return;
             long totalPresent = dt.AsEnumerable().Sum(row => row.Field<object>("SoBuoiCoMat") == DBNull.Value ? 0 : Convert.ToInt64(row["SoBuoiCoMat"]));
             long totalAbsent = dt.AsEnumerable().Sum(row => row.Field<object>("SoBuoiVang") == DBNull.Value ? 0 : Convert.ToInt64(row["SoBuoiVang"]));
             long totalExcused = dt.AsEnumerable().Sum(row => row.Field<object>("SoBuoiVangCoPhep") == DBNull.Value ? 0 : Convert.ToInt64(row["SoBuoiVangCoPhep"]));
-
             long totalAll = totalPresent + totalAbsent + totalExcused;
             if (totalAll == 0) return;
 
@@ -1090,60 +856,44 @@ namespace N6
 
             if (totalPresent > 0)
             {
-                double percentPresent = (double)totalPresent / totalAll;
                 series.Points.Add(totalPresent);
                 int pIdx = series.Points.Count - 1;
                 series.Points[pIdx].Color = Color.FromArgb(75, 192, 192);
                 series.Points[pIdx].LegendText = $"Có mặt ({totalPresent})";
-                series.Points[pIdx].Label = percentPresent.ToString("P1");
+                series.Points[pIdx].Label = ((double)totalPresent / totalAll).ToString("P1");
             }
             if (totalAbsent > 0)
             {
-                double percentAbsent = (double)totalAbsent / totalAll;
                 series.Points.Add(totalAbsent);
                 int pIdx = series.Points.Count - 1;
                 series.Points[pIdx].Color = Color.FromArgb(255, 99, 132);
                 series.Points[pIdx].LegendText = $"Vắng ({totalAbsent})";
-                series.Points[pIdx].Label = percentAbsent.ToString("P1");
+                series.Points[pIdx].Label = ((double)totalAbsent / totalAll).ToString("P1");
             }
             if (totalExcused > 0)
             {
-                double percentExcused = (double)totalExcused / totalAll;
                 series.Points.Add(totalExcused);
                 int pIdx = series.Points.Count - 1;
                 series.Points[pIdx].Color = Color.FromArgb(255, 205, 86);
                 series.Points[pIdx].LegendText = $"Vắng có phép ({totalExcused})";
-                series.Points[pIdx].Label = percentExcused.ToString("P1");
+                series.Points[pIdx].Label = ((double)totalExcused / totalAll).ToString("P1");
             }
-
             chart.Series.Add(series);
             flpCharts.Controls.Add(chart);
         }
 
-        /// <summary>
-        /// Vẽ biểu đồ cột phân phối điểm.
-        /// </summary>
         private void DrawScoreDistributionChart(DataTable dt)
         {
-            // Determine which average column is available
             string scoreColumnName = "";
-            if (dt.Columns.Contains("DiemTB")) // From Pivot SP with added column
-                scoreColumnName = "DiemTB";
-            else if (dt.Columns.Contains("Trung bình chung")) // From Homeroom SP
-                scoreColumnName = "Trung bình chung";
-            else if (dt.Columns.Contains("DiemTrungBinh")) // From Khoi SP
-                scoreColumnName = "DiemTrungBinh";
+            if (dt.Columns.Contains("DiemTB")) scoreColumnName = "DiemTB";
+            else if (dt.Columns.Contains("Trung bình chung")) scoreColumnName = "Trung bình chung";
+            else if (dt.Columns.Contains("DiemTrungBinh")) scoreColumnName = "DiemTrungBinh";
+            if (string.IsNullOrEmpty(scoreColumnName)) return;
 
-            if (string.IsNullOrEmpty(scoreColumnName)) return; // No average score column found
-
-            var scoreCounts = new Dictionary<string, int> {
-                {"Yếu (<5)", 0}, {"TB (5-<7)", 0}, {"Khá (7-<9)", 0}, {"Giỏi (>=9)", 0}
-            };
+            var scoreCounts = new Dictionary<string, int> { { "Yếu (<5)", 0 }, { "TB (5-<7)", 0 }, { "Khá (7-<9)", 0 }, { "Giỏi (>=9)", 0 } };
             int validScores = 0;
-
             foreach (DataRow row in dt.Rows)
             {
-                // Handle potential DBNull values safely
                 object scoreValue = row[scoreColumnName];
                 if (scoreValue != DBNull.Value && scoreValue != null)
                 {
@@ -1156,8 +906,7 @@ namespace N6
                         else if (score < 9) scoreCounts["Khá (7-<9)"]++;
                         else scoreCounts["Giỏi (>=9)"]++;
                     }
-                    catch (InvalidCastException) { /* Ignore rows where conversion fails */ }
-                    catch (FormatException) { /* Ignore rows where conversion fails */ }
+                    catch { }
                 }
             }
             if (validScores == 0) return;
@@ -1172,35 +921,23 @@ namespace N6
 
             foreach (var kvp in scoreCounts)
             {
-                // Only add categories with counts > 0 to avoid empty columns
                 if (kvp.Value > 0)
                 {
                     int pIdx = series.Points.AddXY(kvp.Key, kvp.Value);
-                    double percentage = (double)kvp.Value / validScores;
-                    series.Points[pIdx].ToolTip = $"{kvp.Key}: {kvp.Value} HS ({percentage:P1})";
-                    series.Points[pIdx].Label = kvp.Value.ToString(); // Show count on top
+                    series.Points[pIdx].ToolTip = $"{kvp.Key}: {kvp.Value} HS ({(double)kvp.Value / validScores:P1})";
+                    series.Points[pIdx].Label = kvp.Value.ToString();
                     series.Points[pIdx].Color = colors[pointIndex % colors.Length];
                 }
-                pointIndex++; // Increment index even if count is 0 to maintain color order
+                pointIndex++;
             }
-
-            // Only add series if it has points
-            if (series.Points.Count > 0)
-            {
-                series["PixelPointWidth"] = "40"; // Adjust column width
-                chart.Series.Add(series);
-                flpCharts.Controls.Add(chart);
-            }
+            series["PixelPointWidth"] = "40";
+            chart.Series.Add(series);
+            flpCharts.Controls.Add(chart);
         }
 
-
-        /// <summary>
-        /// Vẽ biểu đồ cột sĩ số học sinh.
-        /// </summary>
         private void DrawStudentCountChart(DataTable dt)
         {
             if (!dt.Columns.Contains("TenLop") || !dt.Columns.Contains("SoHocSinh")) return;
-
             var chart = CreateBaseChart("Thống kê sĩ số theo lớp");
             chart.ChartAreas[0].AxisX.Title = "Lớp";
             chart.ChartAreas[0].AxisY.Title = "Sĩ số";
@@ -1224,26 +961,17 @@ namespace N6
                         int pIdx = series.Points.AddXY(row["TenLop"].ToString(), Convert.ToInt32(row["SoHocSinh"]));
                         series.Points[pIdx].Color = Color.FromArgb(54, 162, 235);
                     }
-                    catch (InvalidCastException) { /* Ignore row if conversion fails */ }
-                    catch (FormatException) { /* Ignore row if conversion fails */ }
+                    catch { }
                 }
             }
-
-            if (series.Points.Count > 0)
-            {
-                series["PixelPointWidth"] = "30";
-                chart.Series.Add(series);
-                flpCharts.Controls.Add(chart);
-            }
+            series["PixelPointWidth"] = "30";
+            chart.Series.Add(series);
+            flpCharts.Controls.Add(chart);
         }
 
-        /// <summary>
-        /// Vẽ biểu đồ cột điểm trung bình.
-        /// </summary>
         private void DrawAverageScoreChart(DataTable dt)
         {
             if (!dt.Columns.Contains("TenLop") || !dt.Columns.Contains("DiemTrungBinh")) return;
-
             var chart = CreateBaseChart("Điểm trung bình theo lớp");
             chart.ChartAreas[0].AxisX.Title = "Lớp";
             chart.ChartAreas[0].AxisY.Title = "Điểm trung bình";
@@ -1258,7 +986,7 @@ namespace N6
                 IsValueShownAsLabel = true,
                 Font = new Font("Segoe UI", 9F),
                 LabelForeColor = Color.FromArgb(64, 64, 64),
-                LabelFormat = "N1" // Format to 1 decimal place
+                LabelFormat = "N1"
             };
 
             foreach (DataRow row in dt.Rows)
@@ -1270,45 +998,27 @@ namespace N6
                         int pIdx = series.Points.AddXY(row["TenLop"].ToString(), Convert.ToDouble(row["DiemTrungBinh"]));
                         series.Points[pIdx].Color = Color.FromArgb(75, 192, 192);
                     }
-                    catch (InvalidCastException) { /* Ignore row */ }
-                    catch (FormatException) { /* Ignore row */ }
+                    catch { }
                 }
             }
-
-            if (series.Points.Count > 0)
-            {
-                series["PixelPointWidth"] = "30";
-                chart.Series.Add(series);
-                flpCharts.Controls.Add(chart);
-            }
+            series["PixelPointWidth"] = "30";
+            chart.Series.Add(series);
+            flpCharts.Controls.Add(chart);
         }
 
-        /// <summary>
-        /// Tính toán và thêm cột "DiemTB" vào DataTable (cho Bảng điểm).
-        /// </summary>
         private void CalculateAndAddAverageColumn(DataTable dt)
         {
             if (dt == null || dt.Rows.Count == 0) return;
-            // Add DiemTB column if it doesn't exist
-            if (!dt.Columns.Contains("DiemTB"))
-            {
-                dt.Columns.Add("DiemTB", typeof(double));
-            }
-
-            // Identify score columns dynamically
+            if (!dt.Columns.Contains("DiemTB")) dt.Columns.Add("DiemTB", typeof(double));
             var scoreCols = dt.Columns.Cast<DataColumn>()
                                 .Where(c => c.DataType == typeof(double) || c.DataType == typeof(float) || c.DataType == typeof(decimal))
-                                .Where(c => c.ColumnName != "DiemTB" && c.ColumnName != "Trung bình chung" && c.ColumnName != "DiemTrungBinh") // Exclude existing averages
+                                .Where(c => c.ColumnName != "DiemTB" && c.ColumnName != "Trung bình chung" && c.ColumnName != "DiemTrungBinh")
                                 .Select(c => c.ColumnName).ToList();
-
-            int scoreColCount = scoreCols.Count;
-            if (scoreColCount == 0) return; // No score columns found to average
 
             foreach (DataRow row in dt.Rows)
             {
                 double totalScore = 0;
-                int validScoresCount = 0; // Count actual scores found
-
+                int validScoresCount = 0;
                 foreach (string colName in scoreCols)
                 {
                     if (row[colName] != DBNull.Value)
@@ -1318,51 +1028,34 @@ namespace N6
                             totalScore += Convert.ToDouble(row[colName]);
                             validScoresCount++;
                         }
-                        catch { /* Ignore if conversion fails */ }
+                        catch { }
                     }
                 }
-
-                if (validScoresCount > 0)
-                {
-                    double avg = totalScore / validScoresCount;
-                    row["DiemTB"] = Math.Round(avg, 2);
-                }
-                else
-                {
-                    row["DiemTB"] = DBNull.Value;
-                }
+                if (validScoresCount > 0) row["DiemTB"] = Math.Round(totalScore / validScoresCount, 2);
+                else row["DiemTB"] = DBNull.Value;
             }
         }
 
         #endregion
 
-        #region Formatting & Export (Định dạng & Xuất file)
+        #region Formatting & Export
 
-        /// <summary>
-        /// Đổi tên các tiêu đề cột (HeaderText) của DataGridView.
-        /// </summary>
         private void RenameDataGridViewColumns()
         {
             if (dgvDuLieu.DataSource == null) return;
             foreach (DataGridViewColumn col in dgvDuLieu.Columns)
             {
-                col.Tag = col.DataPropertyName; // Store original binding name
-
+                col.Tag = col.DataPropertyName;
                 switch (col.DataPropertyName)
                 {
-                    // Common Columns
                     case "MaHS": col.HeaderText = "Mã HS"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
                     case "HoTen": col.HeaderText = "Họ Tên"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-                    case "TenLop": col.HeaderText = "Lớp"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break; // Show Class for Admin
-
-                    // Attendance Report
+                    case "TenLop": col.HeaderText = "Lớp"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
                     case "SoBuoiCoMat": col.HeaderText = "Có Mặt"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
-                    case "SoBuoiVang": col.HeaderText = "Vắng KP"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break; // Không Phép
-                    case "SoBuoiVangCoPhep": col.HeaderText = "Vắng CP"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break; // Có Phép
+                    case "SoBuoiVang": col.HeaderText = "Vắng KP"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
+                    case "SoBuoiVangCoPhep": col.HeaderText = "Vắng CP"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
                     case "TongSoBuoi": col.HeaderText = "Tổng Buổi"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
                     case "TyLeChuyenCan": col.HeaderText = "Tỷ Lệ CC (%)"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; col.DefaultCellStyle.Format = "N0"; break;
-
-                    // Grade Report (Pivot/Detailed)
                     case "Thang1": col.HeaderText = "T1"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; col.DefaultCellStyle.Format = "N1"; break;
                     case "Thang2": col.HeaderText = "T2"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; col.DefaultCellStyle.Format = "N1"; break;
                     case "Thang3": col.HeaderText = "T3"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; col.DefaultCellStyle.Format = "N1"; break;
@@ -1372,70 +1065,44 @@ namespace N6
                     case "Trung bình chung": col.HeaderText = "TB Chung Kỳ"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; col.DefaultCellStyle.Format = "N2"; col.DefaultCellStyle.Font = new Font(dgvDuLieu.Font, FontStyle.Bold); break;
                     case "NhanXet": col.HeaderText = "Nhận Xét"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
                     case "GhiChu": col.HeaderText = "Ghi Chú"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
-
-                    // Student Profile Report
                     case "GioiTinh": col.HeaderText = "Giới Tính"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
                     case "NgaySinh": col.HeaderText = "Ngày Sinh"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; col.DefaultCellStyle.Format = "dd/MM/yyyy"; break;
                     case "DanToc": col.HeaderText = "Dân Tộc"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
                     case "DiaChi": col.HeaderText = "Địa Chỉ"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; break;
                     case "SDTPhuHuynh": col.HeaderText = "SĐT PH"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
-
-                    // Grade Summary Report
                     case "SoHocSinh": col.HeaderText = "Sĩ Số"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
                     case "DiemTrungBinh": col.HeaderText = "Điểm TB Khối"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; col.DefaultCellStyle.Format = "N2"; break;
                     case "SoNam": col.HeaderText = "Số Nam"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
                     case "SoNu": col.HeaderText = "Số Nữ"; col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells; break;
-
-                    // Hide internal IDs
                     case "MaGV":
                     case "MaLop":
                     case "MaMon": col.Visible = false; break;
-
-                    // Handle potential dynamic columns from PIVOT (Subject Scores)
                     default:
                         bool isLikelySubject = col.DataPropertyName.Length > 3 || System.Text.RegularExpressions.Regex.IsMatch(col.DataPropertyName, @"\p{IsVietnamese}");
-
                         if (isLikelySubject && (col.ValueType == typeof(double) || col.ValueType == typeof(decimal) || col.ValueType == typeof(float)))
                         {
-                            col.HeaderText = col.DataPropertyName; // Show subject name
+                            col.HeaderText = col.DataPropertyName;
                             col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                            col.DefaultCellStyle.Format = "N1"; // Format as score
+                            col.DefaultCellStyle.Format = "N1";
                             col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
                         }
-                        else if (!col.Visible)
-                        {
-                            // Keep hidden if already hidden
-                        }
+                        else if (!col.Visible) { }
                         else
                         {
-                            // Fallback: Show original name, adjust width
                             col.HeaderText = col.DataPropertyName;
                             col.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                         }
                         break;
                 }
-
-                // Standard Alignment Rules
                 col.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
                 if (col.ValueType == typeof(int) || col.ValueType == typeof(long) || col.ValueType == typeof(double) || col.ValueType == typeof(decimal) || col.ValueType == typeof(float) || col.HeaderText.Contains("%") || col.HeaderText.StartsWith("T") || col.HeaderText == "GK" || col.HeaderText == "CK")
-                {
                     col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-                }
                 else if (!string.IsNullOrEmpty(col.DefaultCellStyle.Format) && col.DefaultCellStyle.Format.Contains("dd/MM/yyyy"))
-                {
-                    col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter; // Center dates
-                }
-                else
-                {
-                    col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-                }
+                    col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+                else col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
             }
         }
 
-
-        /// <summary>
-        /// Xử lý sự kiện click nút "Xuất Excel".
-        /// </summary>
         private void btnXuatExcel_Click(object sender, EventArgs e)
         {
             if (dgvDuLieu.Rows.Count == 0)
@@ -1447,7 +1114,7 @@ namespace N6
             {
                 Filter = "Excel Files (*.csv)|*.csv",
                 Title = "Lưu file Excel",
-                FileName = $"BaoCao_{GetSelectedReportType()?.Replace(" ", "")}_{DateTime.Now:yyyyMMdd_HHmmss}.csv" // Sanitize filename
+                FileName = $"BaoCao_{GetSelectedReportType()?.Replace(" ", "")}_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
             };
             if (saveFileDialog.ShowDialog() == DialogResult.OK)
             {
@@ -1463,27 +1130,21 @@ namespace N6
             }
         }
 
-        /// <summary>
-        /// Xử lý sự kiện click nút "Xuất PDF".
-        /// </summary>
         private void btnXuatPDF_Click(object sender, EventArgs e)
         {
             try
             {
-                // 1. Lấy thông tin header TRƯỚC để làm tên file mặc định
                 bool isClassReport = false;
                 bool isGradeReport = false;
                 string mainHeader = "";
                 string classOrGradeName = "";
 
-                // Nếu combobox lớp được chọn => Báo cáo lớp
                 if (cboLop.Visible && cboLop.SelectedItem != null && cboLop.SelectedValue?.ToString() != "ALL" && cboLop.SelectedValue?.ToString() != "ALL_KHOI")
                 {
                     isClassReport = true;
                     classOrGradeName = cboLop.Text.Trim();
                     mainHeader = $"{classOrGradeName.ToUpper()}";
                 }
-                // Nếu combobox khối được chọn => Báo cáo khối
                 else if (cboKhoi.Visible && cboKhoi.SelectedItem != null && cboKhoi.SelectedItem?.ToString() != "Tất cả các khối")
                 {
                     isGradeReport = true;
@@ -1496,7 +1157,6 @@ namespace N6
                     return;
                 }
 
-                // 2. Mở SaveFileDialog để người dùng chọn vị trí
                 SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
                     Filter = "PDF Files (*.pdf)|*.pdf",
@@ -1504,28 +1164,18 @@ namespace N6
                     FileName = $"BaoCao_{mainHeader.Replace(" ", "").Replace(":", "")}_{DateTime.Now:yyyyMMdd_HHmm}.pdf"
                 };
 
-                // 3. Nếu người dùng chọn "OK"
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string fileName = saveFileDialog.FileName;
-
-                    // Tạo tiêu đề tài liệu chi tiết (cho phần đầu trang)
                     string reportType = GetSelectedReportType();
-                    string documentTitle = reportType?.ToUpper() ?? "BÁO CÁO"; // VD: "BÁO CÁO THÁNG"
+                    string documentTitle = reportType?.ToUpper() ?? "BÁO CÁO";
 
-                    if (isGradeReport)
-                    {
-                        documentTitle += $"\nKHỐI: {cboKhoi.Text}"; // VD: "... \nKHỐI: Khối 5"
-                    }
-                    if (isClassReport)
-                    {
-                        documentTitle += $"\nLỚP: {cboLop.Text}"; // VD: "... \nLỚP: 5A1"
-                    }
+                    if (isGradeReport) documentTitle += $"\nKHỐI: {cboKhoi.Text}";
+                    if (isClassReport) documentTitle += $"\nMÃ: {cboLop.Text}";
                     if (cboHocKy.Visible && cboHocKy.SelectedIndex != -1) documentTitle += $" - {cboHocKy.Text.ToUpper()}";
                     if (cboMonDay.Visible && cboMonDay.SelectedIndex != -1) documentTitle += $"\nMÔN: {cboMonDay.Text}";
                     if (cboThang.Visible && cboThang.SelectedIndex != -1) documentTitle += $"\nTHÁNG: {cboThang.Text}";
 
-                    // 4. Tự động lấy danh sách lớp (nếu là báo cáo khối)
                     if (isGradeReport)
                     {
                         try
@@ -1535,26 +1185,18 @@ namespace N6
                             {
                                 string maLop = rowView["MaLop"].ToString();
                                 string tenLop = rowView["TenLop"].ToString();
-
                                 if (maLop != "ALL" && maLop != "ALL_KHOI" && !string.IsNullOrWhiteSpace(tenLop))
                                 {
                                     lopList.Add(tenLop.Trim().Replace("Lớp ", "").Replace("A", "/"));
                                 }
                             }
-
-                            if (lopList.Count > 0)
-                                dgvDuLieu.Tag = string.Join("; ", lopList);
-                            else
-                                dgvDuLieu.Tag = "(Không tìm thấy lớp nào)";
+                            if (lopList.Count > 0) dgvDuLieu.Tag = string.Join("; ", lopList);
+                            else dgvDuLieu.Tag = "(Không tìm thấy lớp nào)";
                         }
                         catch { dgvDuLieu.Tag = ""; }
                     }
-                    else
-                    {
-                        dgvDuLieu.Tag = null;
-                    }
+                    else dgvDuLieu.Tag = null;
 
-                    // 5. Lấy ảnh của bảng xếp loại (nếu có)
                     Image secondTable = null;
                     if (reportType != "Báo cáo tháng")
                     {
@@ -1576,14 +1218,9 @@ namespace N6
                         catch { }
                     }
 
-                    // 6. Xuất PDF
                     ExportHelper.ExportToPDF(dgvDuLieu, fileName, documentTitle, mainHeader, secondTable);
-
                     MessageBox.Show("✅ Đã xuất PDF thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                    // 7. Mở file đã lưu
-                    if (File.Exists(fileName))
-                        System.Diagnostics.Process.Start(fileName);
+                    if (File.Exists(fileName)) System.Diagnostics.Process.Start(fileName);
                 }
             }
             catch (Exception ex)
@@ -1592,39 +1229,19 @@ namespace N6
             }
         }
 
-
-        /// <summary>
-        /// Xử lý sự kiện Paint (vẽ viền) cho panel bộ lọc.
-        /// </summary>
         private void pnlFilters_Paint(object sender, PaintEventArgs e)
         {
-            // Draw the border for the filters panel
-            ControlPaint.DrawBorder(e.Graphics, pnlFilters.ClientRectangle,
-               Color.FromArgb(220, 220, 220), ButtonBorderStyle.Solid);
+            ControlPaint.DrawBorder(e.Graphics, pnlFilters.ClientRectangle, Color.FromArgb(220, 220, 220), ButtonBorderStyle.Solid);
         }
 
-        #endregion
-
-        #region Dispose
-
-        /// <summary> 
-        /// Dọn dẹp các tài nguyên đang sử dụng.
-        /// </summary>
-        /// <param name="disposing">true nếu tài nguyên được quản lý nên được giải phóng; ngược lại là false.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                // 1. Gỡ bỏ sự kiện RadioButton
                 if (reportTypeRadioButtons != null)
                 {
-                    foreach (var rb in reportTypeRadioButtons)
-                    {
-                        rb.CheckedChanged -= ReportType_CheckedChanged;
-                    }
+                    foreach (var rb in reportTypeRadioButtons) rb.CheckedChanged -= ReportType_CheckedChanged;
                 }
-
-                // 2. Gỡ bỏ sự kiện ComboBox, Button
                 if (this.cboLop != null) this.cboLop.SelectedIndexChanged -= this.cboLop_SelectedIndexChanged_Handler;
                 if (this.cboKhoi != null) this.cboKhoi.SelectedIndexChanged -= this.cboKhoi_SelectedIndexChanged_Handler;
                 if (this.cboHocKy != null) this.cboHocKy.SelectedIndexChanged -= this.cboHocKy_SelectedIndexChanged_Handler;
@@ -1632,16 +1249,9 @@ namespace N6
                 if (this.cboThang != null) this.cboThang.SelectedIndexChanged -= this.AutoLoadReport_Trigger;
                 if (this.btnXuatExcel != null) this.btnXuatExcel.Click -= this.btnXuatExcel_Click;
                 if (this.btnXuatPDF != null) this.btnXuatPDF.Click -= this.btnXuatPDF_Click;
-
-                // 3. Giải phóng tài nguyên IDisposable (DataTables)
                 allLopHoc?.Dispose();
                 allMonHoc?.Dispose();
-
-                // 4. Giải phóng 'components' (từ Designer)
-                if (components != null)
-                {
-                    components.Dispose();
-                }
+                if (components != null) components.Dispose();
             }
             base.Dispose(disposing);
         }

@@ -125,9 +125,9 @@
             this.btnDownloadTemplate.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnDownloadTemplate.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnDownloadTemplate.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(80)))));
-            this.btnDownloadTemplate.Location = new System.Drawing.Point(30, 240);
+            this.btnDownloadTemplate.Location = new System.Drawing.Point(30, 300);
             this.btnDownloadTemplate.Name = "btnDownloadTemplate";
-            this.btnDownloadTemplate.Size = new System.Drawing.Size(272, 45);
+            this.btnDownloadTemplate.Size = new System.Drawing.Size(340, 33);
             this.btnDownloadTemplate.TabIndex = 2;
             this.btnDownloadTemplate.Text = "📥 Tải file mẫu";
             this.btnDownloadTemplate.UseVisualStyleBackColor = false;
@@ -140,7 +140,7 @@
             this.btnImport.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnImport.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.btnImport.ForeColor = System.Drawing.Color.White;
-            this.btnImport.Location = new System.Drawing.Point(30, 310);
+            this.btnImport.Location = new System.Drawing.Point(37, 341);
             this.btnImport.Name = "btnImport";
             this.btnImport.Size = new System.Drawing.Size(540, 55);
             this.btnImport.TabIndex = 3;
@@ -150,12 +150,13 @@
             // 
             // pnlResults
             // 
+            this.pnlResults.Controls.Add(this.progressBar);
             this.pnlResults.Controls.Add(this.txtErrorLog);
             this.pnlResults.Controls.Add(this.lblResultStatus);
             this.pnlResults.Controls.Add(this.picResultIcon);
             this.pnlResults.Location = new System.Drawing.Point(30, 70);
             this.pnlResults.Name = "pnlResults";
-            this.pnlResults.Size = new System.Drawing.Size(540, 220);
+            this.pnlResults.Size = new System.Drawing.Size(540, 224);
             this.pnlResults.TabIndex = 4;
             this.pnlResults.Visible = false;
             // 
@@ -164,18 +165,18 @@
             this.txtErrorLog.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
             this.txtErrorLog.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtErrorLog.Font = new System.Drawing.Font("Consolas", 9F);
-            this.txtErrorLog.Location = new System.Drawing.Point(20, 100);
+            this.txtErrorLog.Location = new System.Drawing.Point(20, 73);
             this.txtErrorLog.Multiline = true;
             this.txtErrorLog.Name = "txtErrorLog";
             this.txtErrorLog.ReadOnly = true;
             this.txtErrorLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtErrorLog.Size = new System.Drawing.Size(500, 110);
+            this.txtErrorLog.Size = new System.Drawing.Size(517, 135);
             this.txtErrorLog.TabIndex = 2;
             // 
             // lblResultStatus
             // 
             this.lblResultStatus.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
-            this.lblResultStatus.Location = new System.Drawing.Point(3, 60);
+            this.lblResultStatus.Location = new System.Drawing.Point(3, 47);
             this.lblResultStatus.Name = "lblResultStatus";
             this.lblResultStatus.Size = new System.Drawing.Size(534, 28);
             this.lblResultStatus.TabIndex = 1;
@@ -184,16 +185,16 @@
             // 
             // picResultIcon
             // 
-            this.picResultIcon.Location = new System.Drawing.Point(245, 5);
+            this.picResultIcon.Location = new System.Drawing.Point(245, 3);
             this.picResultIcon.Name = "picResultIcon";
-            this.picResultIcon.Size = new System.Drawing.Size(50, 50);
+            this.picResultIcon.Size = new System.Drawing.Size(50, 44);
             this.picResultIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.picResultIcon.TabIndex = 0;
             this.picResultIcon.TabStop = false;
             // 
             // progressBar
             // 
-            this.progressBar.Location = new System.Drawing.Point(30, 285);
+            this.progressBar.Location = new System.Drawing.Point(-3, 232);
             this.progressBar.MarqueeAnimationSpeed = 50;
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(540, 10);
@@ -215,8 +216,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(600, 390);
-            this.Controls.Add(this.progressBar);
+            this.ClientSize = new System.Drawing.Size(600, 419);
             this.Controls.Add(this.btnImport);
             this.Controls.Add(this.btnDownloadTemplate);
             this.Controls.Add(this.pnlTopBar);

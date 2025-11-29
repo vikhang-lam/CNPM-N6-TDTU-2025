@@ -315,6 +315,7 @@ namespace N6
         {
             try
             {
+                // Khởi tạo Form động
                 using (var formThemLop = new Form
                 {
                     Text = "Thêm Lớp Học Mới",
@@ -327,6 +328,8 @@ namespace N6
                     Padding = new Padding(20)
                 })
                 {
+                    // --- KHỞI TẠO UI CONTROLS ---
+
                     var lblHeader = new Label
                     {
                         Text = "📚 Thêm Lớp Học Mới",
@@ -357,8 +360,11 @@ namespace N6
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
                     pnlFields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70F));
 
-                    // Giữ chiều cao dòng 50px cho gọn
-                    for (int i = 0; i < 4; i++) pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
+                    // Thiết lập chiều cao dòng
+                    for (int i = 0; i < 4; i++)
+                    {
+                        pnlFields.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
+                    }
 
                     Padding inputMargin = new Padding(0, 12, 0, 0);
 
@@ -373,53 +379,49 @@ namespace N6
                     var lblKhoi = new Label { Text = "Khối *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
                     var cboKhoiThem = new ComboBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
 
-                    // [SỬA ĐỔI] Thay TextBox Năm Học bằng ComboBox để lấy từ DB
                     var lblNamHoc = new Label { Text = "Năm Học *", Font = new Font("Segoe UI", 10F, FontStyle.Bold), ForeColor = Color.FromArgb(73, 80, 87), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
                     var cboNamHoc = new ComboBox { Font = new Font("Segoe UI", 10F), Anchor = AnchorStyles.Left | AnchorStyles.Right, Margin = inputMargin, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(248, 249, 250), FlatStyle = FlatStyle.Flat };
 
                     // --- LOGIC LOAD DỮ LIỆU ---
 
-                    // 1. Load danh sách Khối (Fix cứng 5 khối)
+                    // 1. Load danh sách Khối
                     cboKhoiThem.Items.Clear();
                     cboKhoiThem.Items.AddRange(new string[] { "Khối 1", "Khối 2", "Khối 3", "Khối 4", "Khối 5" });
                     cboKhoiThem.SelectedIndex = 0;
 
-                    // 2. Load danh sách Năm Học từ Database và chọn năm hiện tại
+                    // 2. Load Năm Học (Logic Mới: Chỉ lấy năm hiện tại)
                     try
                     {
-                        DataTable dtNamHoc = DatabaseHelper.GetAllSchoolYears(); // Gọi hàm lấy toàn bộ năm học
-                        if (dtNamHoc != null && dtNamHoc.Rows.Count > 0)
-                        {
-                            cboNamHoc.DataSource = dtNamHoc;
-                            cboNamHoc.DisplayMember = "TenNamHoc"; // Hiển thị: "Năm học 2024 - 2025"
-                            cboNamHoc.ValueMember = "MaNamHoc";    // Giá trị: "2024-2025"
+                        DataTable dtNamHoc = DatabaseHelper.GetAllSchoolYears();
 
-                            // Tìm năm học đang kích hoạt (IsCurrent = true/1)
-                            foreach (DataRow row in dtNamHoc.Rows)
-                            {
-                                if (row["IsCurrent"] != DBNull.Value && Convert.ToBoolean(row["IsCurrent"]) == true)
-                                {
-                                    cboNamHoc.SelectedValue = row["MaNamHoc"];
-                                    break;
-                                }
-                            }
+                        // Lọc lấy năm học có IsCurrent = 1 (true)
+                        DataRow[] currentYearRows = dtNamHoc.Select("IsCurrent = 1");
+
+                        if (currentYearRows.Length > 0)
+                        {
+                            // Tạo DataTable mới chỉ chứa dòng năm hiện tại để bind vào ComboBox
+                            DataTable dtCurrent = dtNamHoc.Clone();
+                            dtCurrent.ImportRow(currentYearRows[0]);
+
+                            cboNamHoc.DataSource = dtCurrent;
+                            cboNamHoc.DisplayMember = "TenNamHoc";
+                            cboNamHoc.ValueMember = "MaNamHoc";
+
+                            cboNamHoc.Enabled = false;
                         }
                         else
                         {
-                            // Fallback nếu DB chưa có năm học nào (hiếm khi xảy ra nếu đã chạy script data.sql)
-                            cboNamHoc.Items.Add($"{DateTime.Now.Year}-{DateTime.Now.Year + 1}");
-                            cboNamHoc.SelectedIndex = 0;
+                            MessageBox.Show("Hệ thống chưa thiết lập Năm học hiện tại.\nVui lòng liên hệ Admin để tạo niên khóa mới.", "Lỗi cấu hình", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return; // Thoát khỏi hàm, không hiển thị Form
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Fallback khi lỗi kết nối
-                        cboNamHoc.Items.Add($"{DateTime.Now.Year}-{DateTime.Now.Year + 1}");
-                        cboNamHoc.SelectedIndex = 0;
+                        MessageBox.Show("Lỗi tải thông tin năm học: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
                     }
 
-                    // Tự động sinh tên lớp: "Lớp" + [Khối] + [Mã] (Ví dụ: Mã 5A -> Lớp 5A)
-                    // Logic: Nếu mã lớp chưa có tên khối, tự động thêm vào dựa trên selection
+                    // Sự kiện tự động sinh tên lớp
                     EventHandler updateTenLop = (s, ev) =>
                     {
                         string rawMa = txtMaLop.Text.Trim().ToUpper();
@@ -428,19 +430,16 @@ namespace N6
                             txtTenLop.Text = "";
                             return;
                         }
-
-                        // Nếu người dùng nhập "5A" -> Tên lớp: "Lớp 5A"
-                        // Nếu người dùng nhập "A" và chọn Khối 5 -> Tên lớp: "Lớp 5A" (Gợi ý)
                         txtTenLop.Text = $"Lớp {rawMa}";
                     };
                     txtMaLop.TextChanged += updateTenLop;
 
-                    // --- THÊM CONTROL VÀO FORM ---
+                    // --- THÊM CONTROL VÀO PANEL ---
 
                     pnlFields.Controls.Add(lblMaLop, 0, 0); pnlFields.Controls.Add(txtMaLop, 1, 0);
                     pnlFields.Controls.Add(lblTenLop, 0, 1); pnlFields.Controls.Add(txtTenLop, 1, 1);
                     pnlFields.Controls.Add(lblKhoi, 0, 2); pnlFields.Controls.Add(cboKhoiThem, 1, 2);
-                    pnlFields.Controls.Add(lblNamHoc, 0, 3); pnlFields.Controls.Add(cboNamHoc, 1, 3); // Dùng cboNamHoc
+                    pnlFields.Controls.Add(lblNamHoc, 0, 3); pnlFields.Controls.Add(cboNamHoc, 1, 3);
 
                     var pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 60, BackColor = Color.White };
                     var btnLuu = new Button { Text = "💾 LƯU LỚP", Font = new Font("Segoe UI", 10F, FontStyle.Bold), BackColor = Color.FromArgb(40, 167, 69), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Height = 38, Width = 130, Dock = DockStyle.Right };
@@ -474,16 +473,16 @@ namespace N6
 
                         try
                         {
-                            // Lấy giá trị thực: MaNamHoc (VD: "2024-2025") từ ComboBox
                             string selectedNamHoc = cboNamHoc.SelectedValue != null
                                                     ? cboNamHoc.SelectedValue.ToString()
                                                     : cboNamHoc.Text;
 
+                            // Gọi DatabaseHelper (Module Lõi) để thực thi logic
                             DatabaseHelper.InsertClass(
                                 txtMaLop.Text.Trim().ToUpper(),
                                 txtTenLop.Text.Trim(),
                                 cboKhoiThem.SelectedItem.ToString(),
-                                selectedNamHoc // Truyền mã năm học chuẩn
+                                selectedNamHoc
                             );
 
                             MessageBox.Show("✅ Thêm lớp học thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -491,11 +490,15 @@ namespace N6
                         }
                         catch (Exception ex)
                         {
+                            // Bắt ngoại lệ chung tại UI để hiển thị thông báo
                             MessageBox.Show($"❌ Lỗi khi thêm lớp: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     };
 
-                    btnHuy.Click += (s, ev) => formThemLop.Close();
+                    btnHuy.Click += (s, ev) =>
+                    {
+                        formThemLop.Close();
+                    };
 
                     Panel spacer = new Panel { Dock = DockStyle.Right, Width = 10 };
                     pnlButtons.Controls.Add(btnLuu);

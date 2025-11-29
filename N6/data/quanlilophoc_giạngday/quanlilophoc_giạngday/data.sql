@@ -686,10 +686,62 @@ BEGIN
     SELECT MaCotDiem, TenHienThi FROM ThoiHanDiem WHERE Khoi = @Khoi AND HocKy = @HocKy AND MaCotDiem LIKE 'Thang%' ORDER BY NgayMoDiem;
 END;
 GO
-CREATE PROCEDURE sp_GetBaoCaoThang_ThongKe @MaLop VARCHAR(10), @MaMon VARCHAR(10), @LoaiDiem VARCHAR(20) AS
+ALTER PROCEDURE sp_GetBaoCaoThang_ThongKe 
+    @MaLop VARCHAR(10), 
+    @MaMon VARCHAR(10), 
+    @LoaiDiem VARCHAR(20) 
+AS
 BEGIN
-    DECLARE @Khoi NVARCHAR(20); SELECT @Khoi = Khoi FROM LopHoc WHERE MaLop = @MaLop;
-    ;WITH RawData AS ( SELECT hs.GioiTinh, hs.DanToc, kq.Diem FROM KetQuaHocTap kq JOIN HocSinh hs ON kq.MaHS = hs.MaHS LEFT JOIN ThoiHanDiem thd ON kq.Loai = thd.MaCotDiem AND thd.Khoi = @Khoi WHERE hs.MaLop = @MaLop AND kq.MaMon = @MaMon AND kq.Loai = @LoaiDiem AND kq.Diem IS NOT NULL AND kq.NgayNhap >= DATEADD(day, -30, ISNULL(thd.NgayMoDiem, '2000-01-01')) ), ClassifiedData AS ( SELECT CASE WHEN Diem = 10 THEN '10' WHEN Diem >= 9 AND Diem < 10 THEN '9' WHEN Diem >= 8 AND Diem < 9 THEN '8' WHEN Diem >= 7 AND Diem < 8 THEN '7' WHEN Diem >= 6 AND Diem < 7 THEN '6' WHEN Diem >= 5 AND Diem < 6 THEN '5' ELSE '<5' END AS NhomDiem, CASE WHEN Diem >= 7 THEN 'T' WHEN Diem >= 5 THEN 'H' ELSE 'C' END AS XepLoai, CASE WHEN GioiTinh = N'Nữ' THEN 1 ELSE 0 END AS IsNu, CASE WHEN DanToc IS NOT NULL AND DanToc != N'Kinh' THEN 1 ELSE 0 END AS IsDanTocThieuSo, CASE WHEN GioiTinh = N'Nữ' AND (DanToc IS NOT NULL AND DanToc != N'Kinh') THEN 1 ELSE 0 END AS IsNuDanTocThieuSo FROM RawData ) SELECT 'Diem' AS LoaiThongKe, NhomDiem AS PhanLoai, COUNT(*) AS TS, SUM(IsNu) AS Nu, SUM(IsDanTocThieuSo) AS DanToc, SUM(IsNuDanTocThieuSo) AS NDT FROM ClassifiedData GROUP BY NhomDiem UNION ALL SELECT 'XepLoai' AS LoaiThongKe, XepLoai AS PhanLoai, COUNT(*) AS TS, SUM(IsNu) AS Nu, SUM(IsDanTocThieuSo) AS DanToc, SUM(IsNuDanTocThieuSo) AS NDT FROM ClassifiedData GROUP BY XepLoai;
+    -- Phiên bản sửa lỗi: Trả về '<5' để khớp với C# UC_Baocao.cs dòng 531
+    
+    ;WITH RawData AS ( 
+        SELECT 
+            hs.GioiTinh, 
+            LTRIM(RTRIM(ISNULL(hs.DanToc, ''))) AS DanTocClean, 
+            kq.Diem 
+        FROM KetQuaHocTap kq 
+        JOIN HocSinh hs ON kq.MaHS = hs.MaHS 
+        WHERE hs.MaLop = @MaLop 
+          AND kq.MaMon = @MaMon 
+          AND kq.Loai = @LoaiDiem 
+          AND kq.Diem IS NOT NULL 
+    ), 
+    ClassifiedData AS ( 
+        SELECT 
+            CASE 
+                WHEN Diem = 10 THEN '10' 
+                WHEN Diem >= 9 AND Diem < 10 THEN '9' 
+                WHEN Diem >= 8 AND Diem < 9 THEN '8' 
+                WHEN Diem >= 7 AND Diem < 8 THEN '7' 
+                WHEN Diem >= 6 AND Diem < 7 THEN '6' 
+                WHEN Diem >= 5 AND Diem < 6 THEN '5' 
+                ELSE '<5'  -- QUAN TRỌNG: Phải là '<5' để khớp với code C#
+            END AS NhomDiem, 
+            CASE 
+                WHEN Diem >= 7 THEN 'T' 
+                WHEN Diem >= 5 THEN 'H' 
+                ELSE 'C' 
+            END AS XepLoai, 
+            
+            -- Logic đếm Nữ/Dân tộc
+            CASE WHEN LTRIM(RTRIM(GioiTinh)) = N'Nữ' THEN 1 ELSE 0 END AS IsNu, 
+            
+            CASE 
+                WHEN DanTocClean <> '' AND LOWER(DanTocClean) <> N'kinh' THEN 1 
+                ELSE 0 
+            END AS IsDanTocThieuSo, 
+            
+            CASE 
+                WHEN LTRIM(RTRIM(GioiTinh)) = N'Nữ' AND (DanTocClean <> '' AND LOWER(DanTocClean) <> N'kinh') THEN 1 
+                ELSE 0 
+            END AS IsNuDanTocThieuSo 
+        FROM RawData 
+    ) 
+    SELECT 'Diem' AS LoaiThongKe, NhomDiem AS PhanLoai, COUNT(*) AS TS, SUM(IsNu) AS Nu, SUM(IsDanTocThieuSo) AS DanToc, SUM(IsNuDanTocThieuSo) AS NDT 
+    FROM ClassifiedData GROUP BY NhomDiem 
+    UNION ALL 
+    SELECT 'XepLoai' AS LoaiThongKe, XepLoai AS PhanLoai, COUNT(*) AS TS, SUM(IsNu) AS Nu, SUM(IsDanTocThieuSo) AS DanToc, SUM(IsNuDanTocThieuSo) AS NDT 
+    FROM ClassifiedData GROUP BY XepLoai;
 END;
 GO
 CREATE PROCEDURE sp_GetScoresForAnalysis @maGV VARCHAR(10), @phamVi NVARCHAR(20), @chiTiet NVARCHAR(50), @maMon VARCHAR(10), @hocKy INT AS
@@ -972,9 +1024,72 @@ BEGIN
     SELECT sc.Khoi, sc.TenLop, sc.SoHocSinh, ISNULL(av.DiemTrungBinh, 0) AS DiemTrungBinh, sc.SoNam, sc.SoNu FROM StudentCounts sc LEFT JOIN AvgScores av ON sc.MaLop = av.MaLop ORDER BY sc.Khoi, sc.TenLop;
 END;
 GO
-CREATE PROCEDURE sp_Admin_GetBaoCaoThang_ThongKe @Khoi NVARCHAR(20) = NULL, @MaMon VARCHAR(10), @LoaiDiem VARCHAR(20) AS
+CREATE OR ALTER PROCEDURE sp_Admin_GetBaoCaoThang_ThongKe 
+    @Khoi NVARCHAR(20) = NULL, 
+    @MaMon VARCHAR(10), 
+    @LoaiDiem VARCHAR(20) 
+AS
 BEGIN
-    SET NOCOUNT ON; ;WITH RawData AS ( SELECT hs.GioiTinh, hs.DanToc, kq.Diem FROM KetQuaHocTap kq JOIN HocSinh hs ON kq.MaHS = hs.MaHS JOIN LopHoc lh ON hs.MaLop = lh.MaLop WHERE (@Khoi IS NULL OR lh.Khoi = @Khoi) AND kq.MaMon = @MaMon AND kq.Loai = @LoaiDiem AND kq.Diem IS NOT NULL ), ClassifiedData AS ( SELECT CASE WHEN Diem = 10 THEN '10' WHEN Diem >= 9 AND Diem < 10 THEN '9' WHEN Diem >= 8 AND Diem < 9 THEN '8' WHEN Diem >= 7 AND Diem < 8 THEN '7' WHEN Diem >= 6 AND Diem < 7 THEN '6' WHEN Diem >= 5 AND Diem < 6 THEN '5' ELSE N'Dưới 5' END AS NhomDiem, CASE WHEN Diem >= 7 THEN 'T' WHEN Diem >= 5 THEN 'H' ELSE 'C' END AS XepLoai, CASE WHEN GioiTinh = N'Nữ' THEN 1 ELSE 0 END AS IsNu, CASE WHEN DanToc IS NOT NULL AND DanToc != N'Kinh' THEN 1 ELSE 0 END AS IsDanTocThieuSo, CASE WHEN GioiTinh = N'Nữ' AND (DanToc IS NOT NULL AND DanToc != N'Kinh') THEN 1 ELSE 0 END AS IsNuDanTocThieuSo FROM RawData ), DiemStats AS ( SELECT 'Diem' AS LoaiThongKe, NhomDiem AS PhanLoai, COUNT(*) AS TS, SUM(IsNu) AS Nu, SUM(IsDanTocThieuSo) AS DanToc, SUM(IsNuDanTocThieuSo) AS NDT, CAST(NULL AS FLOAT) AS TyLe FROM ClassifiedData GROUP BY NhomDiem ), XepLoaiStats AS ( SELECT 'XepLoai' AS LoaiThongKe, XepLoai AS PhanLoai, COUNT(*) AS TS, NULL AS Nu, NULL AS DanToc, NULL AS NDT, CAST( (COUNT(*) * 100.0) / NULLIF((SELECT COUNT(*) FROM RawData), 0) AS DECIMAL(5, 1)) AS TyLe FROM ClassifiedData GROUP BY XepLoai ) SELECT * FROM DiemStats UNION ALL SELECT * FROM XepLoaiStats;
+    SET NOCOUNT ON; 
+    
+    ;WITH RawData AS ( 
+        SELECT 
+            hs.GioiTinh, 
+            LTRIM(RTRIM(ISNULL(hs.DanToc, ''))) AS DanTocClean,
+            kq.Diem 
+        FROM KetQuaHocTap kq 
+        JOIN HocSinh hs ON kq.MaHS = hs.MaHS 
+        JOIN LopHoc lh ON hs.MaLop = lh.MaLop 
+        WHERE (@Khoi IS NULL OR lh.Khoi = @Khoi) 
+          -- [FIX] Thêm điều kiện: Nếu @MaMon là 'ALL' thì lấy hết, ngược lại thì lọc theo mã
+          AND (@MaMon = 'ALL' OR kq.MaMon = @MaMon) 
+          AND kq.Loai = @LoaiDiem 
+          AND kq.Diem IS NOT NULL
+    ), 
+    ClassifiedData AS ( 
+        SELECT 
+            CASE 
+                WHEN Diem = 10 THEN '10' 
+                WHEN Diem >= 9 AND Diem < 10 THEN '9' 
+                WHEN Diem >= 8 AND Diem < 9 THEN '8' 
+                WHEN Diem >= 7 AND Diem < 8 THEN '7' 
+                WHEN Diem >= 6 AND Diem < 7 THEN '6' 
+                WHEN Diem >= 5 AND Diem < 6 THEN '5' 
+                ELSE N'Dưới 5' 
+            END AS NhomDiem, 
+            CASE 
+                WHEN Diem >= 7 THEN 'T' 
+                WHEN Diem >= 5 THEN 'H' 
+                ELSE 'C' 
+            END AS XepLoai, 
+            
+            CASE WHEN LTRIM(RTRIM(GioiTinh)) = N'Nữ' THEN 1 ELSE 0 END AS IsNu, 
+            
+            CASE 
+                WHEN DanTocClean <> '' AND LOWER(DanTocClean) <> N'kinh' THEN 1 
+                ELSE 0 
+            END AS IsDanTocThieuSo, 
+            
+            CASE 
+                WHEN LTRIM(RTRIM(GioiTinh)) = N'Nữ' AND (DanTocClean <> '' AND LOWER(DanTocClean) <> N'kinh') THEN 1 
+                ELSE 0 
+            END AS IsNuDanTocThieuSo 
+        FROM RawData 
+    ), 
+    DiemStats AS ( 
+        SELECT 'Diem' AS LoaiThongKe, NhomDiem AS PhanLoai, COUNT(*) AS TS, SUM(IsNu) AS Nu, SUM(IsDanTocThieuSo) AS DanToc, SUM(IsNuDanTocThieuSo) AS NDT, CAST(NULL AS FLOAT) AS TyLe 
+        FROM ClassifiedData GROUP BY NhomDiem 
+    ), 
+    XepLoaiStats AS ( 
+        SELECT 'XepLoai' AS LoaiThongKe, XepLoai AS PhanLoai, 
+        COUNT(*) AS TS, 
+        SUM(IsNu) AS Nu, 
+        SUM(IsDanTocThieuSo) AS DanToc, 
+        SUM(IsNuDanTocThieuSo) AS NDT, 
+        CAST( (COUNT(*) * 100.0) / NULLIF((SELECT COUNT(*) FROM RawData), 0) AS DECIMAL(5, 1)) AS TyLe 
+        FROM ClassifiedData GROUP BY XepLoai 
+    ) 
+    SELECT * FROM DiemStats UNION ALL SELECT * FROM XepLoaiStats;
 END;
 GO
 CREATE PROCEDURE sp_GetArchiveYears AS BEGIN SELECT DISTINCT NamHoc FROM LopHoc ORDER BY NamHoc DESC; END;
@@ -1022,128 +1137,123 @@ create PROCEDURE sp_ProcessStudentPromotion_V2
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @NewLine CHAR(1) = CHAR(13);
 
-    -- A. KIỂM TRA CƠ BẢN
     IF NOT EXISTS (SELECT 1 FROM NamHoc WHERE MaNamHoc = @MaNamHocHienTai)
     BEGIN
         RAISERROR(N'Mã năm học không tồn tại!', 16, 1);
         RETURN;
     END
 
-    -- [SỬA ĐỔI QUAN TRỌNG]: Không chặn toàn bộ lớp, mà sẽ lọc học sinh ở bước dưới.
-    -- Nhưng vẫn chặn nếu lớp đích còn học sinh cũ (chưa dọn dẹp)
     IF @IsLop5_TotNghiep = 0 AND @MaLopMoi_LenLop IS NOT NULL
     BEGIN
         DECLARE @SiSoDich INT;
-        -- Chỉ đếm những học sinh ở lớp đích MÀ CHƯA ĐƯỢC XÉT DUYỆT NĂM NAY
-        -- (Để tránh trường hợp vừa đẩy học sinh lớp 1 lên lớp 2, rồi hệ thống báo lớp 2 có người)
-        SELECT @SiSoDich = COUNT(*) 
-        FROM HocSinh hs
-        WHERE hs.MaLop = @MaLopMoi_LenLop
-          AND hs.MaHS NOT IN (SELECT MaHS FROM HoSoLuuTru WHERE MaNamHoc = @MaNamHocHienTai);
-        
+        SELECT @SiSoDich = COUNT(*) FROM HocSinh WHERE MaLop = @MaLopMoi_LenLop AND MaHS NOT IN (SELECT MaHS FROM HoSoLuuTru WHERE MaNamHoc = @MaNamHocHienTai);
         IF @SiSoDich > 0
         BEGIN
-            DECLARE @TenLopDich NVARCHAR(50);
-            SELECT @TenLopDich = TenLop FROM LopHoc WHERE MaLop = @MaLopMoi_LenLop;
-            
-            RAISERROR(N'⛔ Lớp đích [%s] vẫn còn %d học sinh cũ chưa được xử lý.%s👉 Bạn phải xét lên lớp cho [%s] trước (Quy tắc cuốn chiếu: 5->4->3...).', 
-                      16, 1, @TenLopDich, @SiSoDich, @NewLine, @TenLopDich);
+            DECLARE @TenLopDich NVARCHAR(50); SELECT @TenLopDich = TenLop FROM LopHoc WHERE MaLop = @MaLopMoi_LenLop;
+            RAISERROR(N'Lớp đích [%s] vẫn còn học sinh cũ. Vui lòng xét lên lớp cho lớp đó trước.', 16, 1, @TenLopDich);
             RETURN;
         END
     END
 
-    -- D. TÍNH TOÁN ĐIỂM (CTE)
     CREATE TABLE #DanhSachXetDuyet (MaHS VARCHAR(10), DiemTB_Nam FLOAT, TrangThai INT); 
 
     ;WITH DiemThanhPhan AS (
         SELECT 
             kq.MaHS, kq.MaMon,
-            MAX(CASE WHEN kq.Loai = 'Thang1_Ki1' THEN kq.Diem END) AS T1_1,
-            MAX(CASE WHEN kq.Loai = 'Thang2_Ki1' THEN kq.Diem END) AS T2_1,
-            MAX(CASE WHEN kq.Loai = 'Thang3_Ki1' THEN kq.Diem END) AS T3_1,
-            MAX(CASE WHEN kq.Loai = 'GiuaKi1'    THEN kq.Diem END) AS GK_1,
-            MAX(CASE WHEN kq.Loai = 'CuoiKi1'    THEN kq.Diem END) AS CK_1,
-            MAX(CASE WHEN kq.Loai = 'Thang1_Ki2' THEN kq.Diem END) AS T1_2,
-            MAX(CASE WHEN kq.Loai = 'Thang2_Ki2' THEN kq.Diem END) AS T2_2,
-            MAX(CASE WHEN kq.Loai = 'Thang3_Ki2' THEN kq.Diem END) AS T3_2,
-            MAX(CASE WHEN kq.Loai = 'GiuaKi2'    THEN kq.Diem END) AS GK_2,
-            MAX(CASE WHEN kq.Loai = 'CuoiKi2'    THEN kq.Diem END) AS CK_2
+            MAX(CASE WHEN kq.Loai LIKE 'Thang1_Ki1%' THEN kq.Diem END) AS T1_1,
+            MAX(CASE WHEN kq.Loai LIKE 'Thang2_Ki1%' THEN kq.Diem END) AS T2_1,
+            MAX(CASE WHEN kq.Loai LIKE 'Thang3_Ki1%' THEN kq.Diem END) AS T3_1,
+            MAX(CASE WHEN kq.Loai LIKE 'GiuaKi1%'    THEN kq.Diem END) AS GK_1,
+            MAX(CASE WHEN kq.Loai LIKE 'CuoiKi1%'    THEN kq.Diem END) AS CK_1,
+            
+            MAX(CASE WHEN kq.Loai LIKE 'Thang1_Ki2%' THEN kq.Diem END) AS T1_2,
+            MAX(CASE WHEN kq.Loai LIKE 'Thang2_Ki2%' THEN kq.Diem END) AS T2_2,
+            MAX(CASE WHEN kq.Loai LIKE 'Thang3_Ki2%' THEN kq.Diem END) AS T3_2,
+            MAX(CASE WHEN kq.Loai LIKE 'GiuaKi2%'    THEN kq.Diem END) AS GK_2,
+            MAX(CASE WHEN kq.Loai LIKE 'CuoiKi2%'    THEN kq.Diem END) AS CK_2
         FROM KetQuaHocTap kq
         JOIN HocSinh hs ON kq.MaHS = hs.MaHS
-        -- [QUAN TRỌNG] CHỈ LẤY HỌC SINH CHƯA CÓ TRONG KHO LƯU TRỮ NĂM NAY
         WHERE hs.MaLop = @MaLopCu 
           AND kq.Diem IS NOT NULL
-          AND hs.MaHS NOT IN (SELECT MaHS FROM HoSoLuuTru WHERE MaNamHoc = @MaNamHocHienTai) 
+          AND hs.MaHS NOT IN (SELECT MaHS FROM HoSoLuuTru WHERE MaNamHoc = @MaNamHocHienTai)
         GROUP BY kq.MaHS, kq.MaMon
     ),
-    TinhToanHeSo AS (
+    TinhDiemTrungBinhMon AS (
         SELECT 
             MaHS, MaMon,
-            (ISNULL(T1_1, 0) + ISNULL(T2_1, 0) + ISNULL(T3_1, 0) + (ISNULL(GK_1, 0)*2) + (ISNULL(CK_1, 0)*3)) AS TongDiem_HK1,
-            ((CASE WHEN T1_1 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T2_1 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T3_1 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN GK_1 IS NOT NULL THEN 2 ELSE 0 END) + (CASE WHEN CK_1 IS NOT NULL THEN 3 ELSE 0 END)) AS TongHeSo_HK1,
-            (ISNULL(T1_2, 0) + ISNULL(T2_2, 0) + ISNULL(T3_2, 0) + (ISNULL(GK_2, 0)*2) + (ISNULL(CK_2, 0)*3)) AS TongDiem_HK2,
-            ((CASE WHEN T1_2 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T2_2 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN T3_2 IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN GK_2 IS NOT NULL THEN 2 ELSE 0 END) + (CASE WHEN CK_2 IS NOT NULL THEN 3 ELSE 0 END)) AS TongHeSo_HK2
+            CAST(
+                (ISNULL(T1_1, 0) + ISNULL(T2_1, 0) + ISNULL(T3_1, 0) + (ISNULL(GK_1, 0) * 2) + (ISNULL(CK_1, 0) * 3)) 
+                AS FLOAT
+            ) / NULLIF(
+                (CASE WHEN T1_1 IS NOT NULL THEN 1 ELSE 0 END) + 
+                (CASE WHEN T2_1 IS NOT NULL THEN 1 ELSE 0 END) + 
+                (CASE WHEN T3_1 IS NOT NULL THEN 1 ELSE 0 END) + 
+                (CASE WHEN GK_1 IS NOT NULL THEN 2 ELSE 0 END) + 
+                (CASE WHEN CK_1 IS NOT NULL THEN 3 ELSE 0 END), 0
+            ) AS TBHK1,
+
+            CAST(
+                (ISNULL(T1_2, 0) + ISNULL(T2_2, 0) + ISNULL(T3_2, 0) + (ISNULL(GK_2, 0) * 2) + (ISNULL(CK_2, 0) * 3)) 
+                AS FLOAT
+            ) / NULLIF(
+                (CASE WHEN T1_2 IS NOT NULL THEN 1 ELSE 0 END) + 
+                (CASE WHEN T2_2 IS NOT NULL THEN 1 ELSE 0 END) + 
+                (CASE WHEN T3_2 IS NOT NULL THEN 1 ELSE 0 END) + 
+                (CASE WHEN GK_2 IS NOT NULL THEN 2 ELSE 0 END) + 
+                (CASE WHEN CK_2 IS NOT NULL THEN 3 ELSE 0 END), 0
+            ) AS TBHK2
         FROM DiemThanhPhan
     ),
-    DiemTrungBinhMon AS (
+    TongKetNam_Mon AS (
         SELECT MaHS, MaMon,
-            CAST(TongDiem_HK1 AS FLOAT) / NULLIF(TongHeSo_HK1, 0) AS TBHK1,
-            CAST(TongDiem_HK2 AS FLOAT) / NULLIF(TongHeSo_HK2, 0) AS TBHK2
-        FROM TinhToanHeSo
-    ),
-    DiemTongKetNam_Mon AS (
-        SELECT MaHS, MaMon,
-            CASE WHEN TBHK1 IS NOT NULL AND TBHK2 IS NOT NULL THEN (TBHK1 + (TBHK2 * 2)) / 3.0
-                 WHEN TBHK1 IS NULL AND TBHK2 IS NOT NULL THEN TBHK2 ELSE NULL END AS TBM_CaNam
-        FROM DiemTrungBinhMon
+            CASE 
+                WHEN TBHK1 IS NOT NULL AND TBHK2 IS NOT NULL THEN (TBHK1 + (TBHK2 * 2)) / 3.0
+                WHEN TBHK1 IS NULL AND TBHK2 IS NOT NULL THEN TBHK2 
+                WHEN TBHK1 IS NOT NULL AND TBHK2 IS NULL THEN TBHK1 
+                ELSE 0 
+            END AS TBM_CaNam
+        FROM TinhDiemTrungBinhMon
     ),
     TongKetChung AS (
         SELECT MaHS, AVG(TBM_CaNam) AS DTB_Chung
-        FROM DiemTongKetNam_Mon WHERE TBM_CaNam IS NOT NULL GROUP BY MaHS
+        FROM TongKetNam_Mon 
+        WHERE TBM_CaNam IS NOT NULL 
+        GROUP BY MaHS
     )
+    
     INSERT INTO #DanhSachXetDuyet (MaHS, DiemTB_Nam, TrangThai)
-    SELECT hs.MaHS, ISNULL(tk.DTB_Chung, 0), CASE WHEN ISNULL(tk.DTB_Chung, 0) >= 5.0 THEN 1 ELSE 0 END
+    SELECT 
+        hs.MaHS, 
+        ROUND(ISNULL(tk.DTB_Chung, 0), 2),
+        CASE WHEN ISNULL(tk.DTB_Chung, 0) >= 5.0 THEN 1 ELSE 0 END
     FROM HocSinh hs 
     LEFT JOIN TongKetChung tk ON hs.MaHS = tk.MaHS 
     WHERE hs.MaLop = @MaLopCu
-      -- [QUAN TRỌNG] LỌC LẦN 2 ĐỂ CHẮC CHẮN
       AND hs.MaHS NOT IN (SELECT MaHS FROM HoSoLuuTru WHERE MaNamHoc = @MaNamHocHienTai);
 
-    -- KIỂM TRA NẾU KHÔNG CÒN HỌC SINH NÀO CẦN XỬ LÝ
     IF NOT EXISTS (SELECT 1 FROM #DanhSachXetDuyet)
     BEGIN
-        -- Không báo lỗi, chỉ thông báo nhẹ nhàng (hoặc im lặng thành công)
-        -- Trả về 0 để C# biết
-        SELECT 0 AS SoHSLenLop, 0 AS SoHSOLaiLop;
-        DROP TABLE #DanhSachXetDuyet;
-        RETURN;
+        SELECT 0 AS SoHSLenLop, 0 AS SoHSOLaiLop; DROP TABLE #DanhSachXetDuyet; RETURN;
     END
 
-    -- E. LƯU TRỮ VÀ CHUYỂN LỚP (TRANSACTION)
     BEGIN TRANSACTION;
     BEGIN TRY
-        -- Lưu Hồ Sơ
         INSERT INTO HoSoLuuTru (MaHoSo, MaHS, MaNamHoc, MaLop, MaGVCN, DiemTB_CuoiNam, KetQua)
         SELECT hs.MaHS + '_' + @MaNamHocHienTai, hs.MaHS, @MaNamHocHienTai, @MaLopCu, lh.MaGVCN, ds.DiemTB_Nam,
             CASE WHEN ds.TrangThai = 0 THEN N'Lưu ban' WHEN ds.TrangThai = 1 AND @IsLop5_TotNghiep = 1 THEN N'Tốt nghiệp' ELSE N'Lên lớp' END
         FROM #DanhSachXetDuyet ds JOIN HocSinh hs ON ds.MaHS = hs.MaHS JOIN LopHoc lh ON hs.MaLop = lh.MaLop;
 
-        -- Lưu Chi Tiết
         INSERT INTO ChiTietDiemLuuTru (MaHoSo, MaMon, LoaiDiem, Diem, NhanXet)
         SELECT kq.MaHS + '_' + @MaNamHocHienTai, kq.MaMon, kq.Loai, kq.Diem, kq.NhanXet
         FROM KetQuaHocTap kq INNER JOIN #DanhSachXetDuyet ds ON kq.MaHS = ds.MaHS WHERE kq.Diem IS NOT NULL;
 
-        -- Chuyển lớp
         UPDATE HocSinh SET MaLop = @MaLopMoi_OLaiLop WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet WHERE TrangThai = 0);
-        
         IF @IsLop5_TotNghiep = 1
             UPDATE HocSinh SET MaLop = NULL WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet WHERE TrangThai = 1);
         ELSE
             UPDATE HocSinh SET MaLop = @MaLopMoi_LenLop WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet WHERE TrangThai = 1);
 
-        -- Dọn dẹp
         DELETE FROM KetQuaHocTap WHERE MaHS IN (SELECT MaHS FROM #DanhSachXetDuyet);
 
         COMMIT TRANSACTION;

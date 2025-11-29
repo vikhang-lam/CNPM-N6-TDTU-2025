@@ -883,15 +883,16 @@ namespace N6
             if (dgvQuyLop == null) return;
             try
             {
-                // CHUẨN HÓA: Đã xóa '_'
                 DataTable dt = DatabaseHelper.GetClassFundByClass(maLop);
 
-                // Thêm các cột tính toán (không có trong CSDL)
+                // Thêm các cột tính toán hiển thị
                 dt.Columns.Add("Thu", typeof(decimal));
                 dt.Columns.Add("Chi", typeof(decimal));
+               
 
                 decimal tongThu = 0;
                 decimal tongChi = 0;
+                decimal tonQuyHienTai = 0; // Biến theo dõi số dư lũy kế
 
                 // Tính toán số dư
                 foreach (DataRow row in dt.Rows)
@@ -903,14 +904,16 @@ namespace N6
                     {
                         row["Thu"] = soTien;
                         tongThu += soTien;
-                     
+                        tonQuyHienTai += soTien; // Cộng vào quỹ
                     }
                     else if (loai == "Chi")
                     {
                         row["Chi"] = soTien;
                         tongChi += soTien;
-                     
+                        tonQuyHienTai -= soTien; // Trừ khỏi quỹ
                     }
+
+                    // Gán số dư tại thời điểm giao dịch này vào dòng
 
                 }
 
@@ -918,7 +921,7 @@ namespace N6
                 dgvQuyLop.Columns.Clear();
                 dgvQuyLop.DataSource = dt;
 
-                // Thêm cột Xóa
+                // Thêm cột Xóa (Giữ nguyên logic cũ của bạn)
                 if (!dgvQuyLop.Columns.Contains("DeleteColumn"))
                 {
                     var deleteCol = new DataGridViewButtonColumn
@@ -938,13 +941,23 @@ namespace N6
                     dgvQuyLop.Columns.Add(deleteCol);
                 }
 
-                // Cập nhật các thẻ thống kê
+                // --- CẬP NHẬT CÁC THẺ THỐNG KÊ ---
                 if (lblTongThu_Value != null) lblTongThu_Value.Text = $"{tongThu:N0}đ";
                 if (lblTongChi_Value != null) lblTongChi_Value.Text = $"{tongChi:N0}đ";
+
+                // Cập nhật Label Tồn Quỹ (Tổng thu - Tổng chi)
+                if (lblTonQuy_Value != null)
+                {
+                    lblTonQuy_Value.Text = $"{tonQuyHienTai:N0}đ";
+
+                    // Đổi màu nếu âm tiền
+                    if (tonQuyHienTai < 0) lblTonQuy_Value.ForeColor = Color.Red;
+                    else lblTonQuy_Value.ForeColor = Color.FromArgb(0, 80, 155); // Màu xanh dương mặc định
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi tải dữ liệu quỹ lớp");
+                MessageBox.Show("Lỗi tải dữ liệu quỹ lớp: " + ex.Message);
             }
         }
 

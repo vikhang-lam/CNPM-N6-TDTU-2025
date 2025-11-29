@@ -489,7 +489,7 @@ namespace N6
                 bool hasMaLopColumn = dtPhanCong.Columns.Contains("MaLop");
 
                 var cacMonBiXungDot = dtPhanCong.AsEnumerable()
-                    .Where(r => !dsMonMoi.Contains(r.Field<string>("MaMon")))
+                    .Where(r => !dsMonMoi.Contains(r.Field<string>("MaMon")) && !string.IsNullOrEmpty(r.Field<string>("MaLop")))
                     .Select(r => new
                     {
                         TenMon = hasTenMonColumn ? (r.Field<string>("TenMon") ?? r.Field<string>("MaMon")) : r.Field<string>("MaMon"),

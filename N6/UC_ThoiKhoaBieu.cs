@@ -42,8 +42,8 @@ namespace N6
             SetCurrentWeek(DateTime.Today);
 
             //// Gán các sự kiện (sẽ được gỡ trong Dispose)
-            //dgvTKB.CellPainting += DgvTKB_CellPainting;
-            //dgvTKB.CellMouseDown += dgvTKB_CellMouseDown;
+            dgvTKB.CellPainting += DgvTKB_CellPainting;
+            dgvTKB.CellMouseDown += dgvTKB_CellMouseDown;
 
             //// Giả định các control này tồn tại trong file Designer
             //btnPrevWeek.Click += btnPrevWeek_Click;

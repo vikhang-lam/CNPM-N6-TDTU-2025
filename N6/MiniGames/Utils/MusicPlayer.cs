@@ -26,7 +26,7 @@ namespace N6
         {
             if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             {
-                MessageBox.Show($"Lỗi Play: File không tồn tại hoặc đường dẫn trống: {filePath}", "Lỗi Nhạc");
+                
                 return;
             }
 
@@ -41,7 +41,7 @@ namespace N6
             catch (Exception ex)
             {
                 // Hiển thị lỗi để hỗ trợ gỡ lỗi khi phát nhạc thất bại
-                MessageBox.Show($"Lỗi phát nhạc SoundPlayer: {ex.Message}\nĐường dẫn: {filePath}", "Lỗi Phát Nhạc");
+               
             }
         }
 
@@ -111,7 +111,7 @@ namespace N6
             else
             {
                 // Nếu file không tồn tại, thông báo và fallback sang nhạc random
-                MessageBox.Show($"Cảnh báo: Không tìm thấy file nhạc: {fileName}. Chuyển sang Random.", "Lỗi Nhạc");
+                
                 PlayRandom();
             }
         }
