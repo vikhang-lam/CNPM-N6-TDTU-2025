@@ -1043,24 +1043,46 @@ namespace N6
         /// </summary>
         private void LoadLockStatusCache()
         {
-            lockStatusCache = new Dictionary<string, bool>(); // CHUẨN HÓA: Đã xóa '_'
+            lockStatusCache = new Dictionary<string, bool>();
             try
             {
+                // 1. Lấy thông tin lớp hiện tại để biết nó thuộc Khối nào
+                if (string.IsNullOrEmpty(maLop)) return;
+
+                System.Data.DataRow lopInfo = DatabaseHelper.GetClassDetails(maLop);
+                if (lopInfo == null) return;
+
+                string currentKhoi = lopInfo["Khoi"].ToString(); // Ví dụ: "Khối 1"
+
+                // 2. Tải toàn bộ bảng thời hạn điểm
                 DataTable dt = DatabaseHelper.GetScoreDeadlines();
+
+                // 3. Lọc và chỉ cache những dòng thuộc Khối của lớp hiện tại
                 foreach (DataRow row in dt.Rows)
                 {
-                    string maCotDiem = row["MaCotDiem"].ToString();
-                    bool daKhoa = Convert.ToBoolean(row["DaKhoa"]);
-                    // CHUẨN HÓA: Đã xóa '_'
-                    if (!lockStatusCache.ContainsKey(maCotDiem))
+                    string rowKhoi = row["Khoi"].ToString();
+
+                    // QUAN TRỌNG: Chỉ lấy quy định của Khối hiện tại
+                    if (rowKhoi == currentKhoi)
                     {
-                        lockStatusCache.Add(maCotDiem, daKhoa);
+                        string maCotDiem = row["MaCotDiem"].ToString();
+
+                        bool daKhoa = false;
+                        if (dt.Columns.Contains("DaKhoa") && row["DaKhoa"] != DBNull.Value)
+                        {
+                            daKhoa = Convert.ToBoolean(row["DaKhoa"]);
+                        }
+
+                        if (!lockStatusCache.ContainsKey(maCotDiem))
+                        {
+                            lockStatusCache.Add(maCotDiem, daKhoa);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi tải trạng thái khóa điểm");
+                MessageBox.Show("Lỗi khi tải trạng thái khóa điểm: " + ex.Message);
             }
         }
 
